@@ -25,8 +25,8 @@ export async function createFaqItem(formData: FormData) {
     .single()
 
   if (error) {
-    console.error('Error creating FAQ item:', error)
-    return { error: 'Failed to create FAQ item' }
+    console.error('[FAQ create]', error)
+    return { error: error?.message ?? JSON.stringify(error) }
   }
 
   return { data }
@@ -53,8 +53,8 @@ export async function deleteFaqItem(itemId: string) {
     .eq('id', itemId)
 
   if (error) {
-    console.error('Error deleting FAQ item:', error)
-    return { error: 'Failed to delete FAQ item' }
+    console.error('[FAQ delete]', error)
+    return { error: error?.message ?? JSON.stringify(error) }
   }
 
   return { success: true }

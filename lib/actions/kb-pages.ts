@@ -20,8 +20,8 @@ export async function createKbPage(formData: FormData) {
     .single()
 
   if (error) {
-    console.error('Error creating KB page:', error)
-    return { error: 'Failed to create page' }
+    console.error('[KB create]', error)
+    return { error: error?.message ?? JSON.stringify(error) }
   }
 
   return { data }
@@ -79,8 +79,8 @@ export async function updateKbPage(pageId: string, formData: FormData) {
     .single()
 
   if (error) {
-    console.error('Error updating KB page:', error)
-    return { error: 'Failed to update page' }
+    console.error('[KB update]', error)
+    return { error: error?.message ?? JSON.stringify(error) }
   }
 
   return { data }
@@ -93,8 +93,8 @@ export async function deleteKbPage(pageId: string) {
     .eq('id', pageId)
 
   if (error) {
-    console.error('Error deleting KB page:', error)
-    return { error: 'Failed to delete page' }
+    console.error('[KB delete]', error)
+    return { error: error?.message ?? JSON.stringify(error) }
   }
 
   return { success: true }
