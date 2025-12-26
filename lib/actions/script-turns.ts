@@ -10,7 +10,7 @@ export async function createTurn(threadId: string, formData: FormData) {
     return { error: 'Speaker and content are required' }
   }
 
-  if (speaker !== 'agent' && speaker !== 'customer') {
+  if (speaker !== 'agent' && speaker !== 'client') {
     return { error: 'Invalid speaker type' }
   }
 
