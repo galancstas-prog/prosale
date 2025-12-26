@@ -43,26 +43,24 @@ export async function POST(request: NextRequest) {
 
     const userId = authData.user.id
 
-    const { data: tenantData, error: tenantError } = await adminClient
-      .rpc('insert_tenant_direct', { company_name: companyName })
+    const { data: tenant, error: tenantError } = await adminClient
+      .from('tenants')
+      .insert({
+        name: companyName,
+        plan_tier: 'free',
+      })
+      .select('id')
+      .single()
 
-    if (tenantError) {
+    if (tenantError || !tenant) {
       await adminClient.auth.admin.deleteUser(userId)
       return NextResponse.json(
-        { ok: false, error: 'Failed to create workspace: ' + tenantError.message },
+        { ok: false, error: 'Failed to create workspace: ' + (tenantError?.message || 'Unknown error') },
         { status: 400 }
       )
     }
 
-    const tenantId = tenantData?.id
-
-    if (!tenantId) {
-      await adminClient.auth.admin.deleteUser(userId)
-      return NextResponse.json(
-        { ok: false, error: 'Failed to create workspace: No tenant ID returned' },
-        { status: 400 }
-      )
-    }
+    const tenantId = tenant.id
 
     const { error: appUserError } = await adminClient
       .from('app_users')
