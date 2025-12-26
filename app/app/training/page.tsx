@@ -1,17 +1,9 @@
-import { getCurrentUser } from '@/lib/auth/user'
 import { getTrainingCategories } from '@/lib/actions/training-categories'
 import { CreateTrainingCategoryDialog } from './create-category-dialog'
 import { TrainingCategoryList } from './category-list'
 
 export default async function TrainingPage() {
-  const user = await getCurrentUser()
   const categoriesResult = await getTrainingCategories()
-
-  if (!user) {
-    return <div>Unauthorized</div>
-  }
-
-  const isAdmin = user.appUser.role === 'ADMIN'
   const categories = categoriesResult.data || []
 
   return (
@@ -23,10 +15,10 @@ export default async function TrainingPage() {
             Access training materials and track your progress
           </p>
         </div>
-        {isAdmin && <CreateTrainingCategoryDialog />}
+        <CreateTrainingCategoryDialog />
       </div>
 
-      <TrainingCategoryList categories={categories} isAdmin={isAdmin} />
+      <TrainingCategoryList categories={categories} isAdmin={true} />
     </div>
   )
 }

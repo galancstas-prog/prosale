@@ -30,13 +30,7 @@ export function CreateCategoryDialog() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const result = await createCategory(formData)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await createCategory(formData)
 
     setOpen(false)
     setLoading(false)

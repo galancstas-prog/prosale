@@ -34,13 +34,7 @@ export function CreateThreadDialog({ categoryId }: CreateThreadDialogProps) {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const result = await createThread(categoryId, formData)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await createThread(categoryId, formData)
 
     setOpen(false)
     setLoading(false)

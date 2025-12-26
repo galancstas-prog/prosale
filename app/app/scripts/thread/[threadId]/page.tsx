@@ -1,4 +1,3 @@
-import { getCurrentUser } from '@/lib/auth/user'
 import { getThreadById } from '@/lib/actions/script-threads'
 import { getTurnsByThread } from '@/lib/actions/script-turns'
 import { Button } from '@/components/ui/button'
@@ -7,13 +6,8 @@ import Link from 'next/link'
 import { ConversationView } from './conversation-view'
 
 export default async function ThreadPage({ params }: { params: { threadId: string } }) {
-  const user = await getCurrentUser()
   const threadResult = await getThreadById(params.threadId)
   const turnsResult = await getTurnsByThread(params.threadId)
-
-  if (!user) {
-    return <div>Unauthorized</div>
-  }
 
   if (threadResult.error || !threadResult.data) {
     return <div>Thread not found</div>
@@ -21,7 +15,6 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
 
   const thread = threadResult.data
   const turns = turnsResult.data || []
-  const isAdmin = user.appUser.role === 'ADMIN'
 
   return (
     <div className="space-y-6">
@@ -42,7 +35,7 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
         </div>
       </div>
 
-      <ConversationView threadId={params.threadId} turns={turns} isAdmin={isAdmin} />
+      <ConversationView threadId={params.threadId} turns={turns} isAdmin={true} />
     </div>
   )
 }

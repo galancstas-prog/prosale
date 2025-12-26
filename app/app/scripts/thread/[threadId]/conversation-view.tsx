@@ -40,13 +40,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const result = await createTurn(threadId, formData)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await createTurn(threadId, formData)
 
     e.currentTarget.reset()
     setLoading(false)
@@ -60,13 +54,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
 
   const handleSaveEdit = async (turnId: string) => {
     setLoading(true)
-    const result = await updateTurn(turnId, editContent)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await updateTurn(turnId, editContent)
 
     setEditingTurnId(null)
     setEditContent('')
@@ -80,13 +68,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
     }
 
     setLoading(true)
-    const result = await deleteTurn(turnId, threadId)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await deleteTurn(turnId, threadId)
 
     setLoading(false)
     router.refresh()
@@ -94,14 +76,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
 
   const handleReorder = async (turnId: string, direction: 'up' | 'down') => {
     setLoading(true)
-    const result = await reorderTurn(turnId, threadId, direction)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
-
+    await reorderTurn(turnId, threadId, direction)
     setLoading(false)
     router.refresh()
   }

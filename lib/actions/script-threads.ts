@@ -1,16 +1,10 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth/user'
 import { revalidatePath } from 'next/cache'
 
+const mockThreads: any[] = []
+
 export async function createThread(categoryId: string, formData: FormData) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
-  }
-
   const title = formData.get('title') as string
   const description = formData.get('description') as string
 
@@ -18,100 +12,40 @@ export async function createThread(categoryId: string, formData: FormData) {
     return { error: 'Thread title is required' }
   }
 
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('script_threads')
-    .insert({
-      tenant_id: user.appUser.tenant_id,
-      category_id: categoryId,
-      title,
-      description,
-      is_published: true,
-      created_by: user.appUser.id,
-    })
-    .select()
-    .single()
-
-  if (error) {
-    return { error: error.message }
+  const data = {
+    id: Math.random().toString(36).substring(7),
+    category_id: categoryId,
+    title,
+    description,
+    is_published: true,
+    created_at: new Date().toISOString(),
   }
 
+  mockThreads.push(data)
   revalidatePath(`/app/scripts/${categoryId}`)
   return { data }
 }
 
 export async function getThreadsByCategory(categoryId: string) {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    return { error: 'Unauthorized' }
-  }
-
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('script_threads')
-    .select('*')
-    .eq('category_id', categoryId)
-    .order('created_at', { ascending: true })
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  return { data }
+  return { data: mockThreads.filter(t => t.category_id === categoryId) }
 }
 
 export async function getThreadById(threadId: string) {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    return { error: 'Unauthorized' }
+  const thread = mockThreads.find(t => t.id === threadId)
+  if (!thread) {
+    return { error: 'Thread not found' }
   }
-
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('script_threads')
-    .select('*, categories(*)')
-    .eq('id', threadId)
-    .single()
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  return { data }
+  return { data: { ...thread, categories: {} } }
 }
 
 export async function deleteThread(threadId: string) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
-  }
-
-  const supabase = await createClient()
-
-  const { data: thread } = await supabase
-    .from('script_threads')
-    .select('category_id')
-    .eq('id', threadId)
-    .single()
-
-  const { error } = await supabase
-    .from('script_threads')
-    .delete()
-    .eq('id', threadId)
-    .eq('tenant_id', user.appUser.tenant_id)
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  if (thread?.category_id) {
-    revalidatePath(`/app/scripts/${thread.category_id}`)
+  const index = mockThreads.findIndex(t => t.id === threadId)
+  if (index > -1) {
+    const categoryId = mockThreads[index].category_id
+    mockThreads.splice(index, 1)
+    if (categoryId) {
+      revalidatePath(`/app/scripts/${categoryId}`)
+    }
   }
   return { success: true }
 }

@@ -1,32 +1,22 @@
-import { getCurrentUser } from '@/lib/auth/user'
 import { getTrainingDocsByCategory } from '@/lib/actions/training-docs'
+import { getTrainingCategories } from '@/lib/actions/training-categories'
 import { CreateTrainingDocDialog } from './create-doc-dialog'
 import { TrainingDocList } from './doc-list'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 
 export default async function TrainingCategoryPage({ params }: { params: { categoryId: string } }) {
-  const user = await getCurrentUser()
   const docsResult = await getTrainingDocsByCategory(params.categoryId)
+  const categoriesResult = await getTrainingCategories()
 
-  if (!user) {
-    return <div>Unauthorized</div>
-  }
-
-  const supabase = await createClient()
-  const { data: category } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('id', params.categoryId)
-    .single()
+  const categories = categoriesResult.data || []
+  const category = categories.find(c => c.id === params.categoryId)
 
   if (!category) {
     return <div>Category not found</div>
   }
 
-  const isAdmin = user.appUser.role === 'ADMIN'
   const docs = docsResult.data || []
 
   return (
@@ -47,11 +37,11 @@ export default async function TrainingCategoryPage({ params }: { params: { categ
               </p>
             )}
           </div>
-          {isAdmin && <CreateTrainingDocDialog categoryId={params.categoryId} />}
+          <CreateTrainingDocDialog categoryId={params.categoryId} />
         </div>
       </div>
 
-      <TrainingDocList docs={docs} isAdmin={isAdmin} />
+      <TrainingDocList docs={docs} isAdmin={true} />
     </div>
   )
 }

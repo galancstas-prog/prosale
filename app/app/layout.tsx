@@ -1,5 +1,3 @@
-import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth/user'
 import { AppShell } from '@/components/app-shell'
 
 export default async function AppLayout({
@@ -7,11 +5,16 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    redirect('/login')
+  const mockUser = {
+    authUser: { id: 'mock-user', email: 'demo@example.com' },
+    appUser: {
+      id: 'mock-user',
+      tenant_id: 'mock-tenant',
+      email: 'demo@example.com',
+      full_name: 'Demo User',
+      role: 'ADMIN',
+    },
   }
 
-  return <AppShell user={user}>{children}</AppShell>
+  return <AppShell user={mockUser}>{children}</AppShell>
 }

@@ -1,16 +1,10 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth/user'
 import { revalidatePath } from 'next/cache'
 
+const mockTurns: any[] = []
+
 export async function createTurn(threadId: string, formData: FormData) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
-  }
-
   const speaker = formData.get('speaker') as string
   const content = formData.get('content') as string
 
@@ -22,155 +16,66 @@ export async function createTurn(threadId: string, formData: FormData) {
     return { error: 'Invalid speaker type' }
   }
 
-  const supabase = await createClient()
+  const threadTurns = mockTurns.filter(t => t.thread_id === threadId)
+  const turnOrder = threadTurns.length > 0
+    ? Math.max(...threadTurns.map(t => t.turn_order)) + 1
+    : 1
 
-  const { data: maxOrder } = await supabase
-    .from('script_turns')
-    .select('turn_order')
-    .eq('thread_id', threadId)
-    .order('turn_order', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const turnOrder = maxOrder ? maxOrder.turn_order + 1 : 1
-
-  const { data, error } = await supabase
-    .from('script_turns')
-    .insert({
-      tenant_id: user.appUser.tenant_id,
-      thread_id: threadId,
-      turn_order: turnOrder,
-      speaker,
-      content,
-    })
-    .select()
-    .single()
-
-  if (error) {
-    return { error: error.message }
+  const data = {
+    id: Math.random().toString(36).substring(7),
+    thread_id: threadId,
+    turn_order: turnOrder,
+    speaker,
+    content,
+    created_at: new Date().toISOString(),
   }
 
+  mockTurns.push(data)
   revalidatePath(`/app/scripts/thread/${threadId}`)
   return { data }
 }
 
 export async function getTurnsByThread(threadId: string) {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    return { error: 'Unauthorized' }
-  }
-
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('script_turns')
-    .select('*')
-    .eq('thread_id', threadId)
-    .order('turn_order', { ascending: true })
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  return { data }
+  const turns = mockTurns
+    .filter(t => t.thread_id === threadId)
+    .sort((a, b) => a.turn_order - b.turn_order)
+  return { data: turns }
 }
 
 export async function updateTurn(turnId: string, content: string) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
-  }
-
-  const supabase = await createClient()
-
-  const { data: turn } = await supabase
-    .from('script_turns')
-    .select('thread_id')
-    .eq('id', turnId)
-    .single()
-
-  const { error } = await supabase
-    .from('script_turns')
-    .update({ content })
-    .eq('id', turnId)
-    .eq('tenant_id', user.appUser.tenant_id)
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  if (turn?.thread_id) {
+  const turn = mockTurns.find(t => t.id === turnId)
+  if (turn) {
+    turn.content = content
     revalidatePath(`/app/scripts/thread/${turn.thread_id}`)
   }
   return { success: true }
 }
 
 export async function deleteTurn(turnId: string, threadId: string) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
+  const index = mockTurns.findIndex(t => t.id === turnId)
+  if (index > -1) {
+    mockTurns.splice(index, 1)
   }
-
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from('script_turns')
-    .delete()
-    .eq('id', turnId)
-    .eq('tenant_id', user.appUser.tenant_id)
-
-  if (error) {
-    return { error: error.message }
-  }
-
   revalidatePath(`/app/scripts/thread/${threadId}`)
   return { success: true }
 }
 
 export async function reorderTurn(turnId: string, threadId: string, direction: 'up' | 'down') {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
-  }
-
-  const supabase = await createClient()
-
-  const { data: currentTurn } = await supabase
-    .from('script_turns')
-    .select('turn_order')
-    .eq('id', turnId)
-    .single()
-
-  if (!currentTurn) {
+  const turn = mockTurns.find(t => t.id === turnId)
+  if (!turn) {
     return { error: 'Turn not found' }
   }
 
-  const newOrder = direction === 'up' ? currentTurn.turn_order - 1 : currentTurn.turn_order + 1
-
-  const { data: swapTurn } = await supabase
-    .from('script_turns')
-    .select('id')
-    .eq('thread_id', threadId)
-    .eq('turn_order', newOrder)
-    .maybeSingle()
+  const newOrder = direction === 'up' ? turn.turn_order - 1 : turn.turn_order + 1
+  const swapTurn = mockTurns.find(t => t.thread_id === threadId && t.turn_order === newOrder)
 
   if (!swapTurn) {
     return { error: 'Cannot move in that direction' }
   }
 
-  await supabase
-    .from('script_turns')
-    .update({ turn_order: newOrder })
-    .eq('id', turnId)
-
-  await supabase
-    .from('script_turns')
-    .update({ turn_order: currentTurn.turn_order })
-    .eq('id', swapTurn.id)
+  const tempOrder = turn.turn_order
+  turn.turn_order = swapTurn.turn_order
+  swapTurn.turn_order = tempOrder
 
   revalidatePath(`/app/scripts/thread/${threadId}`)
   return { success: true }

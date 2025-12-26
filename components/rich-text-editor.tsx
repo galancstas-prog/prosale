@@ -58,12 +58,6 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
 
     const result = await uploadTrainingImage(formData)
 
-    if (result.error) {
-      setError(result.error)
-      setUploading(false)
-      return
-    }
-
     if (result.url) {
       editor.chain().focus().setImage({ src: result.url }).run()
     }

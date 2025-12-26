@@ -1,32 +1,22 @@
-import { getCurrentUser } from '@/lib/auth/user'
 import { getThreadsByCategory } from '@/lib/actions/script-threads'
+import { getCategories } from '@/lib/actions/categories'
 import { CreateThreadDialog } from './create-thread-dialog'
 import { ThreadList } from './thread-list'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 
 export default async function CategoryPage({ params }: { params: { categoryId: string } }) {
-  const user = await getCurrentUser()
   const threadsResult = await getThreadsByCategory(params.categoryId)
+  const categoriesResult = await getCategories()
 
-  if (!user) {
-    return <div>Unauthorized</div>
-  }
-
-  const supabase = await createClient()
-  const { data: category } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('id', params.categoryId)
-    .single()
+  const categories = categoriesResult.data || []
+  const category = categories.find(c => c.id === params.categoryId)
 
   if (!category) {
     return <div>Category not found</div>
   }
 
-  const isAdmin = user.appUser.role === 'ADMIN'
   const threads = threadsResult.data || []
 
   return (
@@ -47,11 +37,11 @@ export default async function CategoryPage({ params }: { params: { categoryId: s
               </p>
             )}
           </div>
-          {isAdmin && <CreateThreadDialog categoryId={params.categoryId} />}
+          <CreateThreadDialog categoryId={params.categoryId} />
         </div>
       </div>
 
-      <ThreadList threads={threads} isAdmin={isAdmin} />
+      <ThreadList threads={threads} isAdmin={true} />
     </div>
   )
 }

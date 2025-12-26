@@ -1,4 +1,3 @@
-import { getCurrentUser } from '@/lib/auth/user'
 import { getTrainingDocById } from '@/lib/actions/training-docs'
 import { getMyProgress } from '@/lib/actions/training-progress'
 import { Button } from '@/components/ui/button'
@@ -7,13 +6,8 @@ import Link from 'next/link'
 import { TrainingDocViewer } from './doc-viewer'
 
 export default async function TrainingDocPage({ params }: { params: { docId: string } }) {
-  const user = await getCurrentUser()
   const docResult = await getTrainingDocById(params.docId)
   const progressResult = await getMyProgress(params.docId)
-
-  if (!user) {
-    return <div>Unauthorized</div>
-  }
 
   if (docResult.error || !docResult.data) {
     return <div>Document not found</div>
@@ -21,7 +15,6 @@ export default async function TrainingDocPage({ params }: { params: { docId: str
 
   const doc = docResult.data
   const progress = progressResult.data
-  const isAdmin = user.appUser.role === 'ADMIN'
 
   return (
     <div className="space-y-6">
@@ -38,7 +31,7 @@ export default async function TrainingDocPage({ params }: { params: { docId: str
       <TrainingDocViewer
         doc={doc}
         progress={progress}
-        isAdmin={isAdmin}
+        isAdmin={true}
       />
     </div>
   )

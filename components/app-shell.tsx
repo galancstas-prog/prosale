@@ -2,14 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
-import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard,
   MessageSquare,
@@ -18,7 +17,6 @@ import {
   Database,
   Settings,
   Users,
-  LogOut,
   Menu,
   X,
   BarChart,
@@ -34,7 +32,6 @@ interface AppShellProps {
 
 function AppShellContent({ children, user }: AppShellProps) {
   const pathname = usePathname()
-  const router = useRouter()
   const { t } = useLocale()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -87,13 +84,6 @@ function AppShellContent({ children, user }: AppShellProps) {
         },
       ]
     : []
-
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
 
   return (
     <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900">
@@ -173,14 +163,6 @@ function AppShellContent({ children, user }: AppShellProps) {
               <div className="font-medium">{user.appUser.email}</div>
               <div className="text-xs text-slate-500">{user.appUser.role}</div>
             </div>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-3 h-4 w-4" />
-              {t('nav.logout')}
-            </Button>
           </div>
         </div>
       </aside>
@@ -205,7 +187,7 @@ function AppShellContent({ children, user }: AppShellProps) {
 
           <div className="flex-1 lg:ml-0 ml-4">
             <div className="text-sm text-slate-500">
-              {user.appUser.tenants?.name}
+              Demo Workspace
             </div>
           </div>
 

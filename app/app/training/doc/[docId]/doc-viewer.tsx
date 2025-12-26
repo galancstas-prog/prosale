@@ -56,13 +56,7 @@ export function TrainingDocViewer({ doc, progress, isAdmin }: TrainingDocViewerP
     setError('')
     setLoading(true)
 
-    const result = await markDocCompleted(doc.id)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await markDocCompleted(doc.id)
 
     setLoading(false)
     router.refresh()
@@ -72,13 +66,7 @@ export function TrainingDocViewer({ doc, progress, isAdmin }: TrainingDocViewerP
     setError('')
     setLoading(true)
 
-    const result = await updateTrainingDoc(doc.id, content)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await updateTrainingDoc(doc.id, content)
 
     setEditing(false)
     setLoading(false)

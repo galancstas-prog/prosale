@@ -1,17 +1,9 @@
-import { getCurrentUser } from '@/lib/auth/user'
 import { getCategories } from '@/lib/actions/categories'
 import { CreateCategoryDialog } from './create-category-dialog'
 import { CategoryList } from './category-list'
 
 export default async function ScriptsPage() {
-  const user = await getCurrentUser()
   const categoriesResult = await getCategories()
-
-  if (!user) {
-    return <div>Unauthorized</div>
-  }
-
-  const isAdmin = user.appUser.role === 'ADMIN'
   const categories = categoriesResult.data || []
 
   return (
@@ -23,10 +15,10 @@ export default async function ScriptsPage() {
             Manage conversation scripts organized by categories
           </p>
         </div>
-        {isAdmin && <CreateCategoryDialog />}
+        <CreateCategoryDialog />
       </div>
 
-      <CategoryList categories={categories} isAdmin={isAdmin} />
+      <CategoryList categories={categories} isAdmin={true} />
     </div>
   )
 }

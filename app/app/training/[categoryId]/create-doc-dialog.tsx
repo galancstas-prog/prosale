@@ -36,13 +36,7 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
 
     const formData = new FormData(e.currentTarget)
     formData.set('content', content)
-    const result = await createTrainingDoc(categoryId, formData)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await createTrainingDoc(categoryId, formData)
 
     setOpen(false)
     setLoading(false)

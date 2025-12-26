@@ -1,86 +1,39 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth/user'
 import { revalidatePath } from 'next/cache'
 
+const mockTrainingCategories: any[] = []
+
 export async function createTrainingCategory(formData: FormData) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
-  }
-
   const name = formData.get('name') as string
   const description = formData.get('description') as string
-  const type = 'training'
 
   if (!name) {
     return { error: 'Category name is required' }
   }
 
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('categories')
-    .insert({
-      tenant_id: user.appUser.tenant_id,
-      name,
-      description,
-      type,
-    })
-    .select()
-    .single()
-
-  if (error) {
-    return { error: error.message }
+  const data = {
+    id: Math.random().toString(36).substring(7),
+    name,
+    description,
+    type: 'training',
+    created_at: new Date().toISOString(),
   }
 
+  mockTrainingCategories.push(data)
   revalidatePath('/app/training')
   return { data }
 }
 
 export async function getTrainingCategories() {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    return { error: 'Unauthorized' }
-  }
-
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('type', 'training')
-    .order('created_at', { ascending: true })
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  return { data }
+  return { data: mockTrainingCategories }
 }
 
 export async function deleteTrainingCategory(categoryId: string) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
+  const index = mockTrainingCategories.findIndex(cat => cat.id === categoryId)
+  if (index > -1) {
+    mockTrainingCategories.splice(index, 1)
   }
-
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from('categories')
-    .delete()
-    .eq('id', categoryId)
-    .eq('tenant_id', user.appUser.tenant_id)
-
-  if (error) {
-    return { error: error.message }
-  }
-
   revalidatePath('/app/training')
   return { success: true }
 }

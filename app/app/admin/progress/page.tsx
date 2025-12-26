@@ -1,15 +1,8 @@
-import { requireAdmin } from '@/lib/auth/user'
 import { getAllProgress } from '@/lib/actions/training-progress'
 import { ProgressTable } from './progress-table'
 
 export default async function AdminProgressPage() {
-  await requireAdmin()
   const progressResult = await getAllProgress()
-
-  if (progressResult.error) {
-    return <div>Error loading progress data</div>
-  }
-
   const rows = progressResult.data || []
 
   return (

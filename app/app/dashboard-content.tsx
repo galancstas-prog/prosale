@@ -65,13 +65,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     setSuccess(false)
     setLoading(true)
 
-    const result = await createDemoContent()
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await createDemoContent()
 
     setSuccess(true)
     setLoading(false)

@@ -30,13 +30,7 @@ export function CreateTrainingCategoryDialog() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const result = await createTrainingCategory(formData)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await createTrainingCategory(formData)
 
     setOpen(false)
     setLoading(false)

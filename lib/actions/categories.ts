@@ -1,16 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth/user'
 import { revalidatePath } from 'next/cache'
 
+// Mock data store
+const mockCategories: any[] = []
+
 export async function createCategory(formData: FormData) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
-  }
-
   const name = formData.get('name') as string
   const description = formData.get('description') as string
   const type = 'script'
@@ -19,68 +14,28 @@ export async function createCategory(formData: FormData) {
     return { error: 'Category name is required' }
   }
 
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('categories')
-    .insert({
-      tenant_id: user.appUser.tenant_id,
-      name,
-      description,
-      type,
-    })
-    .select()
-    .single()
-
-  if (error) {
-    return { error: error.message }
+  const data = {
+    id: Math.random().toString(36).substring(7),
+    name,
+    description,
+    type,
+    created_at: new Date().toISOString(),
   }
 
+  mockCategories.push(data)
   revalidatePath('/app/scripts')
   return { data }
 }
 
 export async function getCategories() {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    return { error: 'Unauthorized' }
-  }
-
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('type', 'script')
-    .order('created_at', { ascending: true })
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  return { data }
+  return { data: mockCategories }
 }
 
 export async function deleteCategory(categoryId: string) {
-  const user = await getCurrentUser()
-
-  if (!user || user.appUser.role !== 'ADMIN') {
-    return { error: 'Unauthorized: Admin access required' }
+  const index = mockCategories.findIndex(cat => cat.id === categoryId)
+  if (index > -1) {
+    mockCategories.splice(index, 1)
   }
-
-  const supabase = await createClient()
-
-  const { error } = await supabase
-    .from('categories')
-    .delete()
-    .eq('id', categoryId)
-    .eq('tenant_id', user.appUser.tenant_id)
-
-  if (error) {
-    return { error: error.message }
-  }
-
   revalidatePath('/app/scripts')
   return { success: true }
 }
