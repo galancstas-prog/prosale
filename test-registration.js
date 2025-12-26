@@ -115,13 +115,8 @@ async function testConnection() {
     let tenantError = null;
 
     try {
-      // Триггер автоматически заполнит остальные поля
-      // Выбираем только базовые колонки чтобы избежать проблем с кэшем PostgREST
       const result = await adminClient
-        .from('tenants')
-        .insert({ name: testCompany })
-        .select('id, name, created_at, updated_at')
-        .single();
+        .rpc('insert_tenant_direct', { company_name: testCompany });
 
       tenant = result.data;
       tenantError = result.error;
