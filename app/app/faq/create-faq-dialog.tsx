@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,6 +22,9 @@ import { useToast } from '@/hooks/use-toast'
 export function CreateFaqDialog() {
   const router = useRouter()
   const { toast } = useToast()
+
+  const formRef = useRef<HTMLFormElement | null>(null)
+
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -34,15 +37,19 @@ export function CreateFaqDialog() {
     const formData = new FormData(e.currentTarget)
     const result = await createFaqItem(formData)
 
-    if (result.error) {
+    if (result?.error) {
       setError(result.error)
       setLoading(false)
       return
     }
 
+    // закрываем диалог
     setOpen(false)
+
+    // безопасно очищаем форму
+    formRef.current?.reset()
+
     setLoading(false)
-    e.currentTarget.reset()
     router.refresh()
 
     toast({
@@ -59,6 +66,7 @@ export function CreateFaqDialog() {
           New FAQ Item
         </Button>
       </DialogTrigger>
+
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create FAQ Item</DialogTitle>
@@ -66,12 +74,18 @@ export function CreateFaqDialog() {
             Add a new frequently asked question and answer
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
           <div className="space-y-2">
             <Label htmlFor="question">Question</Label>
             <Input
@@ -82,6 +96,7 @@ export function CreateFaqDialog() {
               disabled={loading}
             />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="answer">Answer</Label>
             <Textarea
@@ -93,12 +108,21 @@ export function CreateFaqDialog() {
               className="min-h-[150px]"
             />
           </div>
+
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
               Cancel
             </Button>
+
             <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {loading && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
               Create FAQ Item
             </Button>
           </div>
