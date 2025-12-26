@@ -1,7 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 const mockProgress: any[] = []
 
 export async function getMyProgress(docId: string) {
@@ -23,7 +21,6 @@ export async function markDocInProgress(docId: string) {
   }
 
   mockProgress.push(data)
-  revalidatePath(`/app/training/doc/${docId}`)
   return { data }
 }
 
@@ -44,8 +41,6 @@ export async function markDocCompleted(docId: string) {
     })
   }
 
-  revalidatePath(`/app/training/doc/${docId}`)
-  revalidatePath('/app/admin/progress')
   return { success: true }
 }
 

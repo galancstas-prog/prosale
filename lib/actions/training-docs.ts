@@ -1,7 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 const mockDocs: any[] = []
 
 export async function createTrainingDoc(categoryId: string, formData: FormData) {
@@ -23,7 +21,6 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
   }
 
   mockDocs.push(data)
-  revalidatePath(`/app/training/${categoryId}`)
   return { data }
 }
 
@@ -43,8 +40,6 @@ export async function updateTrainingDoc(docId: string, content: string) {
   const doc = mockDocs.find(d => d.id === docId)
   if (doc) {
     doc.content_richtext = content
-    revalidatePath(`/app/training/${doc.category_id}`)
-    revalidatePath(`/app/training/doc/${docId}`)
   }
   return { success: true }
 }
@@ -54,7 +49,6 @@ export async function deleteTrainingDoc(docId: string, categoryId: string) {
   if (index > -1) {
     mockDocs.splice(index, 1)
   }
-  revalidatePath(`/app/training/${categoryId}`)
   return { success: true }
 }
 

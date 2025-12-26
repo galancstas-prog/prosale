@@ -1,7 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 const mockThreads: any[] = []
 
 export async function createThread(categoryId: string, formData: FormData) {
@@ -22,7 +20,6 @@ export async function createThread(categoryId: string, formData: FormData) {
   }
 
   mockThreads.push(data)
-  revalidatePath(`/app/scripts/${categoryId}`)
   return { data }
 }
 
@@ -41,11 +38,7 @@ export async function getThreadById(threadId: string) {
 export async function deleteThread(threadId: string) {
   const index = mockThreads.findIndex(t => t.id === threadId)
   if (index > -1) {
-    const categoryId = mockThreads[index].category_id
     mockThreads.splice(index, 1)
-    if (categoryId) {
-      revalidatePath(`/app/scripts/${categoryId}`)
-    }
   }
   return { success: true }
 }

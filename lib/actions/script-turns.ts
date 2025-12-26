@@ -1,7 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 const mockTurns: any[] = []
 
 export async function createTurn(threadId: string, formData: FormData) {
@@ -31,7 +29,6 @@ export async function createTurn(threadId: string, formData: FormData) {
   }
 
   mockTurns.push(data)
-  revalidatePath(`/app/scripts/thread/${threadId}`)
   return { data }
 }
 
@@ -46,7 +43,6 @@ export async function updateTurn(turnId: string, content: string) {
   const turn = mockTurns.find(t => t.id === turnId)
   if (turn) {
     turn.content = content
-    revalidatePath(`/app/scripts/thread/${turn.thread_id}`)
   }
   return { success: true }
 }
@@ -56,7 +52,6 @@ export async function deleteTurn(turnId: string, threadId: string) {
   if (index > -1) {
     mockTurns.splice(index, 1)
   }
-  revalidatePath(`/app/scripts/thread/${threadId}`)
   return { success: true }
 }
 
@@ -77,6 +72,5 @@ export async function reorderTurn(turnId: string, threadId: string, direction: '
   turn.turn_order = swapTurn.turn_order
   swapTurn.turn_order = tempOrder
 
-  revalidatePath(`/app/scripts/thread/${threadId}`)
   return { success: true }
 }

@@ -1,7 +1,5 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-
 // Mock data store
 const mockCategories: any[] = []
 
@@ -23,7 +21,6 @@ export async function createCategory(formData: FormData) {
   }
 
   mockCategories.push(data)
-  revalidatePath('/app/scripts')
   return { data }
 }
 
@@ -36,6 +33,5 @@ export async function deleteCategory(categoryId: string) {
   if (index > -1) {
     mockCategories.splice(index, 1)
   }
-  revalidatePath('/app/scripts')
   return { success: true }
 }
