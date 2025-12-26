@@ -47,9 +47,8 @@ export async function POST(request: NextRequest) {
       .from('tenants')
       .insert({
         name: companyName,
-        plan_tier: 'free',
       })
-      .select()
+      .select('id, name, created_at, updated_at')
       .single()
 
     if (tenantError) {

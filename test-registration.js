@@ -115,11 +115,12 @@ async function testConnection() {
     let tenantError = null;
 
     try {
-      // Триггер автоматически заполнит все поля
+      // Триггер автоматически заполнит остальные поля
+      // Выбираем только базовые колонки чтобы избежать проблем с кэшем PostgREST
       const result = await adminClient
         .from('tenants')
         .insert({ name: testCompany })
-        .select()
+        .select('id, name, created_at, updated_at')
         .single();
 
       tenant = result.data;
