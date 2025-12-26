@@ -50,7 +50,7 @@ CREATE POLICY "Allow all access to script_threads"
 CREATE TABLE IF NOT EXISTS script_turns (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   thread_id uuid REFERENCES script_threads(id) ON DELETE CASCADE,
-  speaker text NOT NULL CHECK (speaker IN ('agent', 'customer')),
+  speaker text NOT NULL CHECK (speaker IN ('agent', 'client')),
   message text NOT NULL,
   order_index integer NOT NULL DEFAULT 0,
   created_at timestamptz DEFAULT now()
