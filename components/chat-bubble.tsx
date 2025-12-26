@@ -34,7 +34,7 @@ export function ChatBubble({ speaker, content, showCopyButton = false }: ChatBub
           )}
         >
           <div className="text-xs font-semibold mb-1 opacity-70">
-            {isAgent ? 'Manager' : 'Customer'}
+            {isAgent ? 'Manager' : 'client'}
           </div>
           <div className="whitespace-pre-wrap">{content}</div>
         </div>
