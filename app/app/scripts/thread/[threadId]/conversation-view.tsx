@@ -27,7 +27,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Turn {
   id: string
-  speaker: 'agent' | 'customer'
+  speaker: 'agent' | 'client'
   message: string
   order_index: number
 }
