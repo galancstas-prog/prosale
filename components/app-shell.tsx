@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
+import { supabase } from '@/lib/supabase-client'
 import {
   LayoutDashboard,
   MessageSquare,
@@ -20,6 +21,7 @@ import {
   Menu,
   X,
   BarChart,
+  LogOut,
 } from 'lucide-react'
 
 interface AppShellProps {
@@ -32,10 +34,16 @@ interface AppShellProps {
 
 function AppShellContent({ children, user }: AppShellProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const { t } = useLocale()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const isAdmin = user.appUser.role === 'ADMIN'
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   const navigation = [
     {
@@ -163,6 +171,14 @@ function AppShellContent({ children, user }: AppShellProps) {
               <div className="font-medium">{user.appUser.email}</div>
               <div className="text-xs text-slate-500">{user.appUser.role}</div>
             </div>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-3 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </aside>
