@@ -1,6 +1,6 @@
 'use server'
 
-const mockKbPages: any[] = []
+import { supabase } from '@/lib/supabase-client'
 
 export async function createKbPage(formData: FormData) {
   const title = formData.get('title') as string
@@ -10,29 +10,54 @@ export async function createKbPage(formData: FormData) {
     return { error: 'Title and content are required' }
   }
 
-  const data = {
-    id: Math.random().toString(36).substring(7),
-    title,
-    content_richtext: content,
-    created_at: new Date().toISOString(),
+  const { data, error } = await supabase
+    .from('kb_pages')
+    .insert({
+      title,
+      content_richtext: content,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating KB page:', error)
+    return { error: 'Failed to create page' }
   }
 
-  mockKbPages.push(data)
   return { data }
 }
 
 export async function getKbPages() {
-  return { data: [...mockKbPages].sort((a, b) =>
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  ) }
+  const { data, error } = await supabase
+    .from('kb_pages')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching KB pages:', error)
+    return { data: [] }
+  }
+
+  return { data: data || [] }
 }
 
 export async function getKbPageById(pageId: string) {
-  const page = mockKbPages.find(p => p.id === pageId)
-  if (!page) {
+  const { data, error } = await supabase
+    .from('kb_pages')
+    .select('*')
+    .eq('id', pageId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error fetching KB page:', error)
     return { error: 'Page not found' }
   }
-  return { data: page }
+
+  if (!data) {
+    return { error: 'Page not found' }
+  }
+
+  return { data }
 }
 
 export async function updateKbPage(pageId: string, formData: FormData) {
@@ -43,20 +68,34 @@ export async function updateKbPage(pageId: string, formData: FormData) {
     return { error: 'Title and content are required' }
   }
 
-  const page = mockKbPages.find(p => p.id === pageId)
-  if (!page) {
-    return { error: 'Page not found' }
+  const { data, error } = await supabase
+    .from('kb_pages')
+    .update({
+      title,
+      content_richtext: content,
+    })
+    .eq('id', pageId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating KB page:', error)
+    return { error: 'Failed to update page' }
   }
 
-  page.title = title
-  page.content_richtext = content
-  return { data: page }
+  return { data }
 }
 
 export async function deleteKbPage(pageId: string) {
-  const index = mockKbPages.findIndex(p => p.id === pageId)
-  if (index > -1) {
-    mockKbPages.splice(index, 1)
+  const { error } = await supabase
+    .from('kb_pages')
+    .delete()
+    .eq('id', pageId)
+
+  if (error) {
+    console.error('Error deleting KB page:', error)
+    return { error: 'Failed to delete page' }
   }
+
   return { success: true }
 }

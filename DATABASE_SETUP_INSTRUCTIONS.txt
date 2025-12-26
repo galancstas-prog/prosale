@@ -1,0 +1,83 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║   🗄️  DATABASE SETUP REQUIRED - ONE TIME ONLY                ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+⚠️  IMPORTANT: You must create the database tables before using the app!
+
+───────────────────────────────────────────────────────────────
+
+STEP 1: Open Supabase SQL Editor
+
+1. Go to: https://supabase.com/dashboard
+2. Select your project (vcixfyegcfmxalnsskcv)
+3. Click "SQL Editor" in the left sidebar
+4. Click "New query"
+
+───────────────────────────────────────────────────────────────
+
+STEP 2: Run the Setup SQL
+
+1. Open the file: SETUP_DATABASE.sql (in the project root)
+2. Copy ALL the contents
+3. Paste into the SQL Editor in Supabase
+4. Click "Run" button (or press Ctrl+Enter)
+5. Wait for "Success" message
+
+───────────────────────────────────────────────────────────────
+
+STEP 3: Verify Tables Were Created
+
+In the SQL Editor, run this query:
+
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+    ORDER BY table_name;
+
+You should see these 7 tables:
+✅ categories
+✅ faq_items
+✅ kb_pages
+✅ script_threads
+✅ script_turns
+✅ training_docs
+✅ training_progress
+
+───────────────────────────────────────────────────────────────
+
+DONE! ✨
+
+Your database is now ready. The application will work correctly.
+
+───────────────────────────────────────────────────────────────
+
+WHAT HAPPENS NEXT:
+
+✅ Create Knowledge Base pages → They will persist in the database
+✅ Create FAQ items → They will persist
+✅ Create Script threads → They will persist
+✅ Create Training docs → They will persist
+✅ Navigate to any created item → It will load correctly
+
+───────────────────────────────────────────────────────────────
+
+TROUBLESHOOTING:
+
+Problem: "Could not find the table in the schema cache"
+Solution: You haven't run SETUP_DATABASE.sql yet
+
+Problem: "Success. No rows returned"
+Solution: This is normal! It means the SQL ran successfully.
+         Just verify tables exist using the verification query.
+
+───────────────────────────────────────────────────────────────
+
+⏱️  TIME REQUIRED: 2 minutes
+
+This is a one-time setup. You only need to do this once!
+
+╔═══════════════════════════════════════════════════════════════╗
+║  👉 NEXT: Run the app with: npm run dev                      ║
+╚═══════════════════════════════════════════════════════════════╝

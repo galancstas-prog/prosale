@@ -1,6 +1,6 @@
 'use server'
 
-const mockTurns: any[] = []
+import { supabase } from '@/lib/supabase-client'
 
 export async function createTurn(threadId: string, formData: FormData) {
   const speaker = formData.get('speaker') as string
@@ -10,67 +10,110 @@ export async function createTurn(threadId: string, formData: FormData) {
     return { error: 'Speaker and content are required' }
   }
 
-  if (speaker !== 'agent' && speaker !== 'client') {
+  if (speaker !== 'agent' && speaker !== 'customer') {
     return { error: 'Invalid speaker type' }
   }
 
-  const threadTurns = mockTurns.filter(t => t.thread_id === threadId)
-  const turnOrder = threadTurns.length > 0
-    ? Math.max(...threadTurns.map(t => t.turn_order)) + 1
-    : 1
+  const { count } = await supabase
+    .from('script_turns')
+    .select('*', { count: 'exact', head: true })
+    .eq('thread_id', threadId)
 
-  const data = {
-    id: Math.random().toString(36).substring(7),
-    thread_id: threadId,
-    turn_order: turnOrder,
-    speaker,
-    content,
-    created_at: new Date().toISOString(),
+  const { data, error } = await supabase
+    .from('script_turns')
+    .insert({
+      thread_id: threadId,
+      speaker,
+      message: content,
+      order_index: (count || 0) + 1,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating turn:', error)
+    return { error: 'Failed to create turn' }
   }
 
-  mockTurns.push(data)
   return { data }
 }
 
 export async function getTurnsByThread(threadId: string) {
-  const turns = mockTurns
-    .filter(t => t.thread_id === threadId)
-    .sort((a, b) => a.turn_order - b.turn_order)
-  return { data: turns }
+  const { data, error } = await supabase
+    .from('script_turns')
+    .select('*')
+    .eq('thread_id', threadId)
+    .order('order_index', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching turns:', error)
+    return { data: [] }
+  }
+
+  return { data: data || [] }
 }
 
 export async function updateTurn(turnId: string, content: string) {
-  const turn = mockTurns.find(t => t.id === turnId)
-  if (turn) {
-    turn.content = content
+  const { error } = await supabase
+    .from('script_turns')
+    .update({ message: content })
+    .eq('id', turnId)
+
+  if (error) {
+    console.error('Error updating turn:', error)
+    return { error: 'Failed to update turn' }
   }
+
   return { success: true }
 }
 
 export async function deleteTurn(turnId: string, threadId: string) {
-  const index = mockTurns.findIndex(t => t.id === turnId)
-  if (index > -1) {
-    mockTurns.splice(index, 1)
+  const { error } = await supabase
+    .from('script_turns')
+    .delete()
+    .eq('id', turnId)
+
+  if (error) {
+    console.error('Error deleting turn:', error)
+    return { error: 'Failed to delete turn' }
   }
+
   return { success: true }
 }
 
 export async function reorderTurn(turnId: string, threadId: string, direction: 'up' | 'down') {
-  const turn = mockTurns.find(t => t.id === turnId)
-  if (!turn) {
+  const { data: turn, error: turnError } = await supabase
+    .from('script_turns')
+    .select('*')
+    .eq('id', turnId)
+    .maybeSingle()
+
+  if (turnError || !turn) {
     return { error: 'Turn not found' }
   }
 
-  const newOrder = direction === 'up' ? turn.turn_order - 1 : turn.turn_order + 1
-  const swapTurn = mockTurns.find(t => t.thread_id === threadId && t.turn_order === newOrder)
+  const newOrder = direction === 'up' ? turn.order_index - 1 : turn.order_index + 1
 
-  if (!swapTurn) {
+  const { data: swapTurn, error: swapError } = await supabase
+    .from('script_turns')
+    .select('*')
+    .eq('thread_id', threadId)
+    .eq('order_index', newOrder)
+    .maybeSingle()
+
+  if (swapError || !swapTurn) {
     return { error: 'Cannot move in that direction' }
   }
 
-  const tempOrder = turn.turn_order
-  turn.turn_order = swapTurn.turn_order
-  swapTurn.turn_order = tempOrder
+  await supabase
+    .from('script_turns')
+    .update({ order_index: newOrder })
+    .eq('id', turnId)
+
+  await supabase
+    .from('script_turns')
+    .update({ order_index: turn.order_index })
+    .eq('id', swapTurn.id)
 
   return { success: true }
 }

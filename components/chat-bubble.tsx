@@ -6,7 +6,7 @@ import { Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChatBubbleProps {
-  speaker: 'agent' | 'client'
+  speaker: 'agent' | 'customer'
   content: string
   showCopyButton?: boolean
 }
@@ -34,7 +34,7 @@ export function ChatBubble({ speaker, content, showCopyButton = false }: ChatBub
           )}
         >
           <div className="text-xs font-semibold mb-1 opacity-70">
-            {isAgent ? 'Manager' : 'Client'}
+            {isAgent ? 'Manager' : 'Customer'}
           </div>
           <div className="whitespace-pre-wrap">{content}</div>
         </div>

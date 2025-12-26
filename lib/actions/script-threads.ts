@@ -1,6 +1,6 @@
 'use server'
 
-const mockThreads: any[] = []
+import { supabase } from '@/lib/supabase-client'
 
 export async function createThread(categoryId: string, formData: FormData) {
   const title = formData.get('title') as string
@@ -10,35 +10,69 @@ export async function createThread(categoryId: string, formData: FormData) {
     return { error: 'Thread title is required' }
   }
 
-  const data = {
-    id: Math.random().toString(36).substring(7),
-    category_id: categoryId,
-    title,
-    description,
-    is_published: true,
-    created_at: new Date().toISOString(),
+  const { data, error } = await supabase
+    .from('script_threads')
+    .insert({
+      category_id: categoryId,
+      title,
+      description,
+      is_published: true,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating thread:', error)
+    return { error: 'Failed to create thread' }
   }
 
-  mockThreads.push(data)
   return { data }
 }
 
 export async function getThreadsByCategory(categoryId: string) {
-  return { data: mockThreads.filter(t => t.category_id === categoryId) }
+  const { data, error } = await supabase
+    .from('script_threads')
+    .select('*')
+    .eq('category_id', categoryId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching threads:', error)
+    return { data: [] }
+  }
+
+  return { data: data || [] }
 }
 
 export async function getThreadById(threadId: string) {
-  const thread = mockThreads.find(t => t.id === threadId)
-  if (!thread) {
+  const { data, error } = await supabase
+    .from('script_threads')
+    .select('*, categories(*)')
+    .eq('id', threadId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error fetching thread:', error)
     return { error: 'Thread not found' }
   }
-  return { data: { ...thread, categories: {} } }
+
+  if (!data) {
+    return { error: 'Thread not found' }
+  }
+
+  return { data }
 }
 
 export async function deleteThread(threadId: string) {
-  const index = mockThreads.findIndex(t => t.id === threadId)
-  if (index > -1) {
-    mockThreads.splice(index, 1)
+  const { error } = await supabase
+    .from('script_threads')
+    .delete()
+    .eq('id', threadId)
+
+  if (error) {
+    console.error('Error deleting thread:', error)
+    return { error: 'Failed to delete thread' }
   }
+
   return { success: true }
 }

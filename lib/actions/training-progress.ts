@@ -1,49 +1,98 @@
 'use server'
 
-const mockProgress: any[] = []
+import { supabase } from '@/lib/supabase-client'
 
 export async function getMyProgress(docId: string) {
-  const progress = mockProgress.find(p => p.doc_id === docId)
-  return { data: progress || null }
+  const { data, error } = await supabase
+    .from('training_progress')
+    .select('*')
+    .eq('doc_id', docId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error fetching progress:', error)
+    return { data: null }
+  }
+
+  return { data }
 }
 
 export async function markDocInProgress(docId: string) {
-  const existing = mockProgress.find(p => p.doc_id === docId)
+  const { data: existing } = await supabase
+    .from('training_progress')
+    .select('*')
+    .eq('doc_id', docId)
+    .maybeSingle()
+
   if (existing) {
     return { data: existing }
   }
 
-  const data = {
-    id: Math.random().toString(36).substring(7),
-    doc_id: docId,
-    progress_percent: 0,
-    last_accessed_at: new Date().toISOString(),
+  const { data, error } = await supabase
+    .from('training_progress')
+    .insert({
+      doc_id: docId,
+      completed: false,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error marking doc in progress:', error)
+    return { error: 'Failed to update progress' }
   }
 
-  mockProgress.push(data)
   return { data }
 }
 
 export async function markDocCompleted(docId: string) {
-  const existing = mockProgress.find(p => p.doc_id === docId)
+  const { data: existing } = await supabase
+    .from('training_progress')
+    .select('*')
+    .eq('doc_id', docId)
+    .maybeSingle()
 
   if (existing) {
-    existing.progress_percent = 100
-    existing.completed_at = new Date().toISOString()
-    existing.last_accessed_at = new Date().toISOString()
+    const { error } = await supabase
+      .from('training_progress')
+      .update({
+        completed: true,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+
+    if (error) {
+      console.error('Error updating progress:', error)
+      return { error: 'Failed to update progress' }
+    }
   } else {
-    mockProgress.push({
-      id: Math.random().toString(36).substring(7),
-      doc_id: docId,
-      progress_percent: 100,
-      completed_at: new Date().toISOString(),
-      last_accessed_at: new Date().toISOString(),
-    })
+    const { error } = await supabase
+      .from('training_progress')
+      .insert({
+        doc_id: docId,
+        completed: true,
+        completed_at: new Date().toISOString(),
+      })
+
+    if (error) {
+      console.error('Error creating progress:', error)
+      return { error: 'Failed to update progress' }
+    }
   }
 
   return { success: true }
 }
 
 export async function getAllProgress() {
-  return { data: [] }
+  const { data, error } = await supabase
+    .from('training_progress')
+    .select('*, training_docs(*)')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching all progress:', error)
+    return { data: [] }
+  }
+
+  return { data: data || [] }
 }

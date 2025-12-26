@@ -1,7 +1,6 @@
 'use server'
 
-// Mock data store
-const mockCategories: any[] = []
+import { supabase } from '@/lib/supabase-client'
 
 export async function createCategory(formData: FormData) {
   const name = formData.get('name') as string
@@ -12,26 +11,49 @@ export async function createCategory(formData: FormData) {
     return { error: 'Category name is required' }
   }
 
-  const data = {
-    id: Math.random().toString(36).substring(7),
-    name,
-    description,
-    type,
-    created_at: new Date().toISOString(),
+  const { data, error } = await supabase
+    .from('categories')
+    .insert({
+      name,
+      description,
+      type,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating category:', error)
+    return { error: 'Failed to create category' }
   }
 
-  mockCategories.push(data)
   return { data }
 }
 
 export async function getCategories() {
-  return { data: mockCategories }
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('type', 'script')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching categories:', error)
+    return { data: [] }
+  }
+
+  return { data: data || [] }
 }
 
 export async function deleteCategory(categoryId: string) {
-  const index = mockCategories.findIndex(cat => cat.id === categoryId)
-  if (index > -1) {
-    mockCategories.splice(index, 1)
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', categoryId)
+
+  if (error) {
+    console.error('Error deleting category:', error)
+    return { error: 'Failed to delete category' }
   }
+
   return { success: true }
 }

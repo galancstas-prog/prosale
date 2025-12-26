@@ -1,6 +1,6 @@
 'use server'
 
-const mockDocs: any[] = []
+import { supabase } from '@/lib/supabase-client'
 
 export async function createTrainingDoc(categoryId: string, formData: FormData) {
   const title = formData.get('title') as string
@@ -10,45 +10,85 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
     return { error: 'Title and content are required' }
   }
 
-  const data = {
-    id: Math.random().toString(36).substring(7),
-    category_id: categoryId,
-    title,
-    content: '',
-    content_richtext: content,
-    is_published: true,
-    created_at: new Date().toISOString(),
+  const { data, error } = await supabase
+    .from('training_docs')
+    .insert({
+      category_id: categoryId,
+      title,
+      content: '',
+      content_richtext: content,
+      is_published: true,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating training doc:', error)
+    return { error: 'Failed to create training document' }
   }
 
-  mockDocs.push(data)
   return { data }
 }
 
 export async function getTrainingDocsByCategory(categoryId: string) {
-  return { data: mockDocs.filter(d => d.category_id === categoryId) }
+  const { data, error } = await supabase
+    .from('training_docs')
+    .select('*')
+    .eq('category_id', categoryId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching training docs:', error)
+    return { data: [] }
+  }
+
+  return { data: data || [] }
 }
 
 export async function getTrainingDocById(docId: string) {
-  const doc = mockDocs.find(d => d.id === docId)
-  if (!doc) {
+  const { data, error } = await supabase
+    .from('training_docs')
+    .select('*, categories(*)')
+    .eq('id', docId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error fetching training doc:', error)
     return { error: 'Document not found' }
   }
-  return { data: { ...doc, categories: {} } }
+
+  if (!data) {
+    return { error: 'Document not found' }
+  }
+
+  return { data }
 }
 
 export async function updateTrainingDoc(docId: string, content: string) {
-  const doc = mockDocs.find(d => d.id === docId)
-  if (doc) {
-    doc.content_richtext = content
+  const { error } = await supabase
+    .from('training_docs')
+    .update({ content_richtext: content })
+    .eq('id', docId)
+
+  if (error) {
+    console.error('Error updating training doc:', error)
+    return { error: 'Failed to update document' }
   }
+
   return { success: true }
 }
 
 export async function deleteTrainingDoc(docId: string, categoryId: string) {
-  const index = mockDocs.findIndex(d => d.id === docId)
-  if (index > -1) {
-    mockDocs.splice(index, 1)
+  const { error } = await supabase
+    .from('training_docs')
+    .delete()
+    .eq('id', docId)
+
+  if (error) {
+    console.error('Error deleting training doc:', error)
+    return { error: 'Failed to delete document' }
   }
+
   return { success: true }
 }
 

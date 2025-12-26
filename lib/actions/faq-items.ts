@@ -1,6 +1,6 @@
 'use server'
 
-const mockFaqItems: any[] = []
+import { supabase } from '@/lib/supabase-client'
 
 export async function createFaqItem(formData: FormData) {
   const question = formData.get('question') as string
@@ -10,28 +10,52 @@ export async function createFaqItem(formData: FormData) {
     return { error: 'Question and answer are required' }
   }
 
-  const existingItems = mockFaqItems.length
-  const data = {
-    id: Math.random().toString(36).substring(7),
-    question,
-    answer,
-    order_index: existingItems + 1,
-    created_at: new Date().toISOString(),
+  const { count } = await supabase
+    .from('faq_items')
+    .select('*', { count: 'exact', head: true })
+
+  const { data, error } = await supabase
+    .from('faq_items')
+    .insert({
+      question,
+      answer,
+      order_index: (count || 0) + 1,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating FAQ item:', error)
+    return { error: 'Failed to create FAQ item' }
   }
 
-  mockFaqItems.push(data)
   return { data }
 }
 
 export async function getFaqItems() {
-  const sortedItems = [...mockFaqItems].sort((a, b) => a.order_index - b.order_index)
-  return { data: sortedItems }
+  const { data, error } = await supabase
+    .from('faq_items')
+    .select('*')
+    .order('order_index', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching FAQ items:', error)
+    return { data: [] }
+  }
+
+  return { data: data || [] }
 }
 
 export async function deleteFaqItem(itemId: string) {
-  const index = mockFaqItems.findIndex(item => item.id === itemId)
-  if (index > -1) {
-    mockFaqItems.splice(index, 1)
+  const { error } = await supabase
+    .from('faq_items')
+    .delete()
+    .eq('id', itemId)
+
+  if (error) {
+    console.error('Error deleting FAQ item:', error)
+    return { error: 'Failed to delete FAQ item' }
   }
+
   return { success: true }
 }

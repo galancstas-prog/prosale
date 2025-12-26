@@ -27,9 +27,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Turn {
   id: string
-  speaker: 'agent' | 'client'
-  content: string
-  turn_order: number
+  speaker: 'agent' | 'customer'
+  message: string
+  order_index: number
 }
 
 interface ConversationViewProps {
@@ -62,7 +62,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
 
   const handleEdit = (turn: Turn) => {
     setEditingTurnId(turn.id)
-    setEditContent(turn.content)
+    setEditContent(turn.message)
   }
 
   const handleSaveEdit = async (turnId: string) => {
@@ -151,7 +151,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                       <>
                         <ChatBubble
                           speaker={turn.speaker}
-                          content={turn.content}
+                          content={turn.message}
                           showCopyButton={turn.speaker === 'agent'}
                         />
                         {isAdmin && (
@@ -220,7 +220,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="agent">Manager</SelectItem>
-                      <SelectItem value="client">Client</SelectItem>
+                      <SelectItem value="customer">Customer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
