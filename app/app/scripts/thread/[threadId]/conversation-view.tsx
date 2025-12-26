@@ -220,7 +220,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="agent">Manager</SelectItem>
-                      <SelectItem value="customer">Customer</SelectItem>
+                      <SelectItem value="customer">client</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
