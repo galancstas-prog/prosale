@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
+    const adminClient = createAdminClient()
 
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -39,7 +41,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: tenant, error: tenantError } = await supabase
+    const userId = authData.user.id
+
+    const { data: tenant, error: tenantError } = await adminClient
       .from('tenants')
       .insert({
         name: companyName,
@@ -48,16 +52,17 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (tenantError) {
+      await adminClient.auth.admin.deleteUser(userId)
       return NextResponse.json(
         { ok: false, error: 'Failed to create workspace: ' + tenantError.message },
         { status: 400 }
       )
     }
 
-    const { error: appUserError } = await supabase
+    const { error: appUserError } = await adminClient
       .from('app_users')
       .insert({
-        user_id: authData.user.id,
+        id: userId,
         tenant_id: tenant.id,
         email: email,
         role: 'ADMIN',
@@ -65,6 +70,7 @@ export async function POST(request: NextRequest) {
       })
 
     if (appUserError) {
+      await adminClient.auth.admin.deleteUser(userId)
       return NextResponse.json(
         { ok: false, error: 'Failed to create user profile: ' + appUserError.message },
         { status: 400 }
@@ -73,6 +79,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (error) {
+    console.error('Registration error:', error)
     return NextResponse.json(
       { ok: false, error: 'An unexpected error occurred' },
       { status: 500 }

@@ -4,7 +4,6 @@ export type UserRole = 'ADMIN' | 'MANAGER'
 
 export interface AppUser {
   id: string
-  user_id: string
   tenant_id: string
   role: UserRole
   email: string
@@ -32,8 +31,8 @@ export async function getCurrentUser() {
   const { data: appUser, error: appUserError } = await supabase
     .from('app_users')
     .select('*, tenants(*)')
-    .eq('user_id', user.id)
-    .single()
+    .eq('id', user.id)
+    .maybeSingle()
 
   if (appUserError || !appUser) {
     return null
