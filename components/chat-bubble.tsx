@@ -6,7 +6,7 @@ import { Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChatBubbleProps {
-  speaker: 'agent' | 'customer'
+  speaker: 'agent' | 'client'
   content: string
   showCopyButton?: boolean
 }
