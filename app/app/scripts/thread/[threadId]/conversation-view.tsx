@@ -1,17 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ChatBubble } from '@/components/chat-bubble'
 import { EmptyState } from '@/components/empty-state'
-import { MessageSquare, Loader2, Pencil, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
-import { createTurn, updateTurn, deleteTurn, reorderTurn } from '@/lib/actions/script-turns'
+import {
+  MessageSquare,
+  Loader2,
+  Pencil,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react'
+import {
+  createTurn,
+  updateTurn,
+  deleteTurn,
+  reorderTurn,
+} from '@/lib/actions/script-turns'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Turn {
@@ -29,6 +40,8 @@ interface ConversationViewProps {
 
 export function ConversationView({ threadId, turns, isAdmin }: ConversationViewProps) {
   const router = useRouter()
+  const formRef = useRef<HTMLFormElement | null>(null)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [editingTurnId, setEditingTurnId] = useState<string | null>(null)
@@ -42,7 +55,7 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
     const formData = new FormData(e.currentTarget)
     await createTurn(threadId, formData)
 
-    e.currentTarget.reset()
+    formRef.current?.reset()
     setLoading(false)
     router.refresh()
   }
@@ -63,13 +76,10 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
   }
 
   const handleDelete = async (turnId: string) => {
-    if (!confirm('Are you sure you want to delete this turn?')) {
-      return
-    }
+    if (!confirm('Are you sure you want to delete this turn?')) return
 
     setLoading(true)
     await deleteTurn(turnId, threadId)
-
     setLoading(false)
     router.refresh()
   }
@@ -101,8 +111,8 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                 title="No messages yet"
                 description={
                   isAdmin
-                    ? "Add the first message to start the conversation"
-                    : "No messages in this conversation yet"
+                    ? 'Add the first message to start the conversation'
+                    : 'No messages in this conversation yet'
                 }
               />
             ) : (
@@ -117,7 +127,11 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                           className="min-h-[100px]"
                         />
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleSaveEdit(turn.id)} disabled={loading}>
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveEdit(turn.id)}
+                            disabled={loading}
+                          >
                             Save
                           </Button>
                           <Button
@@ -193,9 +207,13 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
               <CardTitle>Add Message</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleAddTurn} className="space-y-4">
+              <form
+                ref={formRef}
+                onSubmit={handleAddTurn}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
-                  <Label htmlFor="speaker">Speaker</Label>
+                  <Label>Speaker</Label>
                   <Select name="speaker" required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select speaker" />
@@ -207,9 +225,8 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="content">Message</Label>
+                  <Label>Message</Label>
                   <Textarea
-                    id="content"
                     name="content"
                     placeholder="Enter the message..."
                     required
@@ -218,7 +235,9 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {loading && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
                   Add Message
                 </Button>
               </form>
