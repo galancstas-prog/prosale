@@ -1,9 +1,7 @@
-'use server'
-
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
-
 export async function createThread(categoryId: string, formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const title = formData.get('title') as string
   const description = formData.get('description') as string
 
@@ -31,6 +29,8 @@ export async function createThread(categoryId: string, formData: FormData) {
 }
 
 export async function getThreadsByCategory(categoryId: string) {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('script_threads')
     .select('*')
@@ -46,6 +46,8 @@ export async function getThreadsByCategory(categoryId: string) {
 }
 
 export async function getThreadById(threadId: string) {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('script_threads')
     .select('*, categories(*)')
@@ -65,6 +67,8 @@ export async function getThreadById(threadId: string) {
 }
 
 export async function deleteThread(threadId: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('script_threads')
     .delete()
