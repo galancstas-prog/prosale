@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase-client'
 export async function createCategory(formData: FormData) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
   const name = formData.get('name') as string
   const description = formData.get('description') as string
