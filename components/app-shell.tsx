@@ -10,7 +10,6 @@ import { Separator } from '@/components/ui/separator'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
 import {
   LayoutDashboard,
   MessageSquare,
@@ -42,6 +41,7 @@ function AppShellContent({ children, user }: AppShellProps) {
   const isAdmin = user.appUser.role === 'ADMIN'
 
   const handleLogout = async () => {
+    const supabase = getSupabaseClient()
     await supabase.auth.signOut()
     router.push('/login')
   }
