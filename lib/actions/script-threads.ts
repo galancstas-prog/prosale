@@ -1,13 +1,17 @@
-import { getSupabaseClient } from '@/lib/supabase-client'
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
+
 export async function createThread(categoryId: string, formData: FormData) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
-  const title = formData.get('title') as string
-  const description = formData.get('description') as string
+  const title = String(formData.get('title') || '').trim()
+  const descriptionRaw = formData.get('description')
+  const description = descriptionRaw ? String(descriptionRaw).trim() : null
 
-  if (!title) {
-    return { error: 'Thread title is required' }
-  }
+  if (!categoryId) return { error: 'Missing categoryId' }
+  if (!title) return { error: 'Thread title is required' }
 
   const { data, error } = await supabase
     .from('script_threads')
@@ -17,19 +21,21 @@ export async function createThread(categoryId: string, formData: FormData) {
       description,
       is_published: true,
     })
-    .select()
+    .select('*')
     .single()
 
   if (error) {
-    console.error('Error creating thread:', error)
-    return { error: 'Failed to create thread' }
+    console.error('[createThread]', error)
+    return { error: error.message || 'Failed to create thread' }
   }
 
+  revalidatePath('/app/scripts')
+  revalidatePath(`/app/scripts/${categoryId}`)
   return { data }
 }
 
 export async function getThreadsByCategory(categoryId: string) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
   const { data, error } = await supabase
     .from('script_threads')
@@ -38,46 +44,25 @@ export async function getThreadsByCategory(categoryId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching threads:', error)
-    return { data: [] }
+    console.error('[getThreadsByCategory]', error)
+    return { data: [] as any[] }
   }
 
   return { data: data || [] }
 }
 
-export async function getThreadById(threadId: string) {
-  const supabase = getSupabaseClient()
-
-  const { data, error } = await supabase
-    .from('script_threads')
-    .select('*, categories(*)')
-    .eq('id', threadId)
-    .maybeSingle()
-
-  if (error) {
-    console.error('Error fetching thread:', error)
-    return { error: 'Thread not found' }
-  }
-
-  if (!data) {
-    return { error: 'Thread not found' }
-  }
-
-  return { data }
-}
-
 export async function deleteThread(threadId: string) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
-  const { error } = await supabase
-    .from('script_threads')
-    .delete()
-    .eq('id', threadId)
+  if (!threadId) return { error: 'Missing threadId' }
+
+  const { error } = await supabase.from('script_threads').delete().eq('id', threadId)
 
   if (error) {
-    console.error('Error deleting thread:', error)
-    return { error: 'Failed to delete thread' }
+    console.error('[deleteThread]', error)
+    return { error: error.message || 'Failed to delete thread' }
   }
 
+  revalidatePath('/app/scripts')
   return { success: true }
 }
