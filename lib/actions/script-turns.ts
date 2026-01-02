@@ -1,9 +1,7 @@
-'use server'
-
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
-
 export async function createTurn(threadId: string, formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const speaker = formData.get('speaker') as string
   const content = formData.get('content') as string
 
@@ -40,6 +38,8 @@ export async function createTurn(threadId: string, formData: FormData) {
 }
 
 export async function getTurnsByThread(threadId: string) {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('script_turns')
     .select('*')
@@ -55,6 +55,8 @@ export async function getTurnsByThread(threadId: string) {
 }
 
 export async function updateTurn(turnId: string, content: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('script_turns')
     .update({ message: content })
@@ -69,6 +71,8 @@ export async function updateTurn(turnId: string, content: string) {
 }
 
 export async function deleteTurn(turnId: string, threadId: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('script_turns')
     .delete()
@@ -83,6 +87,8 @@ export async function deleteTurn(turnId: string, threadId: string) {
 }
 
 export async function reorderTurn(turnId: string, threadId: string, direction: 'up' | 'down') {
+  const supabase = getSupabaseClient()
+
   const { data: turn, error: turnError } = await supabase
     .from('script_turns')
     .select('*')
