@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function createFaqItem(formData: FormData) {
-  const supabase = getSupabaseServerClient()
+  const supabase = await getSupabaseServerClient()
 
   const question = (formData.get('question') as string)?.trim()
   const answer = (formData.get('answer') as string)?.trim()
@@ -24,7 +24,7 @@ export async function createFaqItem(formData: FormData) {
 }
 
 export async function deleteFaqItem(id: string) {
-  const supabase = getSupabaseServerClient()
+  const supabase = await getSupabaseServerClient()
 
   const { error } = await supabase.from('faq_items').delete().eq('id', id)
   if (error) return { error: error.message }
