@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 
-// ✅ ВАЖНО: это имя ожидает UI (по логу). Добавляем обратно.
+// UI ожидает это имя
 export async function getTurnsByThread(threadId: string) {
   const supabase = await getSupabaseServerClient()
 
@@ -26,12 +26,10 @@ export async function createTurn(threadId: string, formData: FormData) {
   if (!threadId) return { error: 'Missing threadId' }
   if (!message) return { error: 'Message is required' }
 
-  // UI/БД в твоём проекте пляшут вокруг agent/client — держим так:
   if (speaker !== 'agent' && speaker !== 'client') {
     return { error: 'Invalid speaker (must be agent or client)' }
   }
 
-  // next order_index
   const { data: lastTurn, error: lastErr } = await supabase
     .from('script_turns')
     .select('order_index')
@@ -81,8 +79,7 @@ export async function updateTurn(turnId: string, message: string) {
   return { success: true }
 }
 
-// ✅ ВАЖНО: UI вызывает deleteTurn(turnId, threadId). Делаем совместимость.
-// threadId можно не использовать, но примем, чтобы TS не падал.
+// UI вызывает deleteTurn(turnId, threadId)
 export async function deleteTurn(turnId: string, threadId?: string) {
   const supabase = await getSupabaseServerClient()
   if (!turnId) return { error: 'Missing turnId' }
@@ -94,7 +91,16 @@ export async function deleteTurn(turnId: string, threadId?: string) {
   return { success: true }
 }
 
-export async function reorderTurn(turnId: string, direction: 'up' | 'down') {
+/**
+ * ✅ ВАЖНО: UI вызывает reorderTurn(turnId, threadId, direction)
+ * Поэтому принимаем 3 аргумента (threadId используем для revalidatePath),
+ * но реальные данные всё равно берём из БД по turnId (надёжнее).
+ */
+export async function reorderTurn(
+  turnId: string,
+  threadId: string,
+  direction: 'up' | 'down'
+) {
   const supabase = await getSupabaseServerClient()
   if (!turnId) return { error: 'Missing turnId' }
 
@@ -106,7 +112,7 @@ export async function reorderTurn(turnId: string, direction: 'up' | 'down') {
 
   if (currErr) return { error: currErr.message }
 
-  const threadId = current.thread_id
+  const realThreadId = current.thread_id || threadId
   const currentIndex = current.order_index
 
   const operator = direction === 'up' ? 'lt' : 'gt'
@@ -117,13 +123,16 @@ export async function reorderTurn(turnId: string, direction: 'up' | 'down') {
     .select('*')
     // @ts-ignore
     .filter('order_index', operator, currentIndex)
-    .eq('thread_id', threadId)
+    .eq('thread_id', realThreadId)
     .order('order_index', { ascending: orderAsc })
     .limit(1)
     .maybeSingle()
 
   if (nErr) return { error: nErr.message }
-  if (!neighbor) return { success: true }
+  if (!neighbor) {
+    revalidatePath(`/app/scripts/thread/${realThreadId}`)
+    return { success: true }
+  }
 
   const { error: u1 } = await supabase
     .from('script_turns')
@@ -137,6 +146,6 @@ export async function reorderTurn(turnId: string, direction: 'up' | 'down') {
 
   if (u1 || u2) return { error: (u1 || u2)?.message || 'Failed to reorder' }
 
-  revalidatePath(`/app/scripts/thread/${threadId}`)
+  revalidatePath(`/app/scripts/thread/${realThreadId}`)
   return { success: true }
 }
