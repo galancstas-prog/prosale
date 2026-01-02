@@ -1,64 +1,34 @@
-import { getSupabaseClient } from '@/lib/supabase-client'
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
+
 export async function createFaqItem(formData: FormData) {
-  const supabase = getSupabaseClient()
+  const supabase = getSupabaseServerClient()
 
-  const question = formData.get('question') as string
-  const answer = formData.get('answer') as string
+  const question = (formData.get('question') as string)?.trim()
+  const answer = (formData.get('answer') as string)?.trim()
 
-  if (!question || !answer) {
-    return { error: 'Question and answer are required' }
-  }
-
-  const { count } = await supabase
-    .from('faq_items')
-    .select('*', { count: 'exact', head: true })
+  if (!question || !answer) return { error: 'Question and answer are required' }
 
   const { data, error } = await supabase
     .from('faq_items')
-    .insert({
-      question,
-      answer,
-      order_index: (count || 0) + 1,
-    })
-    .select()
+    .insert({ question, answer })
+    .select('*')
     .single()
 
-  if (error) {
-    console.error('[FAQ create]', error)
-    return { error: error?.message ?? JSON.stringify(error) }
-  }
+  if (error) return { error: error.message }
 
+  revalidatePath('/app/faq')
   return { data }
 }
 
-export async function getFaqItems() {
-  const supabase = getSupabaseClient()
+export async function deleteFaqItem(id: string) {
+  const supabase = getSupabaseServerClient()
 
-  const { data, error } = await supabase
-    .from('faq_items')
-    .select('*')
-    .order('order_index', { ascending: true })
+  const { error } = await supabase.from('faq_items').delete().eq('id', id)
+  if (error) return { error: error.message }
 
-  if (error) {
-    console.error('Error fetching FAQ items:', error)
-    return { data: [] }
-  }
-
-  return { data: data || [] }
-}
-
-export async function deleteFaqItem(itemId: string) {
-  const supabase = getSupabaseClient()
-
-  const { error } = await supabase
-    .from('faq_items')
-    .delete()
-    .eq('id', itemId)
-
-  if (error) {
-    console.error('[FAQ delete]', error)
-    return { error: error?.message ?? JSON.stringify(error) }
-  }
-
+  revalidatePath('/app/faq')
   return { success: true }
 }
