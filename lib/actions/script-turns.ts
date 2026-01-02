@@ -1,6 +1,7 @@
 'use server'
 
-import { supabase } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/supabase-client'
+const supabase = getSupabaseClient()
 
 export async function createTurn(threadId: string, formData: FormData) {
   const speaker = formData.get('speaker') as string

@@ -9,7 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
-import { supabase } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/supabase-client'
+const supabase = getSupabaseClient()
 import {
   LayoutDashboard,
   MessageSquare,

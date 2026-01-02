@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
-import { supabase } from '@/lib/supabase-client';
+import { getSupabaseClient } from '@/lib/supabase-client'
+const supabase = getSupabaseClient()
 
 export default function AppLayout({
   children,

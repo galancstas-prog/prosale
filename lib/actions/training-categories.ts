@@ -1,6 +1,7 @@
 'use server'
 
-import { supabase } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/supabase-client'
+const supabase = getSupabaseClient()
 
 export async function createTrainingCategory(formData: FormData) {
   const name = formData.get('name') as string

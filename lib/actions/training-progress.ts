@@ -1,6 +1,7 @@
 'use server'
 
-import { supabase } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/supabase-client'
+const supabase = getSupabaseClient()
 
 export async function getMyProgress(docId: string) {
   const { data, error } = await supabase
