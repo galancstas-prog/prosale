@@ -1,9 +1,7 @@
-'use server'
-
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
-
 export async function createCategory(formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const name = formData.get('name') as string
   const description = formData.get('description') as string
   const type = 'script'
@@ -31,6 +29,8 @@ export async function createCategory(formData: FormData) {
 }
 
 export async function getCategories() {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('categories')
     .select('*')
@@ -46,6 +46,8 @@ export async function getCategories() {
 }
 
 export async function deleteCategory(categoryId: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('categories')
     .delete()
