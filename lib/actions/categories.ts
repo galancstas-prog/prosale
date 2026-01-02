@@ -1,35 +1,34 @@
-import { getSupabaseClient } from '@/lib/supabase-client'
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
+
 export async function createCategory(formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
-  const name = formData.get('name') as string
-  const description = formData.get('description') as string
-  const type = 'script'
+  const name = String(formData.get('name') || '').trim()
+  const descriptionRaw = formData.get('description')
+  const description = descriptionRaw ? String(descriptionRaw).trim() : null
 
-  if (!name) {
-    return { error: 'Category name is required' }
-  }
+  if (!name) return { error: 'Category name is required' }
 
   const { data, error } = await supabase
     .from('categories')
-    .insert({
-      name,
-      description,
-      type,
-    })
-    .select()
+    .insert({ name, description, type: 'script' })
+    .select('*')
     .single()
 
   if (error) {
-    console.error('Error creating category:', error)
-    return { error: 'Failed to create category' }
+    console.error('[createCategory]', error)
+    return { error: error.message || 'Failed to create category' }
   }
 
+  revalidatePath('/app/scripts')
   return { data }
 }
 
 export async function getCategories() {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
   const { data, error } = await supabase
     .from('categories')
@@ -38,25 +37,25 @@ export async function getCategories() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching categories:', error)
-    return { data: [] }
+    console.error('[getCategories]', error)
+    return { data: [] as any[] }
   }
 
   return { data: data || [] }
 }
 
 export async function deleteCategory(categoryId: string) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
-  const { error } = await supabase
-    .from('categories')
-    .delete()
-    .eq('id', categoryId)
+  if (!categoryId) return { error: 'Missing category id' }
+
+  const { error } = await supabase.from('categories').delete().eq('id', categoryId)
 
   if (error) {
-    console.error('Error deleting category:', error)
-    return { error: 'Failed to delete category' }
+    console.error('[deleteCategory]', error)
+    return { error: error.message || 'Failed to delete category' }
   }
 
+  revalidatePath('/app/scripts')
   return { success: true }
 }
