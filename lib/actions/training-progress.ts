@@ -1,9 +1,7 @@
-'use server'
-
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
-
 export async function getMyProgress(docId: string) {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('training_progress')
     .select('*')
@@ -19,6 +17,8 @@ export async function getMyProgress(docId: string) {
 }
 
 export async function markDocInProgress(docId: string) {
+  const supabase = getSupabaseClient()
+
   const { data: existing } = await supabase
     .from('training_progress')
     .select('*')
@@ -47,6 +47,8 @@ export async function markDocInProgress(docId: string) {
 }
 
 export async function markDocCompleted(docId: string) {
+  const supabase = getSupabaseClient()
+
   const { data: existing } = await supabase
     .from('training_progress')
     .select('*')
@@ -85,6 +87,8 @@ export async function markDocCompleted(docId: string) {
 }
 
 export async function getAllProgress() {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('training_progress')
     .select('*, training_docs(*)')
