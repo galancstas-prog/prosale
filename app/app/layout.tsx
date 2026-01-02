@@ -1,95 +1,92 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { AppShell } from '@/components/app-shell';
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { AppShell } from '@/components/app-shell'
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
 
-export default function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const router = useRouter();
+type AppUser = {
+  id: string
+  email: string | null
+  role: string
+  [key: string]: any
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<{ authUser: any; appUser: AppUser } | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const supabase = getSupabaseClient()
+    let unsubscribe: (() => void) | null = null
 
-      if (!session) {
-        router.push('/login');
-        return;
-      }
+    const loadUser = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
+        if (error) console.error('getSession error:', error)
 
-      const userData = {
-        authUser: session.user,
-        appUser: {
+        if (!session) {
+          setUser(null)
+          setLoading(false)
+          router.push('/login')
+          return
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle()
+
+        if (profileError) console.error('profile fetch error:', profileError)
+
+        const appUser: AppUser = {
+          ...(profile ?? {}),
           id: session.user.id,
           email: session.user.email,
-          role: 'USER',
-          ...profile,
-        },
-      };
+          role: (profile as any)?.role ?? 'USER',
+        }
 
-      setUser(userData);
-      setLoading(false);
-    };
-
-    checkAuth();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        (async () => {
-          if (event === 'SIGNED_OUT' || !session) {
-            router.push('/login');
-          } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle();
-
-            const userData = {
-              authUser: session.user,
-              appUser: {
-                id: session.user.id,
-                email: session.user.email,
-                role: 'USER',
-                ...profile,
-              },
-            };
-
-            setUser(userData);
-          }
-        })();
+        setUser({ authUser: session.user, appUser })
+        setLoading(false)
+      } catch (e: any) {
+        console.error('Auth bootstrap failed:', e)
+        setUser(null)
+        setLoading(false)
+        router.push('/login')
       }
-    );
+    }
+
+    loadUser()
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setUser(null)
+        router.push('/login')
+      }
+    })
+
+    unsubscribe = () => data.subscription.unsubscribe()
 
     return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [router]);
+      if (unsubscribe) unsubscribe()
+    }
+  }, [router])
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
       </div>
-    );
+    )
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null
 
-  return <AppShell user={user}>{children}</AppShell>;
+  return <AppShell user={user}>{children}</AppShell>
 }
