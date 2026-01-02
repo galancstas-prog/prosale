@@ -1,20 +1,33 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-let _supabase: ReturnType<typeof createClient> | null = null
+let _client: SupabaseClient | null = null
 
-export function getSupabaseClient() {
-  if (_supabase) return _supabase
+/**
+ * Browser-safe Supabase client (anon key).
+ * IMPORTANT: Do NOT call this at module top-level in Next.js files.
+ * Call it inside functions / effects / event handlers.
+ */
+export function getSupabaseClient(): SupabaseClient {
+  if (_client) return _client
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!url || !anon) {
-    // IMPORTANT: This should fail clearly in preview/prod if env is missing.
+  // Do not crash at build-time. Only throw when actually requested at runtime.
+  if (!url || !anonKey) {
     throw new Error(
-      'Missing Supabase env vars: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY'
+      'Missing env vars: NEXT_PUBLIC_SUPABASE_URL and/or NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
+        'Add them in your hosting provider environment variables.'
     )
   }
 
-  _supabase = createClient(url, anon)
-  return _supabase
+  _client = createClient(url, anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  })
+
+  return _client
 }
