@@ -1,10 +1,8 @@
-'use server'
-
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export function getSupabaseServerClient() {
-  const cookieStore = cookies()
+export async function getSupabaseServerClient() {
+  const cookieStore = await cookies()
 
   const url =
     process.env.SUPABASE_URL ||
