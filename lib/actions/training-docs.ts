@@ -1,9 +1,7 @@
-'use server'
-
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
-
 export async function createTrainingDoc(categoryId: string, formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const title = formData.get('title') as string
   const content = formData.get('content') as string
 
@@ -32,6 +30,8 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
 }
 
 export async function getTrainingDocsByCategory(categoryId: string) {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('training_docs')
     .select('*')
@@ -47,6 +47,8 @@ export async function getTrainingDocsByCategory(categoryId: string) {
 }
 
 export async function getTrainingDocById(docId: string) {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('training_docs')
     .select('*, categories(*)')
@@ -66,6 +68,8 @@ export async function getTrainingDocById(docId: string) {
 }
 
 export async function updateTrainingDoc(docId: string, content: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('training_docs')
     .update({ content_richtext: content })
@@ -80,6 +84,8 @@ export async function updateTrainingDoc(docId: string, content: string) {
 }
 
 export async function deleteTrainingDoc(docId: string, categoryId: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('training_docs')
     .delete()
@@ -94,6 +100,8 @@ export async function deleteTrainingDoc(docId: string, categoryId: string) {
 }
 
 export async function uploadTrainingImage(formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const file = formData.get('file') as File
   if (!file) {
     return { error: 'No file provided' }
