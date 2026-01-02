@@ -1,6 +1,10 @@
-import { getSupabaseClient } from '@/lib/supabase-client'
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
+
 export async function getMyProgress(docId: string) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
   const { data, error } = await supabase
     .from('training_progress')
@@ -9,15 +13,15 @@ export async function getMyProgress(docId: string) {
     .maybeSingle()
 
   if (error) {
-    console.error('Error fetching progress:', error)
-    return { data: null }
+    console.error('[getMyProgress]', error)
+    return { data: null as any }
   }
 
   return { data }
 }
 
 export async function markDocInProgress(docId: string) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
   const { data: existing } = await supabase
     .from('training_progress')
@@ -25,29 +29,25 @@ export async function markDocInProgress(docId: string) {
     .eq('doc_id', docId)
     .maybeSingle()
 
-  if (existing) {
-    return { data: existing }
-  }
+  if (existing) return { data: existing }
 
   const { data, error } = await supabase
     .from('training_progress')
-    .insert({
-      doc_id: docId,
-      completed: false,
-    })
-    .select()
+    .insert({ doc_id: docId, completed: false })
+    .select('*')
     .single()
 
   if (error) {
-    console.error('Error marking doc in progress:', error)
-    return { error: 'Failed to update progress' }
+    console.error('[markDocInProgress]', error)
+    return { error: error.message || 'Failed to update progress' }
   }
 
+  revalidatePath(`/app/training/doc/${docId}`)
   return { data }
 }
 
 export async function markDocCompleted(docId: string) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
   const { data: existing } = await supabase
     .from('training_progress')
@@ -55,39 +55,32 @@ export async function markDocCompleted(docId: string) {
     .eq('doc_id', docId)
     .maybeSingle()
 
-  if (existing) {
-    const { error } = await supabase
-      .from('training_progress')
-      .update({
-        completed: true,
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id)
+  const patch = {
+    completed: true,
+    completed_at: new Date().toISOString(),
+  }
 
+  if (existing) {
+    const { error } = await supabase.from('training_progress').update(patch).eq('id', existing.id)
     if (error) {
-      console.error('Error updating progress:', error)
-      return { error: 'Failed to update progress' }
+      console.error('[markDocCompleted:update]', error)
+      return { error: error.message || 'Failed to update progress' }
     }
   } else {
-    const { error } = await supabase
-      .from('training_progress')
-      .insert({
-        doc_id: docId,
-        completed: true,
-        completed_at: new Date().toISOString(),
-      })
-
+    const { error } = await supabase.from('training_progress').insert({ doc_id: docId, ...patch })
     if (error) {
-      console.error('Error creating progress:', error)
-      return { error: 'Failed to update progress' }
+      console.error('[markDocCompleted:insert]', error)
+      return { error: error.message || 'Failed to update progress' }
     }
   }
 
+  revalidatePath(`/app/training/doc/${docId}`)
+  revalidatePath('/app/admin/progress')
   return { success: true }
 }
 
 export async function getAllProgress() {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
   const { data, error } = await supabase
     .from('training_progress')
@@ -95,8 +88,8 @@ export async function getAllProgress() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching all progress:', error)
-    return { data: [] }
+    console.error('[getAllProgress]', error)
+    return { data: [] as any[] }
   }
 
   return { data: data || [] }
