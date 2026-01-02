@@ -1,9 +1,7 @@
-'use server'
-
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
-
 export async function createKbPage(formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const title = formData.get('title') as string
   const content = formData.get('content') as string
 
@@ -29,6 +27,8 @@ export async function createKbPage(formData: FormData) {
 }
 
 export async function getKbPages() {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('kb_pages')
     .select('*')
@@ -43,6 +43,8 @@ export async function getKbPages() {
 }
 
 export async function getKbPageById(pageId: string) {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('kb_pages')
     .select('*')
@@ -62,6 +64,8 @@ export async function getKbPageById(pageId: string) {
 }
 
 export async function updateKbPage(pageId: string, formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const title = formData.get('title') as string
   const content = formData.get('content') as string
 
@@ -88,6 +92,8 @@ export async function updateKbPage(pageId: string, formData: FormData) {
 }
 
 export async function deleteKbPage(pageId: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('kb_pages')
     .delete()
