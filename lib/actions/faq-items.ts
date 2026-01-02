@@ -3,6 +3,19 @@
 import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 
+export async function getFaqItems() {
+  const supabase = await getSupabaseServerClient()
+
+  const { data, error } = await supabase
+    .from('faq_items')
+    .select('*')
+    .order('order_index', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) return { error: error.message, data: null }
+  return { data, error: null }
+}
+
 export async function createFaqItem(formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
