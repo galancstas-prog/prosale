@@ -1,9 +1,7 @@
-'use server'
-
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
-
 export async function createFaqItem(formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const question = formData.get('question') as string
   const answer = formData.get('answer') as string
 
@@ -34,6 +32,8 @@ export async function createFaqItem(formData: FormData) {
 }
 
 export async function getFaqItems() {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('faq_items')
     .select('*')
@@ -48,6 +48,8 @@ export async function getFaqItems() {
 }
 
 export async function deleteFaqItem(itemId: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('faq_items')
     .delete()
