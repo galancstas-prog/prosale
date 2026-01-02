@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 
+// Создание диалога (thread) внутри категории
 export async function createThread(categoryId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
@@ -24,16 +25,14 @@ export async function createThread(categoryId: string, formData: FormData) {
     .select('*')
     .single()
 
-  if (error) {
-    console.error('[createThread]', error)
-    return { error: error.message || 'Failed to create thread' }
-  }
+  if (error) return { error: error.message }
 
   revalidatePath('/app/scripts')
   revalidatePath(`/app/scripts/${categoryId}`)
   return { data }
 }
 
+// Список диалогов по категории
 export async function getThreadsByCategory(categoryId: string) {
   const supabase = await getSupabaseServerClient()
 
@@ -43,25 +42,31 @@ export async function getThreadsByCategory(categoryId: string) {
     .eq('category_id', categoryId)
     .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('[getThreadsByCategory]', error)
-    return { data: [] as any[] }
-  }
-
-  return { data: data || [] }
+  if (error) return { data: [] as any[], error: error.message }
+  return { data: data || [], error: null }
 }
 
-export async function deleteThread(threadId: string) {
+// ✅ ВАЖНО: это имя ожидает UI (по логу). Добавляем обратно.
+export async function getThreadById(threadId: string) {
   const supabase = await getSupabaseServerClient()
 
+  const { data, error } = await supabase
+    .from('script_threads')
+    .select('*')
+    .eq('id', threadId)
+    .single()
+
+  if (error) return { data: null, error: error.message }
+  return { data, error: null }
+}
+
+// Удаление диалога
+export async function deleteThread(threadId: string) {
+  const supabase = await getSupabaseServerClient()
   if (!threadId) return { error: 'Missing threadId' }
 
   const { error } = await supabase.from('script_threads').delete().eq('id', threadId)
-
-  if (error) {
-    console.error('[deleteThread]', error)
-    return { error: error.message || 'Failed to delete thread' }
-  }
+  if (error) return { error: error.message }
 
   revalidatePath('/app/scripts')
   return { success: true }
