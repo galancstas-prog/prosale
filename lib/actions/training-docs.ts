@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function createTrainingDoc(categoryId: string, formData: FormData) {
-  const supabase = getSupabaseServerClient()
+  const supabase = await getSupabaseServerClient()
 
   const title = (formData.get('title') as string)?.trim()
   const content = (formData.get('content') as string)?.trim() || ''
