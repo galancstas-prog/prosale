@@ -44,6 +44,32 @@ export async function getCategories() {
   return { data: data || [] }
 }
 
+export async function updateCategory(categoryId: string, formData: FormData) {
+  const supabase = await getSupabaseServerClient()
+
+  const name = String(formData.get('name') || '').trim()
+  const descriptionRaw = formData.get('description')
+  const description = descriptionRaw ? String(descriptionRaw).trim() : null
+
+  if (!categoryId) return { error: 'Missing category id' }
+  if (!name) return { error: 'Category name is required' }
+
+  const { data, error } = await supabase
+    .from('categories')
+    .update({ name, description })
+    .eq('id', categoryId)
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[updateCategory]', error)
+    return { error: error.message || 'Failed to update category' }
+  }
+
+  revalidatePath('/app/scripts')
+  return { data }
+}
+
 export async function deleteCategory(categoryId: string) {
   const supabase = await getSupabaseServerClient()
 

@@ -220,14 +220,14 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="agent">Manager</SelectItem>
-                      <SelectItem value="customer">client</SelectItem>
+                      <SelectItem value="client">Client</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Message</Label>
                   <Textarea
-                    name="content"
+                    name="message"
                     placeholder="Enter the message..."
                     required
                     disabled={loading}

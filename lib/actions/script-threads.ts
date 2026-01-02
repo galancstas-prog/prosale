@@ -60,6 +60,30 @@ export async function getThreadById(threadId: string) {
   return { data, error: null }
 }
 
+// Обновление диалога
+export async function updateThread(threadId: string, formData: FormData) {
+  const supabase = await getSupabaseServerClient()
+
+  const title = String(formData.get('title') || '').trim()
+  const descriptionRaw = formData.get('description')
+  const description = descriptionRaw ? String(descriptionRaw).trim() : null
+
+  if (!threadId) return { error: 'Missing threadId' }
+  if (!title) return { error: 'Thread title is required' }
+
+  const { data, error } = await supabase
+    .from('script_threads')
+    .update({ title, description })
+    .eq('id', threadId)
+    .select('*')
+    .single()
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/app/scripts')
+  return { data }
+}
+
 // Удаление диалога
 export async function deleteThread(threadId: string) {
   const supabase = await getSupabaseServerClient()
