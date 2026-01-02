@@ -51,11 +51,11 @@ export async function createKbPage(formData: FormData) {
   return { data }
 }
 
-export async function updateKbPage(pageId: string, payload: { title: string; content_richtext: string }) {
+export async function updateKbPage(pageId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
-  const title = payload.title?.trim()
-  const content = payload.content_richtext?.trim()
+  const title = (formData.get('title') as string)?.trim()
+  const content = (formData.get('content_richtext') as string)?.trim()
 
   if (!title || !content) return { error: 'Title and content are required' }
 
