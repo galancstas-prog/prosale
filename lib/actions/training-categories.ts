@@ -1,34 +1,34 @@
-import { getSupabaseClient } from '@/lib/supabase-client'
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
+
 export async function createTrainingCategory(formData: FormData) {
- const supabase = await getSupabaseServerClient()
+  const supabase = await getSupabaseServerClient()
 
-  const name = formData.get('name') as string
-  const description = formData.get('description') as string
+  const name = String(formData.get('name') || '').trim()
+  const descriptionRaw = formData.get('description')
+  const description = descriptionRaw ? String(descriptionRaw).trim() : null
 
-  if (!name) {
-    return { error: 'Category name is required' }
-  }
+  if (!name) return { error: 'Category name is required' }
 
   const { data, error } = await supabase
     .from('categories')
-    .insert({
-      name,
-      description,
-      type: 'training',
-    })
-    .select()
+    .insert({ name, description, type: 'training' })
+    .select('*')
     .single()
 
   if (error) {
-    console.error('Error creating training category:', error)
-    return { error: 'Failed to create category' }
+    console.error('[createTrainingCategory]', error)
+    return { error: error.message || 'Failed to create training category' }
   }
 
+  revalidatePath('/app/training')
   return { data }
 }
 
 export async function getTrainingCategories() {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
   const { data, error } = await supabase
     .from('categories')
@@ -37,25 +37,25 @@ export async function getTrainingCategories() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching training categories:', error)
-    return { data: [] }
+    console.error('[getTrainingCategories]', error)
+    return { data: [] as any[] }
   }
 
   return { data: data || [] }
 }
 
 export async function deleteTrainingCategory(categoryId: string) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
-  const { error } = await supabase
-    .from('categories')
-    .delete()
-    .eq('id', categoryId)
+  if (!categoryId) return { error: 'Missing category id' }
+
+  const { error } = await supabase.from('categories').delete().eq('id', categoryId)
 
   if (error) {
-    console.error('Error deleting training category:', error)
-    return { error: 'Failed to delete category' }
+    console.error('[deleteTrainingCategory]', error)
+    return { error: error.message || 'Failed to delete training category' }
   }
 
+  revalidatePath('/app/training')
   return { success: true }
 }
