@@ -1,9 +1,7 @@
-'use server'
-
 import { getSupabaseClient } from '@/lib/supabase-client'
-const supabase = getSupabaseClient()
-
 export async function createTrainingCategory(formData: FormData) {
+  const supabase = getSupabaseClient()
+
   const name = formData.get('name') as string
   const description = formData.get('description') as string
 
@@ -30,6 +28,8 @@ export async function createTrainingCategory(formData: FormData) {
 }
 
 export async function getTrainingCategories() {
+  const supabase = getSupabaseClient()
+
   const { data, error } = await supabase
     .from('categories')
     .select('*')
@@ -45,6 +45,8 @@ export async function getTrainingCategories() {
 }
 
 export async function deleteTrainingCategory(categoryId: string) {
+  const supabase = getSupabaseClient()
+
   const { error } = await supabase
     .from('categories')
     .delete()
