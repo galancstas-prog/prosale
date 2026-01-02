@@ -1,126 +1,155 @@
-import { getSupabaseClient } from '@/lib/supabase-client'
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
+
 export async function createTurn(threadId: string, formData: FormData) {
-  const supabase = getSupabaseClient()
+  const supabase = await getSupabaseServerClient()
 
-  const speaker = formData.get('speaker') as string
-  const content = formData.get('content') as string
+  const speaker = String(formData.get('speaker') || '').trim()
+  const message = String(formData.get('message') || '').trim()
 
-  if (!speaker || !content) {
-    return { error: 'Speaker and content are required' }
-  }
-
+  if (!threadId) return { error: 'Missing threadId' }
+  if (!message) return { error: 'Message is required' }
   if (speaker !== 'agent' && speaker !== 'client') {
-    return { error: 'Invalid speaker type' }
+    return { error: 'Invalid speaker (must be agent or client)' }
   }
 
-  const { count } = await supabase
+  // Determine next order_index
+  const { data: lastTurn, error: lastErr } = await supabase
     .from('script_turns')
-    .select('*', { count: 'exact', head: true })
+    .select('order_index')
     .eq('thread_id', threadId)
+    .order('order_index', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (lastErr) {
+    console.error('[createTurn:lastTurn]', lastErr)
+    return { error: lastErr.message || 'Failed to read turns' }
+  }
+
+  const nextIndex = (lastTurn?.order_index ?? -1) + 1
 
   const { data, error } = await supabase
     .from('script_turns')
     .insert({
       thread_id: threadId,
       speaker,
-      message: content,
-      order_index: (count || 0) + 1,
+      message,
+      order_index: nextIndex,
     })
-    .select()
+    .select('*')
     .single()
 
   if (error) {
-    console.error('Error creating turn:', error)
-    return { error: 'Failed to create turn' }
+    console.error('[createTurn]', error)
+    return { error: error.message || 'Failed to create turn' }
   }
 
+  revalidatePath(`/app/scripts/thread/${threadId}`)
   return { data }
 }
 
-export async function getTurnsByThread(threadId: string) {
-  const supabase = getSupabaseClient()
+export async function updateTurn(turnId: string, message: string) {
+  const supabase = await getSupabaseServerClient()
+
+  const text = String(message || '').trim()
+  if (!turnId) return { error: 'Missing turnId' }
+  if (!text) return { error: 'Message is required' }
 
   const { data, error } = await supabase
     .from('script_turns')
-    .select('*')
-    .eq('thread_id', threadId)
-    .order('order_index', { ascending: true })
-
-  if (error) {
-    console.error('Error fetching turns:', error)
-    return { data: [] }
-  }
-
-  return { data: data || [] }
-}
-
-export async function updateTurn(turnId: string, content: string) {
-  const supabase = getSupabaseClient()
-
-  const { error } = await supabase
-    .from('script_turns')
-    .update({ message: content })
+    .update({ message: text })
     .eq('id', turnId)
+    .select('thread_id')
+    .single()
 
   if (error) {
-    console.error('Error updating turn:', error)
-    return { error: 'Failed to update turn' }
+    console.error('[updateTurn]', error)
+    return { error: error.message || 'Failed to update turn' }
   }
 
+  if (data?.thread_id) revalidatePath(`/app/scripts/thread/${data.thread_id}`)
   return { success: true }
 }
 
-export async function deleteTurn(turnId: string, threadId: string) {
-  const supabase = getSupabaseClient()
+export async function deleteTurn(turnId: string) {
+  const supabase = await getSupabaseServerClient()
+  if (!turnId) return { error: 'Missing turnId' }
 
-  const { error } = await supabase
+  // Get thread_id for revalidate
+  const { data: row } = await supabase
     .from('script_turns')
-    .delete()
+    .select('thread_id')
     .eq('id', turnId)
+    .maybeSingle()
+
+  const { error } = await supabase.from('script_turns').delete().eq('id', turnId)
 
   if (error) {
-    console.error('Error deleting turn:', error)
-    return { error: 'Failed to delete turn' }
+    console.error('[deleteTurn]', error)
+    return { error: error.message || 'Failed to delete turn' }
   }
 
+  if (row?.thread_id) revalidatePath(`/app/scripts/thread/${row.thread_id}`)
   return { success: true }
 }
 
-export async function reorderTurn(turnId: string, threadId: string, direction: 'up' | 'down') {
-  const supabase = getSupabaseClient()
+export async function reorderTurn(turnId: string, direction: 'up' | 'down') {
+  const supabase = await getSupabaseServerClient()
+  if (!turnId) return { error: 'Missing turnId' }
 
-  const { data: turn, error: turnError } = await supabase
+  const { data: current, error: currErr } = await supabase
     .from('script_turns')
     .select('*')
     .eq('id', turnId)
-    .maybeSingle()
+    .single()
 
-  if (turnError || !turn) {
-    return { error: 'Turn not found' }
+  if (currErr) {
+    console.error('[reorderTurn:current]', currErr)
+    return { error: currErr.message || 'Failed to read turn' }
   }
 
-  const newOrder = direction === 'up' ? turn.order_index - 1 : turn.order_index + 1
+  const threadId = current.thread_id
+  const currentIndex = current.order_index
 
-  const { data: swapTurn, error: swapError } = await supabase
+  const operator = direction === 'up' ? 'lt' : 'gt'
+  const orderAsc = direction === 'up' ? false : true
+
+  const { data: neighbor, error: nErr } = await supabase
     .from('script_turns')
     .select('*')
+    // @ts-ignore supabase filter op
+    .filter('order_index', operator, currentIndex)
     .eq('thread_id', threadId)
-    .eq('order_index', newOrder)
+    .order('order_index', { ascending: orderAsc })
+    .limit(1)
     .maybeSingle()
 
-  if (swapError || !swapTurn) {
-    return { error: 'Cannot move in that direction' }
+  if (nErr) {
+    console.error('[reorderTurn:neighbor]', nErr)
+    return { error: nErr.message || 'Failed to read neighbor' }
   }
 
-  await supabase
-    .from('script_turns')
-    .update({ order_index: newOrder })
-    .eq('id', turnId)
+  if (!neighbor) return { success: true } // already at edge
 
-  await supabase
+  // swap order_index
+  const { error: u1 } = await supabase
     .from('script_turns')
-    .update({ order_index: turn.order_index })
-    .eq('id', swapTurn.id)
+    .update({ order_index: neighbor.order_index })
+    .eq('id', current.id)
 
+  const { error: u2 } = await supabase
+    .from('script_turns')
+    .update({ order_index: current.order_index })
+    .eq('id', neighbor.id)
+
+  if (u1 || u2) {
+    console.error('[reorderTurn:swap]', u1 || u2)
+    return { error: (u1 || u2)?.message || 'Failed to reorder' }
+  }
+
+  revalidatePath(`/app/scripts/thread/${threadId}`)
   return { success: true }
 }
