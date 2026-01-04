@@ -1,7 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
 export async function createTrainingCategory(formData: FormData) {
   const supabase = await getSupabaseServerClient()
@@ -23,7 +23,7 @@ export async function createTrainingCategory(formData: FormData) {
     return { error: error.message || 'Failed to create training category' }
   }
 
-  revalidatePath('/app/training')
+  safeRevalidatePath('/app/training')
   return { data }
 }
 
@@ -66,7 +66,7 @@ export async function updateTrainingCategory(categoryId: string, formData: FormD
     return { error: error.message || 'Failed to update training category' }
   }
 
-  revalidatePath('/app/training')
+  safeRevalidatePath('/app/training')
   return { data }
 }
 
@@ -82,6 +82,6 @@ export async function deleteTrainingCategory(categoryId: string) {
     return { error: error.message || 'Failed to delete training category' }
   }
 
-  revalidatePath('/app/training')
+  safeRevalidatePath('/app/training')
   return { success: true }
 }
