@@ -32,6 +32,11 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
   const [error, setError] = useState('')
 
   const editor = useEditor({
+    // ✅ Важно для Next.js (особенно в превью/SSR окружениях):
+    // TipTap ругается на SSR/hydration, если пытается "сразу" рендерить редактор.
+    // Это фикс из официальной подсказки.
+    immediatelyRender: false,
+
     extensions: [
       StarterKit,
       Image,
@@ -58,8 +63,15 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
 
     const result = await uploadTrainingImage(formData)
 
-    if (result.url) {
-      editor.chain().focus().setImage({ src: result.url }).run()
+    if ((result as any)?.error) {
+      setError((result as any).error)
+      setUploading(false)
+      e.target.value = ''
+      return
+    }
+
+    if ((result as any)?.url) {
+      editor.chain().focus().setImage({ src: (result as any).url }).run()
     }
 
     setUploading(false)
@@ -90,6 +102,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           >
             <Bold className="h-4 w-4" />
           </Button>
+
           <Button
             type="button"
             variant="ghost"
@@ -99,6 +112,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           >
             <Italic className="h-4 w-4" />
           </Button>
+
           <Button
             type="button"
             variant="ghost"
@@ -108,6 +122,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           >
             <Heading1 className="h-4 w-4" />
           </Button>
+
           <Button
             type="button"
             variant="ghost"
@@ -117,6 +132,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           >
             <Heading2 className="h-4 w-4" />
           </Button>
+
           <Button
             type="button"
             variant="ghost"
@@ -126,6 +142,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           >
             <List className="h-4 w-4" />
           </Button>
+
           <Button
             type="button"
             variant="ghost"
@@ -135,6 +152,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           >
             <ListOrdered className="h-4 w-4" />
           </Button>
+
           <Button
             type="button"
             variant="ghost"
@@ -144,6 +162,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           >
             <LinkIcon className="h-4 w-4" />
           </Button>
+
           <div className="relative">
             <Button
               type="button"
@@ -154,6 +173,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
             >
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
             </Button>
+
             <Input
               id="image-upload"
               type="file"
@@ -164,11 +184,13 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
           </div>
         </div>
       )}
+
       {error && (
         <Alert variant="destructive" className="m-2">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
       <EditorContent
         editor={editor}
         className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[300px] focus:outline-none"
