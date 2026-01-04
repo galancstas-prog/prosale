@@ -8,10 +8,15 @@ export async function getKbPages() {
 
   const { data, error } = await supabase
     .from('kb_pages')
-    .select('id,title,content_richtext,created_at,updated_at')
+    // updated_at в таблице НЕТ — поэтому НЕ выбираем его
+    .select('id,title,content_richtext,created_at')
     .order('created_at', { ascending: false })
 
-  if (error) return { error: error.message, data: null }
+  if (error) {
+    console.error('[getKbPages] Database error:', error)
+    return { error: error.message, data: null }
+  }
+
   return { data, error: null }
 }
 
@@ -24,7 +29,11 @@ export async function getKbPageById(pageId: string) {
     .eq('id', pageId)
     .single()
 
-  if (error) return { error: error.message, data: null }
+  if (error) {
+    console.error('[getKbPageById] Database error:', error)
+    return { error: error.message, data: null }
+  }
+
   return { data, error: null }
 }
 
@@ -63,18 +72,21 @@ export async function updateKbPage(pageId: string, formData: FormData) {
 
   if (!title || !content) return { error: 'Title and content are required' }
 
+  // updated_at в таблице НЕТ — поэтому НЕ обновляем его
   const { data, error } = await supabase
     .from('kb_pages')
     .update({
       title,
       content_richtext: content,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', pageId)
     .select('*')
     .single()
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[updateKbPage] Database error:', error)
+    return { error: error.message }
+  }
 
   revalidatePath('/app/knowledge')
   revalidatePath(`/app/knowledge/${pageId}`)
@@ -85,7 +97,11 @@ export async function deleteKbPage(id: string) {
   const supabase = await getSupabaseServerClient()
 
   const { error } = await supabase.from('kb_pages').delete().eq('id', id)
-  if (error) return { error: error.message }
+
+  if (error) {
+    console.error('[deleteKbPage] Database error:', error)
+    return { error: error.message }
+  }
 
   revalidatePath('/app/knowledge')
   return { success: true }
