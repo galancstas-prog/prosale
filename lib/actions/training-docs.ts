@@ -11,7 +11,6 @@ export async function getTrainingDocsByCategory(categoryId: string) {
 
   const { data, error } = await supabase
     .from('training_docs')
-    // updated_at в таблице НЕТ — поэтому НЕ выбираем его
     .select('id,title,content_richtext,category_id,created_at,is_published')
     .eq('category_id', categoryId)
     .order('created_at', { ascending: false })
@@ -79,11 +78,10 @@ export async function updateTrainingDoc(docId: string, content_richtext: string)
   const content = (content_richtext || '').trim()
   if (!content) return { error: 'Content cannot be empty' }
 
-  // updated_at в таблице НЕТ — поэтому НЕ обновляем его
   const { data, error } = await supabase
     .from('training_docs')
     .update({
-      content, // держим обе колонки синхронно
+      content,
       content_richtext: content,
     })
     .eq('id', docId)
@@ -110,7 +108,6 @@ export async function deleteTrainingDoc(id: string) {
 
   if (fetchError) {
     console.error('[deleteTrainingDoc] Fetch doc error:', fetchError)
-    // даже если не нашли — пробуем удалить
   }
 
   const { error } = await supabase.from('training_docs').delete().eq('id', id)
@@ -153,4 +150,54 @@ export async function uploadTrainingImage(formData: FormData) {
 
   const { data } = supabase.storage.from(TRAINING_BUCKET).getPublicUrl(path)
   return { url: data.publicUrl }
+}
+
+export async function searchTrainingDocs(query: string) {
+  if (!query || query.length < 2) {
+    return { data: [], error: null }
+  }
+
+  const supabase = await getSupabaseServerClient()
+
+  const normalizedQuery = query.replace(/ё/gi, 'е')
+
+  const isExactPhrase = /^".*"$/.test(query)
+  let searchPattern: string
+
+  if (isExactPhrase) {
+    const phrase = query.slice(1, -1).replace(/ё/gi, 'е')
+    searchPattern = `%${phrase}%`
+  } else {
+    const words = normalizedQuery.split(/\s+/).filter((w) => w.length > 0)
+    searchPattern = words.map(w => `%${w}%`).join('')
+  }
+
+  const { data, error } = await supabase
+    .from('training_docs')
+    .select('id, title, content_richtext, category_id, categories!inner(id, name)')
+    .ilike('content_richtext', searchPattern)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (error) return { error: error.message, data: [] }
+
+  const results = (data || []).map((doc) => {
+    const normalizedContent = doc.content_richtext.toLowerCase().replace(/ё/gi, 'е')
+    const searchTerms = normalizedQuery.toLowerCase()
+
+    const matchIndex = normalizedContent.indexOf(searchTerms)
+    const start = Math.max(0, matchIndex - 30)
+    const end = Math.min(doc.content_richtext.length, matchIndex + searchTerms.length + 30)
+    const snippet = (start > 0 ? '...' : '') + doc.content_richtext.substring(start, end) + (end < doc.content_richtext.length ? '...' : '')
+
+    return {
+      id: doc.id,
+      title: doc.title,
+      content: doc.content_richtext,
+      categoryName: (doc.categories as any).name,
+      snippet,
+    }
+  })
+
+  return { data: results, error: null }
 }

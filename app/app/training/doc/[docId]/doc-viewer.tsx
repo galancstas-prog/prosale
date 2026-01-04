@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,20 +28,38 @@ interface TrainingDocViewerProps {
   doc: Doc
   progress: Progress | null
   isAdmin: boolean
+  searchQuery?: string
 }
 
-export function TrainingDocViewer({ doc, progress, isAdmin }: TrainingDocViewerProps) {
+export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: TrainingDocViewerProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [content, setContent] = useState(doc.content_richtext || '<p>No content yet.</p>')
+  const [shouldHighlight, setShouldHighlight] = useState(!!searchQuery)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!progress && !isAdmin) {
       markDocInProgress(doc.id)
     }
   }, [doc.id, progress, isAdmin])
+
+  useEffect(() => {
+    if (searchQuery && contentRef.current && !editing) {
+      setTimeout(() => {
+        const marks = contentRef.current?.querySelectorAll('mark')
+        if (marks && marks.length > 0) {
+          marks[0].scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+
+      setTimeout(() => {
+        setShouldHighlight(false)
+      }, 3000)
+    }
+  }, [searchQuery, editing])
 
   const getStatus = () => {
     if (!progress) return 'not_started'
@@ -92,6 +110,22 @@ export function TrainingDocViewer({ doc, progress, isAdmin }: TrainingDocViewerP
   }
 
   const StatusIcon = statusConfig[status].icon
+
+  const highlightText = (text: string, query: string) => {
+    if (!query || query.length < 2) return text
+
+    const normalizedQuery = query.replace(/ё/gi, 'е').replace(/^"|"$/g, '')
+    const words = normalizedQuery.split(/\s+/).filter((w) => w.length > 0)
+
+    let result = text
+    words.forEach((word) => {
+      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const regex = new RegExp(`(${escapedWord})`, 'gi')
+      result = result.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 px-0.5">$1</mark>')
+    })
+
+    return result
+  }
 
   return (
     <div className="space-y-6">
@@ -156,11 +190,28 @@ export function TrainingDocViewer({ doc, progress, isAdmin }: TrainingDocViewerP
           </div>
         </CardHeader>
         <CardContent>
-          <RichTextEditor
-            content={content}
-            onChange={setContent}
-            editable={isAdmin && editing}
-          />
+          {editing ? (
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+              editable={true}
+            />
+          ) : (
+            <div ref={contentRef}>
+              {shouldHighlight && searchQuery ? (
+                <div
+                  className="prose prose-slate dark:prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: highlightText(content, searchQuery) }}
+                />
+              ) : (
+                <RichTextEditor
+                  content={content}
+                  onChange={setContent}
+                  editable={false}
+                />
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

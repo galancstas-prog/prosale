@@ -1,3 +1,7 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getTrainingDocById } from '@/lib/actions/training-docs'
 import { getMyProgress } from '@/lib/actions/training-progress'
 import { Button } from '@/components/ui/button'
@@ -5,16 +9,35 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { TrainingDocViewer } from './doc-viewer'
 
-export default async function TrainingDocPage({ params }: { params: { docId: string } }) {
-  const docResult = await getTrainingDocById(params.docId)
-  const progressResult = await getMyProgress(params.docId)
+export default function TrainingDocPage({ params }: { params: { docId: string } }) {
+  const searchParams = useSearchParams()
+  const searchQuery = searchParams.get('q') || ''
+  const [doc, setDoc] = useState<any>(null)
+  const [progress, setProgress] = useState<any>(null)
+  const [error, setError] = useState(false)
 
-  if (docResult.error || !docResult.data) {
+  useEffect(() => {
+    async function loadData() {
+      const docResult = await getTrainingDocById(params.docId)
+      const progressResult = await getMyProgress(params.docId)
+
+      if (docResult.error || !docResult.data) {
+        setError(true)
+      } else {
+        setDoc(docResult.data)
+        setProgress(progressResult.data)
+      }
+    }
+    loadData()
+  }, [params.docId])
+
+  if (error) {
     return <div>Document not found</div>
   }
 
-  const doc = docResult.data
-  const progress = progressResult.data
+  if (!doc) {
+    return null
+  }
 
   return (
     <div className="space-y-6">
@@ -32,6 +55,7 @@ export default async function TrainingDocPage({ params }: { params: { docId: str
         doc={doc}
         progress={progress}
         isAdmin={true}
+        searchQuery={searchQuery}
       />
     </div>
   )
