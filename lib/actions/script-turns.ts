@@ -1,7 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
 // UI ожидает это имя
 export async function getTurnsByThread(threadId: string) {
@@ -55,7 +55,7 @@ export async function createTurn(threadId: string, formData: FormData) {
 
   if (error) return { error: error.message }
 
-  revalidatePath(`/app/scripts/thread/${threadId}`)
+  safeRevalidatePath(`/app/scripts/thread/${threadId}`)
   return { data }
 }
 
@@ -75,7 +75,7 @@ export async function updateTurn(turnId: string, message: string) {
 
   if (error) return { error: error.message }
 
-  if (data?.thread_id) revalidatePath(`/app/scripts/thread/${data.thread_id}`)
+  if (data?.thread_id) safeRevalidatePath(`/app/scripts/thread/${data.thread_id}`)
   return { success: true }
 }
 
@@ -87,7 +87,7 @@ export async function deleteTurn(turnId: string, threadId?: string) {
   const { error } = await supabase.from('script_turns').delete().eq('id', turnId)
   if (error) return { error: error.message }
 
-  if (threadId) revalidatePath(`/app/scripts/thread/${threadId}`)
+  if (threadId) safeRevalidatePath(`/app/scripts/thread/${threadId}`)
   return { success: true }
 }
 
@@ -130,7 +130,7 @@ export async function reorderTurn(
 
   if (nErr) return { error: nErr.message }
   if (!neighbor) {
-    revalidatePath(`/app/scripts/thread/${realThreadId}`)
+    safeRevalidatePath(`/app/scripts/thread/${realThreadId}`)
     return { success: true }
   }
 
@@ -146,6 +146,6 @@ export async function reorderTurn(
 
   if (u1 || u2) return { error: (u1 || u2)?.message || 'Failed to reorder' }
 
-  revalidatePath(`/app/scripts/thread/${realThreadId}`)
+  safeRevalidatePath(`/app/scripts/thread/${realThreadId}`)
   return { success: true }
 }
