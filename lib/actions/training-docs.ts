@@ -1,7 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { safeRevalidatePath } from '@/lib/safe-revalidate'
 import { randomUUID } from 'crypto'
 
 const TRAINING_BUCKET = 'training-images'
@@ -68,8 +68,8 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
     return { error: `Database error: ${error.message}` }
   }
 
-  revalidatePath(`/app/training/${categoryId}`)
-  revalidatePath('/app/training')
+  safeRevalidatePath(`/app/training/${categoryId}`)
+  safeRevalidatePath('/app/training')
   return { data }
 }
 
@@ -95,7 +95,7 @@ export async function updateTrainingDoc(docId: string, content_richtext: string)
     return { error: error.message }
   }
 
-  revalidatePath(`/app/training/doc/${docId}`)
+  safeRevalidatePath(`/app/training/doc/${docId}`)
   return { data }
 }
 
@@ -119,8 +119,8 @@ export async function deleteTrainingDoc(id: string) {
     return { error: error.message }
   }
 
-  if (doc?.category_id) revalidatePath(`/app/training/${doc.category_id}`)
-  revalidatePath('/app/training')
+  if (doc?.category_id) safeRevalidatePath(`/app/training/${doc.category_id}`)
+  safeRevalidatePath('/app/training')
   return { success: true }
 }
 
