@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react'
 import { getFaqItems } from '@/lib/actions/faq-items'
 import { CreateFaqDialog } from './create-faq-dialog'
 import { FaqList } from './faq-list'
+import { FaqSearch } from './faq-search'
 import { useLocale } from '@/lib/i18n/use-locale'
 
 export default function FaqPage() {
   const { t } = useLocale()
   const [faqItems, setFaqItems] = useState<any[]>([])
+  const [highlightId, setHighlightId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [openItemId, setOpenItemId] = useState<string | null>(null)
 
   const isAdmin = true
 
@@ -19,6 +23,24 @@ export default function FaqPage() {
     }
     loadData()
   }, [])
+
+  const handleSearchResultClick = (id: string, query: string) => {
+    setHighlightId(id)
+    setSearchQuery(query)
+    setOpenItemId(id)
+
+    setTimeout(() => {
+      const element = document.getElementById(`faq-item-${id}`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
+
+    setTimeout(() => {
+      setHighlightId(null)
+      setSearchQuery('')
+    }, 3000)
+  }
 
   return (
     <div className="space-y-6">
@@ -32,7 +54,15 @@ export default function FaqPage() {
         {isAdmin && <CreateFaqDialog />}
       </div>
 
-      <FaqList items={faqItems} isAdmin={isAdmin} />
+      <FaqSearch onResultClick={handleSearchResultClick} />
+
+      <FaqList
+        items={faqItems}
+        isAdmin={isAdmin}
+        highlightId={highlightId}
+        searchQuery={searchQuery}
+        openItemId={openItemId}
+      />
     </div>
   )
 }

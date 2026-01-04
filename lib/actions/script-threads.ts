@@ -3,12 +3,17 @@
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
-export async function createThread(categoryId: string, title: string) {
+export async function createThread(categoryId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient()
+
+  const title = (formData.get('title') as string)?.trim()
+  const description = (formData.get('description') as string)?.trim() || null
+
+  if (!title) return { error: 'Title is required' }
 
   const { data, error } = await supabase
     .from('script_threads')
-    .insert({ category_id: categoryId, title })
+    .insert({ category_id: categoryId, title, description })
     .select('*')
     .single()
 
@@ -31,6 +36,41 @@ export async function getThreadsByCategory(categoryId: string) {
   if (error) return { error: error.message, data: [] as any[] }
 
   return { data: data || [] }
+}
+
+export async function getThreadById(threadId: string) {
+  const supabase = await getSupabaseServerClient()
+
+  const { data, error } = await supabase
+    .from('script_threads')
+    .select('*')
+    .eq('id', threadId)
+    .single()
+
+  if (error) return { error: error.message, data: null }
+
+  return { data }
+}
+
+export async function updateThread(threadId: string, formData: FormData) {
+  const supabase = await getSupabaseServerClient()
+
+  const title = (formData.get('title') as string)?.trim()
+  const description = (formData.get('description') as string)?.trim() || null
+
+  if (!title) return { error: 'Title is required' }
+
+  const { data, error } = await supabase
+    .from('script_threads')
+    .update({ title, description })
+    .eq('id', threadId)
+    .select('*')
+    .single()
+
+  if (error) return { error: error.message }
+
+  safeRevalidatePath('/app/scripts')
+  return { data }
 }
 
 export async function updateThreadTitle(threadId: string, title: string) {

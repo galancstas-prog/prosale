@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Accordion,
@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/empty-state'
 import { Copy, Trash2, MessageCircle, Loader2 } from 'lucide-react'
 import { deleteFaqItem } from '@/lib/actions/faq-items'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 interface FaqItem {
   id: string
@@ -26,12 +27,22 @@ interface FaqItem {
 interface FaqListProps {
   items: FaqItem[]
   isAdmin: boolean
+  highlightId?: string | null
+  searchQuery?: string
+  openItemId?: string | null
 }
 
-export function FaqList({ items, isAdmin }: FaqListProps) {
+export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }: FaqListProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [accordionValue, setAccordionValue] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    if (openItemId) {
+      setAccordionValue(openItemId)
+    }
+  }, [openItemId])
 
   const handleCopy = async (answer: string) => {
     try {
@@ -65,6 +76,22 @@ export function FaqList({ items, isAdmin }: FaqListProps) {
     })
   }
 
+  const highlightText = (text: string, query: string) => {
+    if (!query || query.length < 2) return text
+
+    const normalizedQuery = query.replace(/ё/gi, 'е').replace(/^"|"$/g, '')
+    const words = normalizedQuery.split(/\s+/).filter((w) => w.length > 0)
+
+    let result = text
+    words.forEach((word) => {
+      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const regex = new RegExp(`(${escapedWord})`, 'gi')
+      result = result.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 px-0.5">$1</mark>')
+    })
+
+    return result
+  }
+
   if (items.length === 0) {
     return (
       <Card className="p-12">
@@ -83,12 +110,27 @@ export function FaqList({ items, isAdmin }: FaqListProps) {
 
   return (
     <Card className="p-6">
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion type="single" collapsible className="w-full" value={accordionValue} onValueChange={setAccordionValue}>
         {items.map((item) => (
-          <AccordionItem key={item.id} value={item.id}>
+          <AccordionItem
+            key={item.id}
+            value={item.id}
+            id={`faq-item-${item.id}`}
+            className={cn(
+              'transition-colors',
+              highlightId === item.id && 'bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-2'
+            )}
+          >
             <div className="flex items-center gap-2">
               <AccordionTrigger className="flex-1 text-left hover:no-underline">
-                <span className="font-medium">{item.question}</span>
+                {searchQuery && highlightId === item.id ? (
+                  <span
+                    className="font-medium"
+                    dangerouslySetInnerHTML={{ __html: highlightText(item.question, searchQuery) }}
+                  />
+                ) : (
+                  <span className="font-medium">{item.question}</span>
+                )}
               </AccordionTrigger>
               {isAdmin && (
                 <Button
@@ -109,9 +151,16 @@ export function FaqList({ items, isAdmin }: FaqListProps) {
             <AccordionContent>
               <div className="pt-2 pb-4">
                 <div className="flex items-start gap-4">
-                  <p className="flex-1 text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
-                    {item.answer}
-                  </p>
+                  {searchQuery && highlightId === item.id ? (
+                    <p
+                      className="flex-1 text-slate-600 dark:text-slate-400 whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{ __html: highlightText(item.answer, searchQuery) }}
+                    />
+                  ) : (
+                    <p className="flex-1 text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
+                      {item.answer}
+                    </p>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
