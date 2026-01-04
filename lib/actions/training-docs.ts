@@ -11,11 +11,16 @@ export async function getTrainingDocsByCategory(categoryId: string) {
 
   const { data, error } = await supabase
     .from('training_docs')
-    .select('id,title,content_richtext,category_id,created_at,updated_at,is_published')
+    // updated_at в таблице НЕТ — поэтому НЕ выбираем его
+    .select('id,title,content_richtext,category_id,created_at,is_published')
     .eq('category_id', categoryId)
     .order('created_at', { ascending: false })
 
-  if (error) return { error: error.message, data: null }
+  if (error) {
+    console.error('[getTrainingDocsByCategory] Database error:', error)
+    return { error: error.message, data: null }
+  }
+
   return { data, error: null }
 }
 
@@ -28,7 +33,11 @@ export async function getTrainingDocById(docId: string) {
     .eq('id', docId)
     .single()
 
-  if (error) return { error: error.message, data: null }
+  if (error) {
+    console.error('[getTrainingDocById] Database error:', error)
+    return { error: error.message, data: null }
+  }
+
   return { data, error: null }
 }
 
@@ -70,18 +79,21 @@ export async function updateTrainingDoc(docId: string, content_richtext: string)
   const content = (content_richtext || '').trim()
   if (!content) return { error: 'Content cannot be empty' }
 
+  // updated_at в таблице НЕТ — поэтому НЕ обновляем его
   const { data, error } = await supabase
     .from('training_docs')
     .update({
-      content: content, // keep both in sync for now
+      content, // держим обе колонки синхронно
       content_richtext: content,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', docId)
     .select('*')
     .single()
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[updateTrainingDoc] Database error:', error)
+    return { error: error.message }
+  }
 
   revalidatePath(`/app/training/doc/${docId}`)
   return { data }
@@ -90,15 +102,22 @@ export async function updateTrainingDoc(docId: string, content_richtext: string)
 export async function deleteTrainingDoc(id: string) {
   const supabase = await getSupabaseServerClient()
 
-  // нужно получить category_id для revalidatePath
-  const { data: doc } = await supabase
+  const { data: doc, error: fetchError } = await supabase
     .from('training_docs')
     .select('category_id')
     .eq('id', id)
     .single()
 
+  if (fetchError) {
+    console.error('[deleteTrainingDoc] Fetch doc error:', fetchError)
+    // даже если не нашли — пробуем удалить
+  }
+
   const { error } = await supabase.from('training_docs').delete().eq('id', id)
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[deleteTrainingDoc] Delete error:', error)
+    return { error: error.message }
+  }
 
   if (doc?.category_id) revalidatePath(`/app/training/${doc.category_id}`)
   revalidatePath('/app/training')
@@ -111,7 +130,6 @@ export async function uploadTrainingImage(formData: FormData) {
   const file = formData.get('file') as File | null
   if (!file) return { error: 'No file provided' }
 
-  // Простая валидация
   if (!file.type.startsWith('image/')) return { error: 'Only images allowed' }
   if (file.size > 5 * 1024 * 1024) return { error: 'Max file size is 5MB' }
 
@@ -128,7 +146,10 @@ export async function uploadTrainingImage(formData: FormData) {
       upsert: false,
     })
 
-  if (uploadError) return { error: uploadError.message }
+  if (uploadError) {
+    console.error('[uploadTrainingImage] Upload error:', uploadError)
+    return { error: uploadError.message }
+  }
 
   const { data } = supabase.storage.from(TRAINING_BUCKET).getPublicUrl(path)
   return { url: data.publicUrl }
