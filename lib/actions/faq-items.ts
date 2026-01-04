@@ -1,7 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
 export async function getFaqItems() {
   const supabase = await getSupabaseServerClient()
@@ -32,7 +32,7 @@ export async function createFaqItem(formData: FormData) {
 
   if (error) return { error: error.message }
 
-  revalidatePath('/app/faq')
+  safeRevalidatePath('/app/faq')
   return { data }
 }
 
@@ -42,6 +42,6 @@ export async function deleteFaqItem(id: string) {
   const { error } = await supabase.from('faq_items').delete().eq('id', id)
   if (error) return { error: error.message }
 
-  revalidatePath('/app/faq')
+  safeRevalidatePath('/app/faq')
   return { success: true }
 }
