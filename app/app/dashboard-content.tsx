@@ -10,6 +10,7 @@ import { MessageSquare, BookOpen, FileText, Database, ArrowRight, Loader2, Spark
 import { createDemoContent } from '@/lib/actions/seed-demo'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
+import { GlobalSearch } from './global-search'
 
 interface DashboardContentProps {
   isAdmin: boolean
@@ -129,6 +130,16 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
           )
         })}
       </div>
+
+      <Card className="p-6">
+        <div className="space-y-2 mb-4">
+          <h2 className="text-xl font-semibold">Global Search</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Search across all modules: Scripts, Training, FAQ, and Knowledge Base
+          </p>
+        </div>
+        <GlobalSearch />
+      </Card>
 
       <Card>
         <CardHeader>

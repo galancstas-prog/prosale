@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getFaqItems } from '@/lib/actions/faq-items'
 import { CreateFaqDialog } from './create-faq-dialog'
 import { FaqList } from './faq-list'
@@ -9,10 +10,13 @@ import { useLocale } from '@/lib/i18n/use-locale'
 
 export default function FaqPage() {
   const { t } = useLocale()
+  const searchParams = useSearchParams()
+  const urlHighlightId = searchParams.get('highlight') || null
+  const urlSearchQuery = searchParams.get('q') || ''
   const [faqItems, setFaqItems] = useState<any[]>([])
-  const [highlightId, setHighlightId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [openItemId, setOpenItemId] = useState<string | null>(null)
+  const [highlightId, setHighlightId] = useState<string | null>(urlHighlightId)
+  const [searchQuery, setSearchQuery] = useState(urlSearchQuery)
+  const [openItemId, setOpenItemId] = useState<string | null>(urlHighlightId)
 
   const isAdmin = true
 
@@ -23,6 +27,26 @@ export default function FaqPage() {
     }
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (urlHighlightId) {
+      setHighlightId(urlHighlightId)
+      setSearchQuery(urlSearchQuery)
+      setOpenItemId(urlHighlightId)
+
+      setTimeout(() => {
+        const element = document.getElementById(`faq-item-${urlHighlightId}`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+
+      setTimeout(() => {
+        setHighlightId(null)
+        setSearchQuery('')
+      }, 3000)
+    }
+  }, [urlHighlightId, urlSearchQuery])
 
   const handleSearchResultClick = (id: string, query: string) => {
     setHighlightId(id)
