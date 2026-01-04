@@ -34,25 +34,31 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
     setError('')
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    formData.set('content', content)
+    try {
+      const formData = new FormData(e.currentTarget)
+      formData.set('content', content)
 
-    const result: any = await createTrainingDoc(categoryId, formData)
+      // ВАЖНО: server action типизируется криво в client компонентах → каст в any
+      const result = (await createTrainingDoc(categoryId, formData)) as any
 
-    if (result?.error) {
-      setError(
-        typeof result.error === 'string'
-          ? result.error
-          : result.error?.message || 'Failed to create training document'
-      )
+      if (result?.error) {
+        setError(
+          typeof result.error === 'string'
+            ? result.error
+            : result.error?.message || 'Failed to create training document'
+        )
+        setLoading(false)
+        return
+      }
+
+      setOpen(false)
+      setContent('<p>Enter your training content here...</p>')
+      router.refresh()
+    } catch (err: any) {
+      setError(err?.message || 'Failed to create training document')
+    } finally {
       setLoading(false)
-      return
     }
-
-    setOpen(false)
-    setLoading(false)
-    setContent('<p>Enter your training content here...</p>')
-    router.refresh()
   }
 
   return (
@@ -89,7 +95,12 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
             <RichTextEditor content={content} onChange={setContent} />
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
