@@ -38,8 +38,8 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
       const formData = new FormData(e.currentTarget)
       formData.set('content', content)
 
-      // server action может вернуть { data } / { error } или вообще упасть (throw)
-      const result = (await createTrainingDoc(categoryId, formData)) as any
+      // ВАЖНО: типизируем как any, чтобы TS не сходил с ума и не давал "never"
+      const result: any = await createTrainingDoc(categoryId, formData)
 
       if (result?.error) {
         const msg =
@@ -55,8 +55,12 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
       setContent('<p>Enter your training content here...</p>')
       router.refresh()
     } catch (err: any) {
-      // сюда попадаем, если server action реально упал
-      setError(err?.message || 'Unexpected error while creating training document')
+      // ЛОВИМ РЕАЛЬНУЮ ОШИБКУ, КОТОРУЮ РАНЬШЕ ТЫ НЕ ВИДЕЛ
+      const msg =
+        err?.message ||
+        err?.toString?.() ||
+        'Unexpected error while creating training document'
+      setError(msg)
     } finally {
       setLoading(false)
     }
