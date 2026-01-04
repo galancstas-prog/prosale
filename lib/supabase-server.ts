@@ -2,7 +2,17 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function getSupabaseServerClient() {
-  const cookieStore = await cookies()
+  // В некоторых окружениях (Bolt/предрендер) cookies() может быть недоступен
+  // и тогда Next падает с:
+  // "cookies() expects to have requestAsyncStorage, none available."
+  // Поэтому делаем safe-fallback.
+  let cookieStore: ReturnType<typeof cookies> | null = null
+
+  try {
+    cookieStore = cookies()
+  } catch (e) {
+    cookieStore = null
+  }
 
   const url =
     process.env.SUPABASE_URL ||
@@ -23,12 +33,17 @@ export async function getSupabaseServerClient() {
   return createServerClient(url, anonKey, {
     cookies: {
       get(name: string) {
-        return cookieStore.get(name)?.value
+        // Если cookies недоступны — просто считаем, что их нет
+        return cookieStore?.get(name)?.value
       },
       set(name: string, value: string, options: any) {
+        // Если cookies недоступны — не падаем
+        if (!cookieStore) return
         cookieStore.set({ name, value, ...options })
       },
       remove(name: string, options: any) {
+        // Если cookies недоступны — не падаем
+        if (!cookieStore) return
         cookieStore.set({ name, value: '', ...options })
       },
     },
