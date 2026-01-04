@@ -35,13 +35,24 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    formData.set('content', content)
-    await createTrainingDoc(categoryId, formData)
+formData.set('content', content)
 
-    setOpen(false)
-    setLoading(false)
-    setContent('<p>Enter your training content here...</p>')
-    router.refresh()
+const result = await createTrainingDoc(categoryId, formData)
+
+if (result?.error) {
+  setError(
+    typeof result.error === 'string'
+      ? result.error
+      : (result.error as any)?.message || 'Failed to create training document'
+  )
+  setLoading(false)
+  return
+}
+
+setOpen(false)
+setLoading(false)
+setContent('<p>Enter your training content here...</p>')
+router.refresh()
   }
 
   return (
