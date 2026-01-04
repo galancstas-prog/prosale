@@ -2,12 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 
-export function safeRevalidatePath(path: string) {
+export async function safeRevalidatePath(path: string) {
   try {
     revalidatePath(path)
-  } catch (e) {
-    // Bolt preview / sandbox окружения иногда не имеют static generation store.
-    // Нам важно НЕ КРАШИТЬ UI.
-    console.warn('[safeRevalidatePath] skipped:', path)
+  } catch {
+    // в bolt/превью/дев-режиме иногда нет нужного контекста — просто игнорим
   }
 }
