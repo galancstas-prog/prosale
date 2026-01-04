@@ -2,10 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function getSupabaseServerClient() {
-  // В некоторых окружениях (Bolt/предрендер) cookies() может быть недоступен
-  // и тогда Next падает с:
-  // "cookies() expects to have requestAsyncStorage, none available."
-  // Поэтому делаем safe-fallback.
+  // В Bolt/превью и при некоторых предрендерах cookies() может быть недоступен.
+  // Тогда Next кидает:
+  // "Invariant: cookies() expects to have requestAsyncStorage, none available."
+  // Поэтому делаем safe fallback.
   let cookieStore: ReturnType<typeof cookies> | null = null
 
   try {
@@ -14,15 +14,8 @@ export async function getSupabaseServerClient() {
     cookieStore = null
   }
 
-  const url =
-    process.env.SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    ''
-
-  const anonKey =
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    ''
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
   if (!url || !anonKey) {
     throw new Error(
@@ -33,16 +26,13 @@ export async function getSupabaseServerClient() {
   return createServerClient(url, anonKey, {
     cookies: {
       get(name: string) {
-        // Если cookies недоступны — просто считаем, что их нет
         return cookieStore?.get(name)?.value
       },
       set(name: string, value: string, options: any) {
-        // Если cookies недоступны — не падаем
         if (!cookieStore) return
         cookieStore.set({ name, value, ...options })
       },
       remove(name: string, options: any) {
-        // Если cookies недоступны — не падаем
         if (!cookieStore) return
         cookieStore.set({ name, value: '', ...options })
       },
