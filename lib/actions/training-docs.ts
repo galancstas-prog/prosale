@@ -40,6 +40,7 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
 
   if (!title) return { error: 'Title is required' }
   if (!categoryId) return { error: 'Category is required' }
+  if (!content) return { error: 'Content is required' }
 
   const { data, error } = await supabase
     .from('training_docs')
@@ -47,13 +48,16 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
       category_id: categoryId,
       title,
       content,
-      content_richtext: content, // NOT NULL
+      content_richtext: content,
       is_published: true,
     })
     .select('*')
     .single()
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[createTrainingDoc] Database error:', error)
+    return { error: `Database error: ${error.message}` }
+  }
 
   revalidatePath(`/app/training/${categoryId}`)
   revalidatePath('/app/training')

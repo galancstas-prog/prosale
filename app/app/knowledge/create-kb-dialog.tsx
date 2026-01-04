@@ -33,24 +33,37 @@ export function CreateKbDialog() {
     setError('')
     setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    const result = await createKbPage(formData)
+    try {
+      const formData = new FormData(e.currentTarget)
+      const result: any = await createKbPage(formData)
 
-    if (result?.error) {
-      setError(result.error)
+      if (result?.error) {
+        const msg =
+          typeof result.error === 'string'
+            ? result.error
+            : result.error?.message || 'Failed to create knowledge base page'
+        setError(msg)
+        setLoading(false)
+        return
+      }
+
+      setOpen(false)
+      formRef.current?.reset()
       setLoading(false)
-      return
+      router.refresh()
+
+      toast({
+        title: 'Success',
+        description: 'Knowledge base page created successfully',
+      })
+    } catch (err: any) {
+      const msg =
+        err?.message ||
+        err?.toString?.() ||
+        'Unexpected error while creating knowledge base page'
+      setError(msg)
+      setLoading(false)
     }
-
-    setOpen(false)
-    formRef.current?.reset()
-    setLoading(false)
-    router.refresh()
-
-    toast({
-      title: 'Success',
-      description: 'Knowledge base page created successfully',
-    })
   }
 
   return (

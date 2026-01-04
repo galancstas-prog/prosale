@@ -34,18 +34,22 @@ export async function createKbPage(formData: FormData) {
   const title = (formData.get('title') as string)?.trim()
   const content = (formData.get('content') as string)?.trim()
 
-  if (!title || !content) return { error: 'Title and content are required' }
+  if (!title) return { error: 'Title is required' }
+  if (!content) return { error: 'Content is required' }
 
   const { data, error } = await supabase
     .from('kb_pages')
     .insert({
       title,
-      content_richtext: content, // NOT NULL в твоём SQL
+      content_richtext: content,
     })
     .select('*')
     .single()
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[createKbPage] Database error:', error)
+    return { error: `Database error: ${error.message}` }
+  }
 
   revalidatePath('/app/knowledge')
   return { data }
