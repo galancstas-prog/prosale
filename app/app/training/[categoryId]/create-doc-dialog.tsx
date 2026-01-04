@@ -35,24 +35,24 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-formData.set('content', content)
+    formData.set('content', content)
 
-const result = await createTrainingDoc(categoryId, formData)
+    const result: any = await createTrainingDoc(categoryId, formData)
 
-if (result?.error) {
-  setError(
-    typeof result.error === 'string'
-      ? result.error
-      : (result.error as any)?.message || 'Failed to create training document'
-  )
-  setLoading(false)
-  return
-}
+    if (result?.error) {
+      setError(
+        typeof result.error === 'string'
+          ? result.error
+          : result.error?.message || 'Failed to create training document'
+      )
+      setLoading(false)
+      return
+    }
 
-setOpen(false)
-setLoading(false)
-setContent('<p>Enter your training content here...</p>')
-router.refresh()
+    setOpen(false)
+    setLoading(false)
+    setContent('<p>Enter your training content here...</p>')
+    router.refresh()
   }
 
   return (
@@ -66,9 +66,7 @@ router.refresh()
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Training Document</DialogTitle>
-          <DialogDescription>
-            Create a new training document with rich content
-          </DialogDescription>
+          <DialogDescription>Create a new training document with rich content</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
