@@ -1,7 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
 export async function getMyProgress(docId: string) {
   const supabase = await getSupabaseServerClient()
@@ -42,7 +42,7 @@ export async function markDocInProgress(docId: string) {
     return { error: error.message || 'Failed to update progress' }
   }
 
-  revalidatePath(`/app/training/doc/${docId}`)
+  safeRevalidatePath(`/app/training/doc/${docId}`)
   return { data }
 }
 
@@ -74,8 +74,8 @@ export async function markDocCompleted(docId: string) {
     }
   }
 
-  revalidatePath(`/app/training/doc/${docId}`)
-  revalidatePath('/app/admin/progress')
+  safeRevalidatePath(`/app/training/doc/${docId}`)
+  safeRevalidatePath('/app/admin/progress')
   return { success: true }
 }
 
