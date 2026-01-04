@@ -38,24 +38,25 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
       const formData = new FormData(e.currentTarget)
       formData.set('content', content)
 
-      // ВАЖНО: server action типизируется криво в client компонентах → каст в any
+      // server action может вернуть { data } / { error } или вообще упасть (throw)
       const result = (await createTrainingDoc(categoryId, formData)) as any
 
       if (result?.error) {
-        setError(
+        const msg =
           typeof result.error === 'string'
             ? result.error
             : result.error?.message || 'Failed to create training document'
-        )
-        setLoading(false)
+        setError(msg)
         return
       }
 
+      // успех
       setOpen(false)
       setContent('<p>Enter your training content here...</p>')
       router.refresh()
     } catch (err: any) {
-      setError(err?.message || 'Failed to create training document')
+      // сюда попадаем, если server action реально упал
+      setError(err?.message || 'Unexpected error while creating training document')
     } finally {
       setLoading(false)
     }
@@ -72,7 +73,9 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Training Document</DialogTitle>
-          <DialogDescription>Create a new training document with rich content</DialogDescription>
+          <DialogDescription>
+            Create a new training document with rich content
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -95,12 +98,7 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
             <RichTextEditor content={content} onChange={setContent} />
           </div>
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
