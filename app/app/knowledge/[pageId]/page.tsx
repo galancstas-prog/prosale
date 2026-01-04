@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getKbPageById } from '@/lib/actions/kb-pages'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
@@ -10,6 +11,8 @@ import { useLocale } from '@/lib/i18n/use-locale'
 
 export default function KnowledgePageView({ params }: { params: { pageId: string } }) {
   const { t } = useLocale()
+  const searchParams = useSearchParams()
+  const searchQuery = searchParams.get('q') || ''
   const [page, setPage] = useState<any>(null)
   const [error, setError] = useState(false)
 
@@ -65,7 +68,7 @@ export default function KnowledgePageView({ params }: { params: { pageId: string
         </p>
       </div>
 
-      <KbPageViewer page={page} isAdmin={true} />
+      <KbPageViewer page={page} isAdmin={true} searchQuery={searchQuery} />
     </div>
   )
 }

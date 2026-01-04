@@ -8,7 +8,6 @@ export async function getKbPages() {
 
   const { data, error } = await supabase
     .from('kb_pages')
-    // updated_at в таблице НЕТ — поэтому НЕ выбираем его
     .select('id,title,content_richtext,created_at')
     .order('created_at', { ascending: false })
 
@@ -72,7 +71,6 @@ export async function updateKbPage(pageId: string, formData: FormData) {
 
   if (!title || !content) return { error: 'Title and content are required' }
 
-  // updated_at в таблице НЕТ — поэтому НЕ обновляем его
   const { data, error } = await supabase
     .from('kb_pages')
     .update({
@@ -105,4 +103,53 @@ export async function deleteKbPage(id: string) {
 
   safeRevalidatePath('/app/knowledge')
   return { success: true }
+}
+
+export async function searchKbPages(query: string) {
+  if (!query || query.length < 2) {
+    return { data: [], error: null }
+  }
+
+  const supabase = await getSupabaseServerClient()
+
+  const normalizedQuery = query.replace(/ё/gi, 'е')
+
+  const isExactPhrase = /^".*"$/.test(query)
+  let searchPattern: string
+
+  if (isExactPhrase) {
+    const phrase = query.slice(1, -1).replace(/ё/gi, 'е')
+    searchPattern = `%${phrase}%`
+  } else {
+    const words = normalizedQuery.split(/\s+/).filter((w) => w.length > 0)
+    searchPattern = words.map(w => `%${w}%`).join('')
+  }
+
+  const { data, error } = await supabase
+    .from('kb_pages')
+    .select('id, title, content_richtext')
+    .ilike('content_richtext', searchPattern)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (error) return { error: error.message, data: [] }
+
+  const results = (data || []).map((page) => {
+    const normalizedContent = page.content_richtext.toLowerCase().replace(/ё/gi, 'е')
+    const searchTerms = normalizedQuery.toLowerCase()
+
+    const matchIndex = normalizedContent.indexOf(searchTerms)
+    const start = Math.max(0, matchIndex - 30)
+    const end = Math.min(page.content_richtext.length, matchIndex + searchTerms.length + 30)
+    const snippet = (start > 0 ? '...' : '') + page.content_richtext.substring(start, end) + (end < page.content_richtext.length ? '...' : '')
+
+    return {
+      id: page.id,
+      title: page.title,
+      content: page.content_richtext,
+      snippet,
+    }
+  })
+
+  return { data: results, error: null }
 }
