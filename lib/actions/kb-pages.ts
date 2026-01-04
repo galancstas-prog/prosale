@@ -1,7 +1,7 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
 export async function getKbPages() {
   const supabase = await getSupabaseServerClient()
@@ -60,7 +60,7 @@ export async function createKbPage(formData: FormData) {
     return { error: `Database error: ${error.message}` }
   }
 
-  revalidatePath('/app/knowledge')
+  safeRevalidatePath('/app/knowledge')
   return { data }
 }
 
@@ -88,8 +88,8 @@ export async function updateKbPage(pageId: string, formData: FormData) {
     return { error: error.message }
   }
 
-  revalidatePath('/app/knowledge')
-  revalidatePath(`/app/knowledge/${pageId}`)
+  safeRevalidatePath('/app/knowledge')
+  safeRevalidatePath(`/app/knowledge/${pageId}`)
   return { data }
 }
 
@@ -103,6 +103,6 @@ export async function deleteKbPage(id: string) {
     return { error: error.message }
   }
 
-  revalidatePath('/app/knowledge')
+  safeRevalidatePath('/app/knowledge')
   return { success: true }
 }
