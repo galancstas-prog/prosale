@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLocale } from '@/lib/i18n/use-locale'
-import { MessageSquare, BookOpen, FileText, Database, ArrowRight, Loader2, Sparkles } from 'lucide-react'
+import { MessageSquare, BookOpen, FileText, Database, ArrowRight, Loader2, Sparkles, RefreshCw } from 'lucide-react'
 import { createDemoContent } from '@/lib/actions/seed-demo'
+import { reindexAllContent } from '@/lib/actions/ai-search'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { GlobalSearch } from './global-search'
@@ -22,6 +23,9 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [reindexLoading, setReindexLoading] = useState(false)
+  const [reindexSuccess, setReindexSuccess] = useState(false)
+  const [reindexError, setReindexError] = useState('')
 
   const tiles = [
     {
@@ -76,6 +80,23 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     }, 1500)
   }
 
+  const handleReindex = async () => {
+    setReindexError('')
+    setReindexSuccess(false)
+    setReindexLoading(true)
+
+    const result = await reindexAllContent()
+
+    if (result.success) {
+      setReindexSuccess(true)
+      setTimeout(() => setReindexSuccess(false), 5000)
+    } else {
+      setReindexError(result.error || 'Ошибка переиндексации')
+    }
+
+    setReindexLoading(false)
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -86,14 +107,24 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={handleCreateDemo} disabled={loading || success}>
-            {loading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
-            )}
-            {t('dashboard.createDemo')}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleCreateDemo} disabled={loading || success} variant="outline">
+              {loading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              {t('dashboard.createDemo')}
+            </Button>
+            <Button onClick={handleReindex} disabled={reindexLoading || reindexSuccess}>
+              {reindexLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Переиндексировать AI
+            </Button>
+          </div>
         )}
       </div>
 
@@ -106,6 +137,18 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
       {success && (
         <Alert>
           <AlertDescription>{t('dashboard.demoSuccess')}</AlertDescription>
+        </Alert>
+      )}
+
+      {reindexError && (
+        <Alert variant="destructive">
+          <AlertDescription>{reindexError}</AlertDescription>
+        </Alert>
+      )}
+
+      {reindexSuccess && (
+        <Alert>
+          <AlertDescription>AI индексация завершена успешно</AlertDescription>
         </Alert>
       )}
 
