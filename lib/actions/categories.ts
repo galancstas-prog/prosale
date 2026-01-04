@@ -1,9 +1,9 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
-export async function createCategory(formData: FormData) {
+export async function createTrainingCategory(formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
   const name = String(formData.get('name') || '').trim()
@@ -14,37 +14,37 @@ export async function createCategory(formData: FormData) {
 
   const { data, error } = await supabase
     .from('categories')
-    .insert({ name, description, type: 'script' })
+    .insert({ name, description, type: 'training' })
     .select('*')
     .single()
 
   if (error) {
-    console.error('[createCategory]', error)
-    return { error: error.message || 'Failed to create category' }
+    console.error('[createTrainingCategory]', error)
+    return { error: error.message || 'Failed to create training category' }
   }
 
-  revalidatePath('/app/scripts')
+  safeRevalidatePath('/app/training')
   return { data }
 }
 
-export async function getCategories() {
+export async function getTrainingCategories() {
   const supabase = await getSupabaseServerClient()
 
   const { data, error } = await supabase
     .from('categories')
     .select('*')
-    .eq('type', 'script')
+    .eq('type', 'training')
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('[getCategories]', error)
+    console.error('[getTrainingCategories]', error)
     return { data: [] as any[] }
   }
 
   return { data: data || [] }
 }
 
-export async function updateCategory(categoryId: string, formData: FormData) {
+export async function updateTrainingCategory(categoryId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
   const name = String(formData.get('name') || '').trim()
@@ -62,15 +62,15 @@ export async function updateCategory(categoryId: string, formData: FormData) {
     .single()
 
   if (error) {
-    console.error('[updateCategory]', error)
-    return { error: error.message || 'Failed to update category' }
+    console.error('[updateTrainingCategory]', error)
+    return { error: error.message || 'Failed to update training category' }
   }
 
-  revalidatePath('/app/scripts')
+  safeRevalidatePath('/app/training')
   return { data }
 }
 
-export async function deleteCategory(categoryId: string) {
+export async function deleteTrainingCategory(categoryId: string) {
   const supabase = await getSupabaseServerClient()
 
   if (!categoryId) return { error: 'Missing category id' }
@@ -78,10 +78,10 @@ export async function deleteCategory(categoryId: string) {
   const { error } = await supabase.from('categories').delete().eq('id', categoryId)
 
   if (error) {
-    console.error('[deleteCategory]', error)
-    return { error: error.message || 'Failed to delete category' }
+    console.error('[deleteTrainingCategory]', error)
+    return { error: error.message || 'Failed to delete training category' }
   }
 
-  revalidatePath('/app/scripts')
+  safeRevalidatePath('/app/training')
   return { success: true }
 }
