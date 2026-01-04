@@ -17,12 +17,14 @@ import { Plus, Loader2 } from 'lucide-react'
 import { createTrainingDoc } from '@/lib/actions/training-docs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RichTextEditor } from '@/components/rich-text-editor'
+import { useLocale } from '@/lib/i18n/use-locale'
 
 interface CreateTrainingDocDialogProps {
   categoryId: string
 }
 
 export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogProps) {
+  const { t } = useLocale()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -71,14 +73,14 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          New Training Document
+          {t('training.newDoc')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Training Document</DialogTitle>
+          <DialogTitle>{t('training.createDoc')}</DialogTitle>
           <DialogDescription>
-            Create a new training document with rich content
+            {t('training.createDocDesc')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -88,26 +90,26 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
             </Alert>
           )}
           <div className="space-y-2">
-            <Label htmlFor="title">Document Title</Label>
+            <Label htmlFor="title">{t('training.docTitle')}</Label>
             <Input
               id="title"
               name="title"
-              placeholder="e.g., Product Overview"
+              placeholder={t('training.docTitlePlaceholder')}
               required
               disabled={loading}
             />
           </div>
           <div className="space-y-2">
-            <Label>Content</Label>
+            <Label>{t('training.content')}</Label>
             <RichTextEditor content={content} onChange={setContent} />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create Document
+              {t('common.create')}
             </Button>
           </div>
         </form>

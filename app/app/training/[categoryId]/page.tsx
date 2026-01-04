@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { getTrainingDocsByCategory } from '@/lib/actions/training-docs'
 import { getTrainingCategories } from '@/lib/actions/training-categories'
 import { CreateTrainingDocDialog } from './create-doc-dialog'
@@ -5,19 +8,30 @@ import { TrainingDocList } from './doc-list'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { useLocale } from '@/lib/i18n/use-locale'
 
-export default async function TrainingCategoryPage({ params }: { params: { categoryId: string } }) {
-  const docsResult = await getTrainingDocsByCategory(params.categoryId)
-  const categoriesResult = await getTrainingCategories()
+export default function TrainingCategoryPage({ params }: { params: { categoryId: string } }) {
+  const { t } = useLocale()
+  const [category, setCategory] = useState<any>(null)
+  const [docs, setDocs] = useState<any[]>([])
 
-  const categories = categoriesResult.data || []
-  const category = categories.find(c => c.id === params.categoryId)
+  useEffect(() => {
+    async function loadData() {
+      const docsResult = await getTrainingDocsByCategory(params.categoryId)
+      const categoriesResult = await getTrainingCategories()
+
+      const categories = categoriesResult.data || []
+      const foundCategory = categories.find(c => c.id === params.categoryId)
+
+      setCategory(foundCategory)
+      setDocs(docsResult.data || [])
+    }
+    loadData()
+  }, [params.categoryId])
 
   if (!category) {
     return <div>Category not found</div>
   }
-
-  const docs = docsResult.data || []
 
   return (
     <div className="space-y-6">
@@ -25,7 +39,7 @@ export default async function TrainingCategoryPage({ params }: { params: { categ
         <Link href="/app/training">
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Training
+            {t('training.backToTraining')}
           </Button>
         </Link>
         <div className="flex items-center justify-between">

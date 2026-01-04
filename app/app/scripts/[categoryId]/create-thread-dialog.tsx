@@ -17,12 +17,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Plus, Loader2 } from 'lucide-react'
 import { createThread } from '@/lib/actions/script-threads'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useLocale } from '@/lib/i18n/use-locale'
 
 interface CreateThreadDialogProps {
   categoryId: string
 }
 
 export function CreateThreadDialog({ categoryId }: CreateThreadDialogProps) {
+  const { t } = useLocale()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -46,14 +48,14 @@ export function CreateThreadDialog({ categoryId }: CreateThreadDialogProps) {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          New Script Thread
+          {t('scripts.newThread')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create Script Thread</DialogTitle>
+          <DialogTitle>{t('scripts.createThread')}</DialogTitle>
           <DialogDescription>
-            Create a new conversation script thread
+            {t('scripts.createThreadDesc')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -63,11 +65,11 @@ export function CreateThreadDialog({ categoryId }: CreateThreadDialogProps) {
             </Alert>
           )}
           <div className="space-y-2">
-            <Label htmlFor="title">Thread Title</Label>
+            <Label htmlFor="title">{t('scripts.threadTitle')}</Label>
             <Input
               id="title"
               name="title"
-              placeholder="e.g., Cold Call Opening"
+              placeholder={t('scripts.threadTitlePlaceholder')}
               required
               disabled={loading}
             />
@@ -83,11 +85,11 @@ export function CreateThreadDialog({ categoryId }: CreateThreadDialogProps) {
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create Thread
+              {t('common.create')}
             </Button>
           </div>
         </form>

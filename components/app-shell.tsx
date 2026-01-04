@@ -178,7 +178,7 @@ function AppShellContent({ children, user }: AppShellProps) {
               onClick={handleLogout}
             >
               <LogOut className="mr-3 h-4 w-4" />
-              Logout
+              {t('nav.logout')}
             </Button>
           </div>
         </div>
@@ -204,7 +204,7 @@ function AppShellContent({ children, user }: AppShellProps) {
 
           <div className="flex-1 lg:ml-0 ml-4">
             <div className="text-sm text-slate-500">
-              Demo Workspace
+              {t('dashboard.workspace')}
             </div>
           </div>
 

@@ -25,28 +25,28 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
   const tiles = [
     {
       title: t('dashboard.scripts'),
-      description: 'Manage conversation scripts and templates',
+      description: t('dashboard.scriptsDesc'),
       icon: MessageSquare,
       href: '/app/scripts',
       color: 'blue',
     },
     {
       title: t('dashboard.training'),
-      description: 'Access training materials and track your progress',
+      description: t('dashboard.trainingDesc'),
       icon: BookOpen,
       href: '/app/training',
       color: 'green',
     },
     {
       title: t('dashboard.faq'),
-      description: 'Find quick answers to common questions',
+      description: t('dashboard.faqDesc'),
       icon: FileText,
       href: '/app/faq',
       color: 'orange',
     },
     {
       title: t('dashboard.knowledge'),
-      description: 'Browse our comprehensive knowledge base',
+      description: t('dashboard.knowledgeDesc'),
       icon: Database,
       href: '/app/knowledge',
       color: 'purple',
@@ -91,7 +91,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
             ) : (
               <Sparkles className="h-4 w-4 mr-2" />
             )}
-            Create Demo Content
+            {t('dashboard.createDemo')}
           </Button>
         )}
       </div>
@@ -104,7 +104,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
 
       {success && (
         <Alert>
-          <AlertDescription>Demo content created successfully! Redirecting to Scripts...</AlertDescription>
+          <AlertDescription>{t('dashboard.demoSuccess')}</AlertDescription>
         </Alert>
       )}
 
@@ -132,8 +132,8 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Quick Start</CardTitle>
-          <CardDescription>Get started with your platform</CardDescription>
+          <CardTitle>{t('dashboard.quickStart')}</CardTitle>
+          <CardDescription>{t('dashboard.quickStartDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
@@ -141,9 +141,9 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
               1
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">Explore Scripts</h3>
+              <h3 className="font-semibold mb-1">{t('dashboard.step1Title')}</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Browse conversation scripts to help guide your interactions
+                {t('dashboard.step1Desc')}
               </p>
             </div>
           </div>
@@ -153,9 +153,9 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
               2
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">Complete Training</h3>
+              <h3 className="font-semibold mb-1">{t('dashboard.step2Title')}</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Review training materials and track your learning progress
+                {t('dashboard.step2Desc')}
               </p>
             </div>
           </div>
@@ -165,9 +165,9 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
               3
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">Check FAQ</h3>
+              <h3 className="font-semibold mb-1">{t('dashboard.step3Title')}</h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Find answers to frequently asked questions
+                {t('dashboard.step3Desc')}
               </p>
             </div>
           </div>

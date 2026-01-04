@@ -18,8 +18,10 @@ import { Plus, Loader2 } from 'lucide-react'
 import { createFaqItem } from '@/lib/actions/faq-items'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/lib/i18n/use-locale'
 
 export function CreateFaqDialog() {
+  const { t } = useLocale()
   const router = useRouter()
   const { toast } = useToast()
 
@@ -63,15 +65,15 @@ export function CreateFaqDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          New FAQ Item
+          {t('faq.newItem')}
         </Button>
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create FAQ Item</DialogTitle>
+          <DialogTitle>{t('faq.createItem')}</DialogTitle>
           <DialogDescription>
-            Add a new frequently asked question and answer
+            {t('faq.createItemDesc')}
           </DialogDescription>
         </DialogHeader>
 
@@ -87,22 +89,22 @@ export function CreateFaqDialog() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="question">Question</Label>
+            <Label htmlFor="question">{t('faq.question')}</Label>
             <Input
               id="question"
               name="question"
-              placeholder="e.g., How do I reset my password?"
+              placeholder={t('faq.questionPlaceholder')}
               required
               disabled={loading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="answer">Answer</Label>
+            <Label htmlFor="answer">{t('faq.answer')}</Label>
             <Textarea
               id="answer"
               name="answer"
-              placeholder="Provide a clear and helpful answer..."
+              placeholder={t('faq.answerPlaceholder')}
               required
               disabled={loading}
               className="min-h-[150px]"
@@ -116,14 +118,14 @@ export function CreateFaqDialog() {
               onClick={() => setOpen(false)}
               disabled={loading}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
 
             <Button type="submit" disabled={loading}>
               {loading && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
-              Create FAQ Item
+              {t('common.create')}
             </Button>
           </div>
         </form>

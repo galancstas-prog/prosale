@@ -8,8 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
+import { LocaleSwitcher } from '@/components/locale-switcher'
 
-export default function RegisterPage() {
+function RegisterPageContent() {
+  const { t } = useLocale()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -71,15 +74,21 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <LocaleSwitcher />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create account</CardTitle>
-          <CardDescription>Sign up to get access</CardDescription>
+          <div className="text-center mb-2">
+            <h1 className="text-2xl font-bold">{t('app.name')}</h1>
+          </div>
+          <CardTitle>{t('auth.register.title')}</CardTitle>
+          <CardDescription>{t('auth.register.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.register.email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -90,7 +99,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.register.password')}</Label>
               <Input
                 id="password"
                 type="password"
@@ -101,7 +110,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm password</Label>
+              <Label htmlFor="confirmPassword">{t('auth.register.password')}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -115,18 +124,26 @@ export default function RegisterPage() {
             {message && <div className="text-sm text-green-600">{message}</div>}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating...' : 'Create account'}
+              {loading ? `${t('common.loading')}` : t('auth.register.submit')}
             </Button>
 
             <div className="text-sm text-center text-muted-foreground">
-              Already have an account?{' '}
+              {t('auth.register.hasAccount')}{' '}
               <Link href="/login" className="underline">
-                Sign in
+                {t('auth.register.signIn')}
               </Link>
             </div>
           </form>
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <LocaleProvider>
+      <RegisterPageContent />
+    </LocaleProvider>
   )
 }

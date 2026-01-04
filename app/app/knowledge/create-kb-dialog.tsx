@@ -18,8 +18,10 @@ import { Plus, Loader2 } from 'lucide-react'
 import { createKbPage } from '@/lib/actions/kb-pages'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/lib/i18n/use-locale'
 
 export function CreateKbDialog() {
+  const { t } = useLocale()
   const router = useRouter()
   const { toast } = useToast()
   const formRef = useRef<HTMLFormElement | null>(null)
@@ -71,15 +73,15 @@ export function CreateKbDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          New Page
+          {t('kb.newPage')}
         </Button>
       </DialogTrigger>
 
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Knowledge Base Page</DialogTitle>
+          <DialogTitle>{t('kb.createPage')}</DialogTitle>
           <DialogDescription>
-            Add a new page to the knowledge base
+            {t('kb.createPageDesc')}
           </DialogDescription>
         </DialogHeader>
 
@@ -91,22 +93,22 @@ export function CreateKbDialog() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="title">{t('kb.pageTitle')}</Label>
             <Input
               id="title"
               name="title"
-              placeholder="e.g., Getting Started Guide"
+              placeholder={t('kb.pageTitlePlaceholder')}
               required
               disabled={loading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content">Content</Label>
+            <Label htmlFor="content">{t('kb.pageContent')}</Label>
             <Textarea
               id="content"
               name="content"
-              placeholder="Write your content here..."
+              placeholder={t('kb.pageContentPlaceholder')}
               required
               disabled={loading}
               className="min-h-[300px] font-mono text-sm"
@@ -120,12 +122,12 @@ export function CreateKbDialog() {
               onClick={() => setOpen(false)}
               disabled={loading}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
 
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create Page
+              {t('common.create')}
             </Button>
           </div>
         </form>

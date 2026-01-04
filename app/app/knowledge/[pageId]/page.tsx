@@ -1,19 +1,37 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { getKbPageById } from '@/lib/actions/kb-pages'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { KbPageViewer } from './page-viewer'
+import { useLocale } from '@/lib/i18n/use-locale'
 
-export default async function KnowledgePageView({ params }: { params: { pageId: string } }) {
-  const result = await getKbPageById(params.pageId)
+export default function KnowledgePageView({ params }: { params: { pageId: string } }) {
+  const { t } = useLocale()
+  const [page, setPage] = useState<any>(null)
+  const [error, setError] = useState(false)
 
-  if (result.error || !result.data) {
+  useEffect(() => {
+    async function loadData() {
+      const result = await getKbPageById(params.pageId)
+      if (result.error || !result.data) {
+        setError(true)
+      } else {
+        setPage(result.data)
+      }
+    }
+    loadData()
+  }, [params.pageId])
+
+  if (error) {
     return (
       <div className="space-y-6">
         <Link href="/app/knowledge">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Knowledge Base
+            {t('kb.backToKb')}
           </Button>
         </Link>
         <div className="text-center py-12">
@@ -28,7 +46,9 @@ export default async function KnowledgePageView({ params }: { params: { pageId: 
     )
   }
 
-  const page = result.data
+  if (!page) {
+    return null
+  }
 
   return (
     <div className="space-y-6">
@@ -36,7 +56,7 @@ export default async function KnowledgePageView({ params }: { params: { pageId: 
         <Link href="/app/knowledge">
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Knowledge Base
+            {t('kb.backToKb')}
           </Button>
         </Link>
         <h1 className="text-3xl font-bold tracking-tight">{page.title}</h1>

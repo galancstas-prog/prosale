@@ -17,8 +17,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Plus, Loader2 } from 'lucide-react'
 import { createCategory } from '@/lib/actions/categories'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useLocale } from '@/lib/i18n/use-locale'
 
 export function CreateCategoryDialog() {
+  const { t } = useLocale()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -42,14 +44,14 @@ export function CreateCategoryDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          New Category
+          {t('scripts.newCategory')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create Script Category</DialogTitle>
+          <DialogTitle>{t('scripts.createCategory')}</DialogTitle>
           <DialogDescription>
-            Create a new category to organize your scripts
+            {t('scripts.createCategoryDesc')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -59,31 +61,31 @@ export function CreateCategoryDialog() {
             </Alert>
           )}
           <div className="space-y-2">
-            <Label htmlFor="name">Category Name</Label>
+            <Label htmlFor="name">{t('scripts.categoryName')}</Label>
             <Input
               id="name"
               name="name"
-              placeholder="e.g., Sales Scripts"
+              placeholder={t('scripts.categoryNamePlaceholder')}
               required
               disabled={loading}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t('scripts.categoryDesc')}</Label>
             <Textarea
               id="description"
               name="description"
-              placeholder="Optional description"
+              placeholder={t('scripts.categoryDescPlaceholder')}
               disabled={loading}
             />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create Category
+              {t('common.create')}
             </Button>
           </div>
         </form>

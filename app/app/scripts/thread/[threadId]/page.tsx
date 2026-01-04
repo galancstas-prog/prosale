@@ -1,20 +1,35 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { getThreadById } from '@/lib/actions/script-threads'
 import { getTurnsByThread } from '@/lib/actions/script-turns'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ConversationView } from './conversation-view'
+import { useLocale } from '@/lib/i18n/use-locale'
 
-export default async function ThreadPage({ params }: { params: { threadId: string } }) {
-  const threadResult = await getThreadById(params.threadId)
-  const turnsResult = await getTurnsByThread(params.threadId)
+export default function ThreadPage({ params }: { params: { threadId: string } }) {
+  const { t } = useLocale()
+  const [thread, setThread] = useState<any>(null)
+  const [turns, setTurns] = useState<any[]>([])
 
-  if (threadResult.error || !threadResult.data) {
+  useEffect(() => {
+    async function loadData() {
+      const threadResult = await getThreadById(params.threadId)
+      const turnsResult = await getTurnsByThread(params.threadId)
+
+      if (threadResult.data) {
+        setThread(threadResult.data)
+      }
+      setTurns(turnsResult.data || [])
+    }
+    loadData()
+  }, [params.threadId])
+
+  if (!thread) {
     return <div>Thread not found</div>
   }
-
-  const thread = threadResult.data
-  const turns = turnsResult.data || []
 
   return (
     <div className="space-y-6">
@@ -22,7 +37,7 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
         <Link href={`/app/scripts/${thread.category_id}`}>
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Scripts
+            {t('scripts.backToCategory')}
           </Button>
         </Link>
         <div>

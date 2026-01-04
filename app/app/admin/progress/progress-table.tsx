@@ -15,6 +15,7 @@ import {
 import { Check, Clock, Circle, Search } from 'lucide-react'
 import { EmptyState } from '@/components/empty-state'
 import { format } from 'date-fns'
+import { useLocale } from '@/lib/i18n/use-locale'
 
 interface ProgressRow {
   manager_email: string
@@ -29,6 +30,7 @@ interface ProgressTableProps {
 }
 
 export function ProgressTable({ rows }: ProgressTableProps) {
+  const { t } = useLocale()
   const [search, setSearch] = useState('')
 
   const statusConfig = {
@@ -62,7 +64,7 @@ export function ProgressTable({ rows }: ProgressTableProps) {
     return (
       <EmptyState
         icon={Circle}
-        title="No progress data yet"
+        title={t('admin.progress.noProgress')}
         description="Training progress will appear here once users start completing training documents"
       />
     )
@@ -140,9 +142,9 @@ export function ProgressTable({ rows }: ProgressTableProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Manager</TableHead>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('admin.progress.user')}</TableHead>
+                  <TableHead>{t('admin.progress.document')}</TableHead>
+                  <TableHead>{t('admin.progress.completed')}</TableHead>
                   <TableHead>Last Updated</TableHead>
                 </TableRow>
               </TableHeader>
