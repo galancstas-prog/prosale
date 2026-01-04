@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getThreadById } from '@/lib/actions/script-threads'
 import { getTurnsByThread } from '@/lib/actions/script-turns'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,9 @@ import { useLocale } from '@/lib/i18n/use-locale'
 
 export default function ThreadPage({ params }: { params: { threadId: string } }) {
   const { t } = useLocale()
+  const searchParams = useSearchParams()
+  const highlightTurnId = searchParams.get('turnId') || ''
+  const searchQuery = searchParams.get('q') || ''
   const [thread, setThread] = useState<any>(null)
   const [turns, setTurns] = useState<any[]>([])
 
@@ -50,7 +54,13 @@ export default function ThreadPage({ params }: { params: { threadId: string } })
         </div>
       </div>
 
-      <ConversationView threadId={params.threadId} turns={turns} isAdmin={true} />
+      <ConversationView
+        threadId={params.threadId}
+        turns={turns}
+        isAdmin={true}
+        highlightTurnId={highlightTurnId}
+        searchQuery={searchQuery}
+      />
     </div>
   )
 }

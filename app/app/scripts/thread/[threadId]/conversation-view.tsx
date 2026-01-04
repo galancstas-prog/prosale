@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,9 +36,11 @@ interface ConversationViewProps {
   threadId: string
   turns: Turn[]
   isAdmin: boolean
+  highlightTurnId?: string
+  searchQuery?: string
 }
 
-export function ConversationView({ threadId, turns, isAdmin }: ConversationViewProps) {
+export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, searchQuery }: ConversationViewProps) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement | null>(null)
 
@@ -46,6 +48,22 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
   const [error, setError] = useState('')
   const [editingTurnId, setEditingTurnId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [shouldHighlight, setShouldHighlight] = useState(!!highlightTurnId)
+
+  useEffect(() => {
+    if (highlightTurnId) {
+      setTimeout(() => {
+        const element = document.getElementById(`turn-${highlightTurnId}`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+
+      setTimeout(() => {
+        setShouldHighlight(false)
+      }, 3000)
+    }
+  }, [highlightTurnId])
 
   const handleAddTurn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -91,6 +109,22 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
     router.refresh()
   }
 
+  const highlightText = (text: string, query: string) => {
+    if (!query || query.length < 2) return text
+
+    const normalizedQuery = query.replace(/ё/gi, 'е').replace(/^"|"$/g, '')
+    const words = normalizedQuery.split(/\s+/).filter((w) => w.length > 0)
+
+    let result = text
+    words.forEach((word) => {
+      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const regex = new RegExp(`(${escapedWord})`, 'gi')
+      result = result.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 px-0.5">$1</mark>')
+    })
+
+    return result
+  }
+
   return (
     <div className="grid lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2">
@@ -118,7 +152,11 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
             ) : (
               <div className="space-y-2">
                 {turns.map((turn, index) => (
-                  <div key={turn.id} className="relative group">
+                  <div
+                    key={turn.id}
+                    id={`turn-${turn.id}`}
+                    className={`relative group ${shouldHighlight && turn.id === highlightTurnId ? 'ring-2 ring-yellow-400 rounded-lg' : ''}`}
+                  >
                     {editingTurnId === turn.id ? (
                       <div className="border rounded-lg p-4 space-y-2">
                         <Textarea
@@ -149,11 +187,23 @@ export function ConversationView({ threadId, turns, isAdmin }: ConversationViewP
                       </div>
                     ) : (
                       <>
-                        <ChatBubble
-                          speaker={turn.speaker}
-                          content={turn.message}
-                          showCopyButton={turn.speaker === 'agent'}
-                        />
+                        {shouldHighlight && turn.id === highlightTurnId && searchQuery ? (
+                          <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800">
+                            <div className={`text-sm font-medium mb-2 ${turn.speaker === 'agent' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`}>
+                              {turn.speaker === 'agent' ? 'Manager' : 'Client'}
+                            </div>
+                            <div
+                              className="text-sm whitespace-pre-wrap"
+                              dangerouslySetInnerHTML={{ __html: highlightText(turn.message, searchQuery) }}
+                            />
+                          </div>
+                        ) : (
+                          <ChatBubble
+                            speaker={turn.speaker}
+                            content={turn.message}
+                            showCopyButton={turn.speaker === 'agent'}
+                          />
+                        )}
                         {isAdmin && (
                           <div className="absolute right-0 top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Button

@@ -149,3 +149,57 @@ export async function reorderTurn(
   safeRevalidatePath(`/app/scripts/thread/${realThreadId}`)
   return { success: true }
 }
+
+export async function searchScriptTurns(query: string) {
+  if (!query || query.length < 2) {
+    return { data: [], error: null }
+  }
+
+  const supabase = await getSupabaseServerClient()
+
+  const normalizedQuery = query.replace(/ё/gi, 'е')
+
+  const isExactPhrase = /^".*"$/.test(query)
+  let searchPattern: string
+
+  if (isExactPhrase) {
+    const phrase = query.slice(1, -1).replace(/ё/gi, 'е')
+    searchPattern = `%${phrase}%`
+  } else {
+    const words = normalizedQuery.split(/\s+/).filter((w) => w.length > 0)
+    searchPattern = words.map(w => `%${w}%`).join('')
+  }
+
+  const { data, error } = await supabase
+    .from('script_turns')
+    .select('id, message, thread_id, script_threads!inner(id, title, category_id, categories!inner(id, name))')
+    .ilike('message', searchPattern)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (error) return { error: error.message, data: [] }
+
+  const results = (data || []).map((turn) => {
+    const normalizedMessage = turn.message.toLowerCase().replace(/ё/gi, 'е')
+    const searchTerms = normalizedQuery.toLowerCase()
+
+    const matchIndex = normalizedMessage.indexOf(searchTerms)
+    const start = Math.max(0, matchIndex - 30)
+    const end = Math.min(turn.message.length, matchIndex + searchTerms.length + 30)
+    const snippet = (start > 0 ? '...' : '') + turn.message.substring(start, end) + (end < turn.message.length ? '...' : '')
+
+    const thread = turn.script_threads as any
+    const category = thread.categories as any
+
+    return {
+      id: turn.id,
+      threadId: turn.thread_id,
+      threadTitle: thread.title,
+      categoryName: category.name,
+      message: turn.message,
+      snippet,
+    }
+  })
+
+  return { data: results, error: null }
+}

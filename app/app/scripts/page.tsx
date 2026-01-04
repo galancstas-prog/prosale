@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { getCategories } from '@/lib/actions/categories'
 import { CreateCategoryDialog } from './create-category-dialog'
 import { CategoryList } from './category-list'
+import { ScriptsSearch } from './scripts-search'
 import { useLocale } from '@/lib/i18n/use-locale'
 
 export default function ScriptsPage() {
   const { t } = useLocale()
+  const router = useRouter()
   const [categories, setCategories] = useState<any[]>([])
 
   useEffect(() => {
@@ -17,6 +20,10 @@ export default function ScriptsPage() {
     }
     loadData()
   }, [])
+
+  const handleSearchResultClick = (threadId: string, turnId: string, query: string) => {
+    router.push(`/app/scripts/thread/${threadId}?turnId=${turnId}&q=${encodeURIComponent(query)}`)
+  }
 
   return (
     <div className="space-y-6">
@@ -29,6 +36,8 @@ export default function ScriptsPage() {
         </div>
         <CreateCategoryDialog />
       </div>
+
+      <ScriptsSearch onResultClick={handleSearchResultClick} />
 
       <CategoryList categories={categories} isAdmin={true} />
     </div>
