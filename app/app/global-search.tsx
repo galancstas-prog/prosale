@@ -116,38 +116,40 @@ export function GlobalSearch() {
   }
 
   const handleResultClick = (result: GlobalSearchResult) => {
+    const q = query
     setIsOpen(false)
     setQuery('')
 
     switch (result.module) {
       case 'scripts':
-        router.push(`/app/scripts/thread/${result.meta.threadId}?turnId=${result.meta.turnId}&q=${encodeURIComponent(query)}`)
+        router.push(`/app/scripts/thread/${result.meta.threadId}?turnId=${result.meta.turnId}&q=${encodeURIComponent(q)}`)
         break
       case 'faq':
-        router.push(`/app/faq?highlight=${result.meta.id}&q=${encodeURIComponent(query)}`)
+        router.push(`/app/faq?highlight=${result.meta.id}&q=${encodeURIComponent(q)}`)
         break
       case 'training':
-        router.push(`/app/training/doc/${result.meta.docId}?q=${encodeURIComponent(query)}`)
+        router.push(`/app/training/doc/${result.meta.docId}?q=${encodeURIComponent(q)}`)
         break
       case 'kb':
-        router.push(`/app/knowledge/${result.meta.pageId}?q=${encodeURIComponent(query)}`)
+        router.push(`/app/knowledge/${result.meta.pageId}?q=${encodeURIComponent(q)}`)
         break
     }
   }
 
   const handleSourceClick = (source: AISource) => {
+    const q = query
     switch (source.module) {
       case 'scripts':
-        router.push(`/app/scripts/thread/${source.meta.threadId}?turnId=${source.meta.turnId}&q=${encodeURIComponent(query)}`)
+        router.push(`/app/scripts/thread/${source.meta.threadId}?turnId=${source.meta.turnId}&q=${encodeURIComponent(q)}`)
         break
       case 'faq':
-        router.push(`/app/faq?highlight=${source.meta.id}&q=${encodeURIComponent(query)}`)
+        router.push(`/app/faq?highlight=${source.meta.id}&q=${encodeURIComponent(q)}`)
         break
       case 'training':
-        router.push(`/app/training/doc/${source.meta.docId}?q=${encodeURIComponent(query)}`)
+        router.push(`/app/training/doc/${source.meta.docId}?q=${encodeURIComponent(q)}`)
         break
       case 'kb':
-        router.push(`/app/knowledge/${source.meta.pageId}?q=${encodeURIComponent(query)}`)
+        router.push(`/app/knowledge/${source.meta.pageId}?q=${encodeURIComponent(q)}`)
         break
     }
   }
