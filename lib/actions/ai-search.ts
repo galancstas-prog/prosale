@@ -23,6 +23,14 @@ export async function aiSearch(
   filters: { scripts: boolean; training: boolean; faq: boolean; kb: boolean }
 ): Promise<AISearchResult> {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      return {
+        answer: '',
+        sources: [],
+        error: 'OPENAI_API_KEY is missing',
+      }
+    }
+
     if (!query || query.length < 4) {
       return {
         answer: '',
@@ -34,6 +42,13 @@ export async function aiSearch(
     const supabase = await getSupabaseServerClient()
 
     const queryEmbedding = await createEmbedding(query)
+
+    if (!Array.isArray(queryEmbedding) || queryEmbedding.length !== 1536) {
+      throw new Error('Invalid embedding format: must be array of 1536 numbers')
+    }
+    if (!queryEmbedding.every((v) => typeof v === 'number' && isFinite(v))) {
+      throw new Error('Invalid embedding format: all values must be finite numbers')
+    }
 
     const enabledModules = Object.entries(filters)
       .filter(([_, enabled]) => enabled)
@@ -106,6 +121,10 @@ export async function aiSearch(
 
 export async function reindexAllContent() {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is missing')
+    }
+
     const supabase = await getSupabaseServerClient()
 
     await supabase.from('ai_chunks').delete().neq('id', '00000000-0000-0000-0000-000000000000')
@@ -121,13 +140,21 @@ export async function reindexAllContent() {
 
         for (const chunk of chunks) {
           const embedding = await createEmbedding(chunk)
+
+          if (!Array.isArray(embedding) || embedding.length !== 1536) {
+            throw new Error('Invalid embedding format: must be array of 1536 numbers')
+          }
+          if (!embedding.every((v) => typeof v === 'number' && isFinite(v))) {
+            throw new Error('Invalid embedding format: all values must be finite numbers')
+          }
+
           await supabase.from('ai_chunks').insert({
             module: 'faq',
             entity_id: item.id,
             title: item.question,
             url_path: `/app/faq?highlight=${item.id}`,
             chunk_text: chunk,
-            embedding: JSON.stringify(embedding),
+            embedding: embedding,
             metadata: { id: item.id },
           })
         }
@@ -145,13 +172,21 @@ export async function reindexAllContent() {
 
         for (const chunk of chunks) {
           const embedding = await createEmbedding(chunk)
+
+          if (!Array.isArray(embedding) || embedding.length !== 1536) {
+            throw new Error('Invalid embedding format: must be array of 1536 numbers')
+          }
+          if (!embedding.every((v) => typeof v === 'number' && isFinite(v))) {
+            throw new Error('Invalid embedding format: all values must be finite numbers')
+          }
+
           await supabase.from('ai_chunks').insert({
             module: 'scripts',
             entity_id: turn.id,
             title: thread.title,
             url_path: `/app/scripts/thread/${turn.thread_id}?turnId=${turn.id}`,
             chunk_text: chunk,
-            embedding: JSON.stringify(embedding),
+            embedding: embedding,
             metadata: { threadId: turn.thread_id, turnId: turn.id },
           })
         }
@@ -169,13 +204,21 @@ export async function reindexAllContent() {
 
         for (const chunk of chunks) {
           const embedding = await createEmbedding(chunk)
+
+          if (!Array.isArray(embedding) || embedding.length !== 1536) {
+            throw new Error('Invalid embedding format: must be array of 1536 numbers')
+          }
+          if (!embedding.every((v) => typeof v === 'number' && isFinite(v))) {
+            throw new Error('Invalid embedding format: all values must be finite numbers')
+          }
+
           await supabase.from('ai_chunks').insert({
             module: 'training',
             entity_id: doc.id,
             title: doc.title,
             url_path: `/app/training/doc/${doc.id}`,
             chunk_text: chunk,
-            embedding: JSON.stringify(embedding),
+            embedding: embedding,
             metadata: { docId: doc.id },
           })
         }
@@ -193,13 +236,21 @@ export async function reindexAllContent() {
 
         for (const chunk of chunks) {
           const embedding = await createEmbedding(chunk)
+
+          if (!Array.isArray(embedding) || embedding.length !== 1536) {
+            throw new Error('Invalid embedding format: must be array of 1536 numbers')
+          }
+          if (!embedding.every((v) => typeof v === 'number' && isFinite(v))) {
+            throw new Error('Invalid embedding format: all values must be finite numbers')
+          }
+
           await supabase.from('ai_chunks').insert({
             module: 'kb',
             entity_id: page.id,
             title: page.title,
             url_path: `/app/knowledge/${page.id}`,
             chunk_text: chunk,
-            embedding: JSON.stringify(embedding),
+            embedding: embedding,
             metadata: { pageId: page.id },
           })
         }
