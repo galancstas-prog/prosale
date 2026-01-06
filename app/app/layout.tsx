@@ -62,8 +62,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return null
-  }
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-muted-foreground">Redirecting to login…</div>
+    </div>
+  )
+}
 
   return <AppShell user={user}>{children}</AppShell>
 }
