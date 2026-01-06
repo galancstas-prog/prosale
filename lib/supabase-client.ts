@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 let browserClient: SupabaseClient | null = null
 
-export function getSupabaseClient() {
+export function getSupabaseClient(): SupabaseClient {
   if (browserClient) return browserClient
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -17,5 +17,5 @@ export function getSupabaseClient() {
   return browserClient
 }
 
-// Чтобы не ломать места, где импортируют `supabase` напрямую:
+// Иногда проект импортит `supabase` напрямую — оставим совместимость.
 export const supabase = getSupabaseClient()
