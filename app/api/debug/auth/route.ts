@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase-server'
+import { getSupabaseServerClient } from '@/lib/Bolt Database-server'
 
 export async function GET() {
   try {
@@ -7,27 +7,15 @@ export async function GET() {
 
     const {
       data: { user },
-      error: userError,
+      error,
     } = await supabase.auth.getUser()
 
-    if (userError) {
-      return NextResponse.json(
-        {
-          user: null,
-          error: userError.message,
-        },
-        { status: 401 }
-      )
+    if (error) {
+      return NextResponse.json({ user: null, error: error.message }, { status: 401 })
     }
 
     if (!user) {
-      return NextResponse.json(
-        {
-          user: null,
-          error: 'No active session',
-        },
-        { status: 401 }
-      )
+      return NextResponse.json({ user: null, error: 'No active session' }, { status: 401 })
     }
 
     return NextResponse.json({
@@ -38,12 +26,9 @@ export async function GET() {
       },
       error: null,
     })
-  } catch (error: any) {
+  } catch (e: any) {
     return NextResponse.json(
-      {
-        user: null,
-        error: error?.message || 'Unexpected error',
-      },
+      { user: null, error: e?.message || 'Unexpected error' },
       { status: 500 }
     )
   }
