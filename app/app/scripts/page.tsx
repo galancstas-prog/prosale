@@ -7,11 +7,15 @@ import { CreateCategoryDialog } from './create-category-dialog'
 import { CategoryList } from './category-list'
 import { ScriptsSearch } from './scripts-search'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useMembership } from '@/lib/auth/use-membership'
 
 export default function ScriptsPage() {
   const { t } = useLocale()
+  const { membership } = useMembership()
   const router = useRouter()
   const [categories, setCategories] = useState<any[]>([])
+
+  const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {
@@ -34,12 +38,12 @@ export default function ScriptsPage() {
             {t('scripts.subtitle')}
           </p>
         </div>
-        <CreateCategoryDialog />
+        {isAdmin && <CreateCategoryDialog />}
       </div>
 
       <ScriptsSearch onResultClick={handleSearchResultClick} />
 
-      <CategoryList categories={categories} isAdmin={true} />
+      <CategoryList categories={categories} isAdmin={isAdmin} />
     </div>
   )
 }

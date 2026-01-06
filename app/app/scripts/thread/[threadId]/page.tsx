@@ -9,14 +9,18 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ConversationView } from './conversation-view'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useMembership } from '@/lib/auth/use-membership'
 
 export default function ThreadPage({ params }: { params: { threadId: string } }) {
   const { t } = useLocale()
+  const { membership } = useMembership()
   const searchParams = useSearchParams()
   const highlightTurnId = searchParams.get('turnId') || ''
   const searchQuery = searchParams.get('q') || ''
   const [thread, setThread] = useState<any>(null)
   const [turns, setTurns] = useState<any[]>([])
+
+  const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {
@@ -57,7 +61,7 @@ export default function ThreadPage({ params }: { params: { threadId: string } })
       <ConversationView
         threadId={params.threadId}
         turns={turns}
-        isAdmin={true}
+        isAdmin={isAdmin}
         highlightTurnId={highlightTurnId}
         searchQuery={searchQuery}
       />

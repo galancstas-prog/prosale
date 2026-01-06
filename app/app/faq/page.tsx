@@ -7,9 +7,11 @@ import { CreateFaqDialog } from './create-faq-dialog'
 import { FaqList } from './faq-list'
 import { FaqSearch } from './faq-search'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useMembership } from '@/lib/auth/use-membership'
 
 export default function FaqPage() {
   const { t } = useLocale()
+  const { membership } = useMembership()
   const searchParams = useSearchParams()
   const urlHighlightId = searchParams.get('highlight') || null
   const urlSearchQuery = searchParams.get('q') || ''
@@ -18,7 +20,7 @@ export default function FaqPage() {
   const [searchQuery, setSearchQuery] = useState(urlSearchQuery)
   const [openItemId, setOpenItemId] = useState<string | null>(urlHighlightId)
 
-  const isAdmin = true
+  const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {

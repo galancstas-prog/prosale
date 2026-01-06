@@ -9,11 +9,15 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useMembership } from '@/lib/auth/use-membership'
 
 export default function CategoryPage({ params }: { params: { categoryId: string } }) {
   const { t } = useLocale()
+  const { membership } = useMembership()
   const [category, setCategory] = useState<any>(null)
   const [threads, setThreads] = useState<any[]>([])
+
+  const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {
@@ -51,11 +55,11 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
               </p>
             )}
           </div>
-          <CreateThreadDialog categoryId={params.categoryId} />
+          {isAdmin && <CreateThreadDialog categoryId={params.categoryId} />}
         </div>
       </div>
 
-      <ThreadList threads={threads} isAdmin={true} />
+      <ThreadList threads={threads} isAdmin={isAdmin} />
     </div>
   )
 }

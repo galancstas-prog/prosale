@@ -126,8 +126,8 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
   }
 
   return (
-    <div className="grid lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2">
+    <div className={isAdmin ? 'grid lg:grid-cols-3 gap-6' : 'max-w-4xl mx-auto'}>
+      <div className={isAdmin ? 'lg:col-span-2' : ''}>
         <Card>
           <CardHeader>
             <CardTitle>Conversation</CardTitle>
@@ -201,11 +201,11 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                           <ChatBubble
                             speaker={turn.speaker}
                             content={turn.message}
-                            showCopyButton={turn.speaker === 'agent'}
+                            showCopyButton={true}
                           />
                         )}
                         {isAdmin && (
-                          <div className="absolute right-0 top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-900 rounded-lg shadow-md p-1">
                             <Button
                               size="sm"
                               variant="ghost"

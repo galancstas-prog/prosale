@@ -7,11 +7,15 @@ import { CreateTrainingCategoryDialog } from './create-category-dialog'
 import { TrainingCategoryList } from './category-list'
 import { TrainingSearch } from './training-search'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useMembership } from '@/lib/auth/use-membership'
 
 export default function TrainingPage() {
   const { t } = useLocale()
+  const { membership } = useMembership()
   const router = useRouter()
   const [categories, setCategories] = useState<any[]>([])
+
+  const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {
@@ -34,12 +38,12 @@ export default function TrainingPage() {
             {t('training.subtitle')}
           </p>
         </div>
-        <CreateTrainingCategoryDialog />
+        {isAdmin && <CreateTrainingCategoryDialog />}
       </div>
 
       <TrainingSearch onResultClick={handleSearchResultClick} />
 
-      <TrainingCategoryList categories={categories} isAdmin={true} />
+      <TrainingCategoryList categories={categories} isAdmin={isAdmin} />
     </div>
   )
 }

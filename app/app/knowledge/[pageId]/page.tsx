@@ -7,14 +7,19 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { KbPageViewer } from './page-viewer'
+import { EditKbDialog } from '../edit-kb-dialog'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useMembership } from '@/lib/auth/use-membership'
 
 export default function KnowledgePageView({ params }: { params: { pageId: string } }) {
   const { t } = useLocale()
+  const { membership } = useMembership()
   const searchParams = useSearchParams()
   const searchQuery = searchParams.get('q') || ''
   const [page, setPage] = useState<any>(null)
   const [error, setError] = useState(false)
+
+  const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {
@@ -54,7 +59,7 @@ export default function KnowledgePageView({ params }: { params: { pageId: string
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <Link href="/app/knowledge">
           <Button variant="ghost" size="sm" className="mb-4">
@@ -62,13 +67,22 @@ export default function KnowledgePageView({ params }: { params: { pageId: string
             {t('kb.backToKb')}
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">{page.title}</h1>
-        <p className="text-sm text-slate-500 mt-2">
-          Created {new Date(page.created_at).toLocaleDateString()}
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{page.title}</h1>
+            <p className="text-sm text-slate-500 mt-2">
+              Created {new Date(page.created_at).toLocaleDateString()}
+            </p>
+          </div>
+          {isAdmin && (
+            <div>
+              <EditKbDialog page={page} />
+            </div>
+          )}
+        </div>
       </div>
 
-      <KbPageViewer page={page} isAdmin={true} searchQuery={searchQuery} />
+      <KbPageViewer page={page} isAdmin={false} searchQuery={searchQuery} />
     </div>
   )
 }

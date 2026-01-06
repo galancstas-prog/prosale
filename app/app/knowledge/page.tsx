@@ -7,13 +7,15 @@ import { CreateKbDialog } from './create-kb-dialog'
 import { KbList } from './kb-list'
 import { KbSearch } from './kb-search'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useMembership } from '@/lib/auth/use-membership'
 
 export default function KnowledgePage() {
   const { t } = useLocale()
+  const { membership } = useMembership()
   const router = useRouter()
   const [pages, setPages] = useState<any[]>([])
 
-  const isAdmin = true
+  const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {

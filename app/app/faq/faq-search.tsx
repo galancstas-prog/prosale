@@ -38,7 +38,7 @@ export function FaqSearch({ onResultClick }: FaqSearchProps) {
     timeoutRef.current = setTimeout(async () => {
       const result = await searchFaqItems(query)
       setResults(result.data || [])
-      setIsOpen((result.data || []).length > 0)
+      setIsOpen(true)
     }, 400)
 
     return () => {
@@ -105,24 +105,30 @@ export function FaqSearch({ onResultClick }: FaqSearchProps) {
         )}
       </div>
 
-      {isOpen && results.length > 0 && (
+      {query.length >= 2 && (
         <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-900 border rounded-lg shadow-lg max-h-80 overflow-y-auto">
-          {results.map((result) => (
-            <button
-              key={result.id}
-              onClick={() => handleResultClick(result.id)}
-              className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-b-0"
-            >
-              <div className="font-medium text-sm mb-1">
-                <span className="text-slate-500 dark:text-slate-400">FAQ / </span>
-                <span dangerouslySetInnerHTML={{ __html: highlightText(result.question, query) }} />
-              </div>
-              <div
-                className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2"
-                dangerouslySetInnerHTML={{ __html: highlightText(result.snippet, query) }}
-              />
-            </button>
-          ))}
+          {results.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              Ничего не найдено
+            </div>
+          ) : (
+            results.map((result) => (
+              <button
+                key={result.id}
+                onClick={() => handleResultClick(result.id)}
+                className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-b-0"
+              >
+                <div className="font-medium text-sm mb-1">
+                  <span className="text-slate-500 dark:text-slate-400">FAQ / </span>
+                  <span dangerouslySetInnerHTML={{ __html: highlightText(result.question, query) }} />
+                </div>
+                <div
+                  className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2"
+                  dangerouslySetInnerHTML={{ __html: highlightText(result.snippet, query) }}
+                />
+              </button>
+            ))
+          )}
         </div>
       )}
     </div>

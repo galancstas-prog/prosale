@@ -108,14 +108,6 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
         </div>
         {isAdmin && (
           <div className="flex gap-2">
-            <Button onClick={handleCreateDemo} disabled={loading || success} variant="outline">
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              {t('dashboard.createDemo')}
-            </Button>
             <Button onClick={handleReindex} disabled={reindexLoading || reindexSuccess}>
               {reindexLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -182,50 +174,6 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
           </p>
         </div>
         <GlobalSearch />
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('dashboard.quickStart')}</CardTitle>
-          <CardDescription>{t('dashboard.quickStartDesc')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">
-              1
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold mb-1">{t('dashboard.step1Title')}</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {t('dashboard.step1Desc')}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
-            <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-semibold text-sm">
-              2
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold mb-1">{t('dashboard.step2Title')}</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {t('dashboard.step2Desc')}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-900">
-            <div className="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center font-semibold text-sm">
-              3
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold mb-1">{t('dashboard.step3Title')}</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {t('dashboard.step3Desc')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
       </Card>
     </div>
   )
