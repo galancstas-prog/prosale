@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { getSupabaseClient } from '@/lib/supabase-client'
@@ -16,19 +15,16 @@ import {
   BookOpen,
   FileText,
   Database,
-  Settings,
-  Users,
   Menu,
   X,
-  BarChart,
   LogOut,
 } from 'lucide-react'
 
 interface AppShellProps {
   children: React.ReactNode
   user: {
-    authUser: any
-    appUser: any
+    id: string
+    email: string | null
   }
 }
 
@@ -37,8 +33,6 @@ function AppShellContent({ children, user }: AppShellProps) {
   const router = useRouter()
   const { t } = useLocale()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const isAdmin = user.appUser.role === 'ADMIN'
 
   const handleLogout = async () => {
     const supabase = getSupabaseClient()
@@ -73,26 +67,6 @@ function AppShellContent({ children, user }: AppShellProps) {
       icon: Database,
     },
   ]
-
-  const adminNavigation = isAdmin
-    ? [
-        {
-          name: t('nav.adminSettings'),
-          href: '/app/admin',
-          icon: Settings,
-        },
-        {
-          name: t('nav.users'),
-          href: '/app/admin/users',
-          icon: Users,
-        },
-        {
-          name: t('nav.progress'),
-          href: '/app/admin/progress',
-          icon: BarChart,
-        },
-      ]
-    : []
 
   return (
     <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900">
@@ -136,41 +110,12 @@ function AppShellContent({ children, user }: AppShellProps) {
                   </Link>
                 )
               })}
-
-              {adminNavigation.length > 0 && (
-                <>
-                  <Separator className="my-4" />
-                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    {t('nav.admin')}
-                  </div>
-                  {adminNavigation.map((item) => {
-                    const Icon = item.icon
-                    const isActive = pathname === item.href
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <Button
-                          variant={isActive ? 'secondary' : 'ghost'}
-                          className="w-full justify-start"
-                        >
-                          <Icon className="mr-3 h-4 w-4" />
-                          {item.name}
-                        </Button>
-                      </Link>
-                    )
-                  })}
-                </>
-              )}
             </nav>
           </ScrollArea>
 
           <div className="border-t p-4 space-y-2">
             <div className="px-3 py-2 text-sm">
-              <div className="font-medium">{user.appUser.email}</div>
-              <div className="text-xs text-slate-500">{user.appUser.role}</div>
+              <div className="font-medium">{user.email}</div>
             </div>
             <Button
               variant="ghost"

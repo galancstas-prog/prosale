@@ -3,10 +3,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 let browserClient: SupabaseClient | null = null
 
-/**
- * Browser-side Supabase client (singleton).
- * Uses @supabase/ssr so it can work nicely with Next.js cookie-based auth.
- */
 export function getSupabaseClient(): SupabaseClient {
   if (browserClient) return browserClient
 
@@ -20,6 +16,3 @@ export function getSupabaseClient(): SupabaseClient {
   browserClient = createBrowserClient(url, anonKey)
   return browserClient
 }
-
-// Backward-compatible named export used across the codebase
-export const supabase = getSupabaseClient()
