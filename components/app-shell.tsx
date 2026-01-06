@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
-import { getSupabaseClient } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/Bolt Database-client'
 import {
   LayoutDashboard,
   MessageSquare,
@@ -37,35 +37,15 @@ function AppShellContent({ children, user }: AppShellProps) {
   const handleLogout = async () => {
     const supabase = getSupabaseClient()
     await supabase.auth.signOut()
-    router.push('/login')
+    router.replace('/login')
   }
 
   const navigation = [
-    {
-      name: t('nav.dashboard'),
-      href: '/app',
-      icon: LayoutDashboard,
-    },
-    {
-      name: t('nav.scripts'),
-      href: '/app/scripts',
-      icon: MessageSquare,
-    },
-    {
-      name: t('nav.training'),
-      href: '/app/training',
-      icon: BookOpen,
-    },
-    {
-      name: t('nav.faq'),
-      href: '/app/faq',
-      icon: FileText,
-    },
-    {
-      name: t('nav.knowledge'),
-      href: '/app/knowledge',
-      icon: Database,
-    },
+    { name: t('nav.dashboard'), href: '/app', icon: LayoutDashboard },
+    { name: t('nav.scripts'), href: '/app/scripts', icon: MessageSquare },
+    { name: t('nav.training'), href: '/app/training', icon: BookOpen },
+    { name: t('nav.faq'), href: '/app/faq', icon: FileText },
+    { name: t('nav.knowledge'), href: '/app/knowledge', icon: Database },
   ]
 
   return (
@@ -148,9 +128,7 @@ function AppShellContent({ children, user }: AppShellProps) {
           </Button>
 
           <div className="flex-1 lg:ml-0 ml-4">
-            <div className="text-sm text-slate-500">
-              {t('dashboard.workspace')}
-            </div>
+            <div className="text-sm text-slate-500">{t('dashboard.workspace')}</div>
           </div>
 
           <LocaleSwitcher />
