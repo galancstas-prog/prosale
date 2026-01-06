@@ -132,12 +132,10 @@ export async function reindexAllContent() {
       throw new Error('User not authenticated')
     }
 
-    const tenantId = user.user_metadata?.tenant_id || user.id
-
     const { error: deleteError } = await supabase
       .from('ai_chunks')
       .delete()
-      .eq('tenant_id', tenantId)
+      .neq('id', '00000000-0000-0000-0000-000000000000')
 
     if (deleteError) {
       console.error('Delete error:', deleteError)
@@ -163,7 +161,6 @@ export async function reindexAllContent() {
           }
 
           await supabase.from('ai_chunks').insert({
-            tenant_id: tenantId,
             module: 'faq',
             entity_id: item.id,
             title: item.question,
@@ -196,7 +193,6 @@ export async function reindexAllContent() {
           }
 
           await supabase.from('ai_chunks').insert({
-            tenant_id: tenantId,
             module: 'scripts',
             entity_id: turn.id,
             title: thread.title,
@@ -229,7 +225,6 @@ export async function reindexAllContent() {
           }
 
           await supabase.from('ai_chunks').insert({
-            tenant_id: tenantId,
             module: 'training',
             entity_id: doc.id,
             title: doc.title,
@@ -262,7 +257,6 @@ export async function reindexAllContent() {
           }
 
           await supabase.from('ai_chunks').insert({
-            tenant_id: tenantId,
             module: 'kb',
             entity_id: page.id,
             title: page.title,

@@ -37,7 +37,7 @@ export async function GET() {
       )
     }
 
-    // 2) memberships реальными данными из tenant_members
+    // 2) memberships из tenant_members
     const { data: memberships, error: memError } = await supabase
       .from('tenant_members')
       .select('tenant_id, role')
@@ -56,11 +56,10 @@ export async function GET() {
       )
     }
 
-    // 3) currentTenant так, как его видит Postgres/RLS
-    const { data: currentTenant, error: tenantFnError } = await supabase.rpc('current_tenant_id')
-
-    // 4) isAdmin так, как его видит Postgres/RLS
-    const { data: isAdmin, error: adminFnError } = await supabase.rpc('is_tenant_admin')
+    const membershipsList = memberships || []
+    const currentTenant = membershipsList.length > 0 ? membershipsList[0].tenant_id : null
+    const currentMembership = membershipsList.find(m => m.tenant_id === currentTenant)
+    const isAdmin = currentMembership ? currentMembership.role.toUpperCase() === 'ADMIN' : false
 
     return NextResponse.json({
       user: {
@@ -68,16 +67,12 @@ export async function GET() {
         email: user.email,
         metadata: user.user_metadata,
       },
-      memberships: (memberships || []).map((m) => ({
+      memberships: membershipsList.map((m) => ({
         tenantId: m.tenant_id,
         role: m.role,
       })),
-      currentTenant: tenantFnError ? null : currentTenant ?? null,
-      isAdmin: adminFnError ? false : !!isAdmin,
-      errors: {
-        current_tenant_id: tenantFnError?.message ?? null,
-        is_tenant_admin: adminFnError?.message ?? null,
-      },
+      currentTenant,
+      isAdmin,
     })
   } catch (error: any) {
     return NextResponse.json(
