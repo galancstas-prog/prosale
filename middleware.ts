@@ -1,10 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-// Supabase session middleware
-// Keeps auth cookies in sync so route handlers and server actions
-// can read the authenticated user and tenant through RLS helpers.
 export async function middleware(request: NextRequest) {
+  // Create an unmodified response early so Supabase can attach cookies to it
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -14,25 +12,26 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  // If env vars are missing, don't break the whole app — just pass through
   if (!supabaseUrl || !supabaseAnonKey) {
     return response
   }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value
+      getAll() {
+        return request.cookies.getAll()
       },
-      set(name: string, value: string, options: any) {
-        response.cookies.set({ name, value, ...options })
-      },
-      remove(name: string, options: any) {
-        response.cookies.set({ name, value: '', ...options, maxAge: 0 })
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options)
+        })
       },
     },
   })
 
-  // This call refreshes the session if needed and updates cookies.
+  // IMPORTANT: This call refreshes the session cookies when needed.
+  // Without it, the browser client can end up with "session missing" in previews.
   await supabase.auth.getUser()
 
   return response
@@ -40,11 +39,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all request paths except for the ones starting with:
-    // - _next/static (static files)
-    // - _next/image (image optimization files)
-    // - favicon.ico (favicon file)
-    // - images and other common asset extensions
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    // Run on all routes except Next internals and static assets
+    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)',
   ],
 }
+
