@@ -21,6 +21,11 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
+console.log('SUPABASE ENV', {
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+})
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
