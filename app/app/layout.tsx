@@ -5,73 +5,76 @@ import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { getSupabaseClient } from '@/lib/supabase-client'
 
-type AppUser = {
+type Role = 'ADMIN' | 'MANAGER' | 'USER'
+
+interface AppUser {
   id: string
   email: string | null
-  role: string
-  [key: string]: any
+  role: Role
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<{ authUser: any; appUser: AppUser } | null>(null)
   const router = useRouter()
+  const [authUser, setAuthUser] = useState<any>(null)
+  const [appUser, setAppUser] = useState<AppUser | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const supabase = getSupabaseClient()
     let unsubscribe: (() => void) | null = null
 
     const loadUser = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
+      setLoading(true)
 
-        if (error) console.error('getSession error:', error)
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
 
-        if (!session) {
-          setUser(null)
-          setLoading(false)
-          router.push('/login')
-          return
-        }
+      if (sessionError) console.error('Error getting session:', sessionError)
 
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle()
-
-        if (profileError) console.error('profile fetch error:', profileError)
-
-        const appUser: AppUser = {
-          ...(profile ?? {}),
-          id: session.user.id,
-          email: session.user.email,
-          role: (profile as any)?.role ?? 'USER',
-        }
-
-        setUser({ authUser: session.user, appUser })
-        setLoading(false)
-      } catch (e: any) {
-        console.error('Auth bootstrap failed:', e)
-        setUser(null)
+      if (!session?.user) {
+        setAuthUser(null)
+        setAppUser(null)
         setLoading(false)
         router.push('/login')
+        return
       }
+
+      const user = session.user
+      setAuthUser(user)
+
+      // Determine role from tenant_members (profiles table is NOT used)
+      const { data: memberships, error: memError } = await supabase
+        .from('tenant_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
+
+      if (memError) console.error('Error loading tenant membership:', memError)
+
+      const rawRole = memberships?.[0]?.role ? String(memberships[0].role).toUpperCase() : 'USER'
+      const role: Role = rawRole === 'ADMIN' ? 'ADMIN' : rawRole === 'MANAGER' ? 'MANAGER' : 'USER'
+
+      setAppUser({
+        id: user.id,
+        email: user.email ?? null,
+        role,
+      })
+
+      setLoading(false)
     }
 
     loadUser()
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        setUser(null)
-        router.push('/login')
-      }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadUser()
     })
 
-    unsubscribe = () => data.subscription.unsubscribe()
+    unsubscribe = () => subscription.unsubscribe()
 
     return () => {
       if (unsubscribe) unsubscribe()
@@ -80,13 +83,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Загрузка...</div>
       </div>
     )
   }
 
-  if (!user) return null
+  // If not logged in, we've already pushed to /login
+  if (!authUser || !appUser) return null
 
-  return <AppShell user={user}>{children}</AppShell>
+  return <AppShell user={{ authUser, appUser }}>{children}</AppShell>
 }
