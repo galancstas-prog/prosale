@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMembership } from '@/lib/auth/use-membership'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import { Button } from '@/components/ui/button'
@@ -14,16 +14,29 @@ interface TeamMember {
   user_id: string
   email: string
   role: 'ADMIN' | 'MANAGER'
+  created_at?: string
 }
 
 interface Invite {
   id: string
   code: string
-  expires_at: string
+  expires_at: string | null
   created_at: string
+  used_at?: string | null
 }
 
-interface TeamOverview {
+type TeamOverviewRpc = {
+  tenant_id?: string
+  max_users?: number
+  members_count?: number
+  remaining_seats?: number
+  members?: TeamMember[]
+  invites?: Invite[]
+  // на случай если ты потом добавишь алиасы на бэке
+  used_users?: number
+}
+
+interface TeamOverviewUI {
   members: TeamMember[]
   invites: Invite[]
   seats: {
@@ -33,13 +46,36 @@ interface TeamOverview {
   }
 }
 
+function normalizeOverview(raw: any): TeamOverviewUI {
+  // Если вдруг где-то прилетит SQL-формат { get_team_overview: {...} }
+  const o: TeamOverviewRpc = raw?.get_team_overview ?? raw ?? {}
+
+  const maxUsers = Number(o.max_users ?? 0)
+  const usedUsers = Number(o.used_users ?? o.members_count ?? 0)
+  const remainingSeats =
+    o.remaining_seats != null ? Number(o.remaining_seats) : Math.max(maxUsers - usedUsers, 0)
+
+  return {
+    members: Array.isArray(o.members) ? o.members : [],
+    invites: Array.isArray(o.invites) ? o.invites : [],
+    seats: {
+      max_users: maxUsers,
+      used_users: usedUsers,
+      remaining_seats: remainingSeats,
+    },
+  }
+}
+
 function TeamPageContent() {
   const { t } = useLocale()
   const { membership, loading: membershipLoading } = useMembership()
   const { toast } = useToast()
-  const [overview, setOverview] = useState<TeamOverview | null>(null)
+
+  const [overview, setOverview] = useState<TeamOverviewUI | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isAdmin = useMemo(() => membership?.role === 'ADMIN', [membership?.role])
 
   const fetchOverview = async () => {
     try {
@@ -49,19 +85,19 @@ function TeamPageContent() {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase.rpc('get_team_overview')
 
-      console.log('[TEAM OVERVIEW]', { data, error })
+      console.log('[TEAM OVERVIEW RAW]', { data, error })
 
-      if (error) {
-        throw new Error(error.message)
-      }
+      if (error) throw new Error(error.message)
 
-      setOverview(data as TeamOverview)
+      const normalized = normalizeOverview(data)
+      setOverview(normalized)
     } catch (e: any) {
       console.error('[TEAM OVERVIEW ERROR]', e)
-      setError(e?.message ?? 'Failed to fetch team overview')
+      const msg = e?.message ?? 'Failed to fetch team overview'
+      setError(msg)
       toast({
         title: 'Error',
-        description: e?.message ?? 'Failed to fetch team overview',
+        description: msg,
         variant: 'destructive',
       })
     } finally {
@@ -78,15 +114,18 @@ function TeamPageContent() {
         p_expires_in_hours: 72,
       })
 
-      console.log('[CREATE INVITE]', { data, error })
+      console.log('[CREATE INVITE RAW]', { data, error })
 
-      if (error) {
-        throw new Error(error.message)
-      }
+      if (error) throw new Error(error.message)
+
+      // create_invite RETURNS TABLE(code text)
+      // supabase обычно вернёт [{ code: '...' }]
+      const code =
+        Array.isArray(data) ? data?.[0]?.code : (data as any)?.code ?? (typeof data === 'string' ? data : null)
 
       toast({
         title: 'Invite created',
-        description: `Invite code: ${data}`,
+        description: code ? `Invite code: ${code}` : 'Invite created',
       })
 
       await fetchOverview()
@@ -113,14 +152,9 @@ function TeamPageContent() {
 
       console.log('[DELETE INVITE]', { error })
 
-      if (error) {
-        throw new Error(error.message)
-      }
+      if (error) throw new Error(error.message)
 
-      toast({
-        title: 'Invite deleted',
-      })
-
+      toast({ title: 'Invite deleted' })
       await fetchOverview()
     } catch (e: any) {
       console.error('[DELETE INVITE ERROR]', e)
@@ -135,9 +169,7 @@ function TeamPageContent() {
   }
 
   const removeMember = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) {
-      return
-    }
+    if (!confirm('Are you sure you want to remove this member?')) return
 
     try {
       setLoading(true)
@@ -149,14 +181,9 @@ function TeamPageContent() {
 
       console.log('[REMOVE MEMBER]', { error })
 
-      if (error) {
-        throw new Error(error.message)
-      }
+      if (error) throw new Error(error.message)
 
-      toast({
-        title: 'Member removed',
-      })
-
+      toast({ title: 'Member removed' })
       await fetchOverview()
     } catch (e: any) {
       console.error('[REMOVE MEMBER ERROR]', e)
@@ -169,6 +196,18 @@ function TeamPageContent() {
       setLoading(false)
     }
   }
+
+  // ✅ Нормальный жизненный цикл: грузим overview только когда
+  // - membership загрузилась
+  // - юзер есть
+  // - юзер ADMIN
+  useEffect(() => {
+    if (membershipLoading) return
+    if (!membership) return
+    if (!isAdmin) return
+    fetchOverview()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [membershipLoading, membership?.user?.id, isAdmin])
 
   if (membershipLoading) {
     return (
@@ -189,7 +228,7 @@ function TeamPageContent() {
     )
   }
 
-  if (membership.role !== 'ADMIN') {
+  if (!isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="max-w-md">
@@ -207,17 +246,11 @@ function TeamPageContent() {
     )
   }
 
-  if (!overview && !loading && !error) {
-    fetchOverview()
-  }
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Team Management</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your team members and invitations
-        </p>
+        <p className="text-muted-foreground mt-2">Manage your team members and invitations</p>
       </div>
 
       {error && (
@@ -225,6 +258,14 @@ function TeamPageContent() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {!overview && !error && (
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            {loading ? 'Loading team overview...' : 'No data'}
+          </CardContent>
+        </Card>
       )}
 
       {overview && (
@@ -248,9 +289,7 @@ function TeamPageContent() {
                   <div className="text-sm text-muted-foreground">Max</div>
                 </div>
                 <div className="ml-auto">
-                  <div className="text-2xl font-bold text-green-600">
-                    {overview.seats.remaining_seats}
-                  </div>
+                  <div className="text-2xl font-bold text-green-600">{overview.seats.remaining_seats}</div>
                   <div className="text-sm text-muted-foreground">Remaining</div>
                 </div>
               </div>
@@ -275,6 +314,7 @@ function TeamPageContent() {
                       <div className="font-medium">{member.email}</div>
                       <div className="text-sm text-muted-foreground">{member.role}</div>
                     </div>
+
                     {member.user_id !== membership.user.id && (
                       <Button
                         variant="ghost"
@@ -305,9 +345,7 @@ function TeamPageContent() {
             </CardHeader>
             <CardContent>
               {overview.invites.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  No active invites
-                </div>
+                <div className="text-center text-muted-foreground py-8">No active invites</div>
               ) : (
                 <div className="space-y-2">
                   {overview.invites.map((invite) => (
@@ -318,7 +356,8 @@ function TeamPageContent() {
                       <div>
                         <div className="font-mono font-medium">{invite.code}</div>
                         <div className="text-sm text-muted-foreground">
-                          Expires: {new Date(invite.expires_at).toLocaleString()}
+                          Expires:{' '}
+                          {invite.expires_at ? new Date(invite.expires_at).toLocaleString() : 'Never'}
                         </div>
                       </div>
                       <Button
