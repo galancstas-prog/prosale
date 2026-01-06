@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase-client'
+import { MembershipProvider } from '@/lib/auth/use-membership'
 import { AppShell } from '@/components/app-shell'
 
 interface User {
@@ -62,12 +63,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-muted-foreground">Redirecting to login…</div>
-    </div>
-  )
-}
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Redirecting to login…</div>
+      </div>
+    )
+  }
 
-  return <AppShell user={user}>{children}</AppShell>
+  return (
+    <MembershipProvider>
+      <AppShell user={user}>{children}</AppShell>
+    </MembershipProvider>
+  )
 }

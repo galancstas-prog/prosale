@@ -16,6 +16,7 @@ function RegisterPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -54,12 +55,33 @@ function RegisterPageContent() {
 
     try {
       const supabase = getSupabaseClient()
-      const { data, error } = await supabase.auth.signUp({
+
+      const signUpData: {
+        email: string
+        password: string
+        options?: {
+          data?: {
+            invite_code?: string
+          }
+        }
+      } = {
         email,
         password,
-      })
+      }
 
-      console.log('[REGISTER]', { data, error })
+      if (inviteCode.trim()) {
+        signUpData.options = {
+          data: {
+            invite_code: inviteCode.trim(),
+          },
+        }
+      }
+
+      console.log('[REGISTER]', { email, inviteCode: inviteCode.trim() || 'none' })
+
+      const { data, error } = await supabase.auth.signUp(signUpData)
+
+      console.log('[REGISTER RESULT]', { data, error })
 
       if (error) {
         setError(error.message)
@@ -126,6 +148,20 @@ function RegisterPageContent() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="inviteCode">Invite Code (optional)</Label>
+              <Input
+                id="inviteCode"
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="Enter invite code if you have one"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to create a new workspace as admin
+              </p>
             </div>
 
             {error && <div className="text-sm text-red-500">{error}</div>}

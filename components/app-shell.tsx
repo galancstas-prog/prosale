@@ -9,12 +9,14 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { getSupabaseClient } from '@/lib/supabase-client'
+import { useMembership } from '@/lib/auth/use-membership'
 import {
   LayoutDashboard,
   MessageSquare,
   BookOpen,
   FileText,
   Database,
+  Users,
   Menu,
   X,
   LogOut,
@@ -32,6 +34,7 @@ function AppShellContent({ children, user }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useLocale()
+  const { membership } = useMembership()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -46,6 +49,9 @@ function AppShellContent({ children, user }: AppShellProps) {
     { name: t('nav.training'), href: '/app/training', icon: BookOpen },
     { name: t('nav.faq'), href: '/app/faq', icon: FileText },
     { name: t('nav.knowledge'), href: '/app/knowledge', icon: Database },
+    ...(membership?.role === 'ADMIN'
+      ? [{ name: 'Team', href: '/app/team', icon: Users }]
+      : []),
   ]
 
   return (
