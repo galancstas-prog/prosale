@@ -26,10 +26,8 @@ function LoginPageContent() {
 
     try {
       const supabase = getSupabaseClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+console.log('[LOGIN]', { data, error })
 
 const { data: sessionData } = await supabase.auth.getSession()
 console.log('[SESSION AFTER LOGIN]', sessionData.session)
