@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
-import { getSupabaseClient } from '@/lib/Bolt Database-client'
+import { getSupabaseClient } from '@/lib/supabase-client'
 import {
   LayoutDashboard,
   MessageSquare,
