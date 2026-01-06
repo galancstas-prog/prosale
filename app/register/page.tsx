@@ -54,20 +54,28 @@ function RegisterPageContent() {
 
     try {
       const supabase = getSupabaseClient()
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       })
 
+      console.log('[REGISTER]', { data, error })
+
       if (error) {
         setError(error.message)
+        setLoading(false)
         return
       }
 
-      setMessage('Account created. Please check your email to confirm, then log in.')
+      if (data.session) {
+        router.replace('/app')
+      } else {
+        setMessage('Account created! Redirecting to login...')
+        setTimeout(() => router.replace('/login'), 2000)
+      }
     } catch (e: any) {
+      console.error('[REGISTER ERROR]', e)
       setError(e?.message ?? 'Registration failed')
-    } finally {
       setLoading(false)
     }
   }

@@ -2,75 +2,116 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import Link from 'next/link'
+import { getSupabaseClient } from '@/lib/supabase-client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
+import { LocaleSwitcher } from '@/components/locale-switcher'
 
-export default function LoginPage() {
+function LoginPageContent() {
+  const { t } = useLocale()
   const router = useRouter()
-  const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     setLoading(true)
-    setError(null)
 
-console.log('SUPABASE ENV', {
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-})
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    console.log('[LOGIN RESULT]', { data, error })
+      console.log('[LOGIN]', { data, error })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+
+      if (data.session) {
+        router.replace('/app')
+      } else {
+        setError('No session returned')
+        setLoading(false)
+      }
+    } catch (e: any) {
+      console.error('[LOGIN ERROR]', e)
+      setError(e?.message ?? 'Login failed')
       setLoading(false)
-      return
     }
-
-    if (data.session) {
-      router.replace('/app')
-      return
-    }
-
-    setError('No session returned')
-    setLoading(false)
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        placeholder="Email"
-        required
-      />
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <LocaleSwitcher />
+      </div>
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <div className="text-center mb-2">
+            <h1 className="text-2xl font-bold">{t('app.name')}</h1>
+          </div>
+          <CardTitle>{t('auth.login.title')}</CardTitle>
+          <CardDescription>{t('auth.login.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('auth.login.email')}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
 
-      <input
-        type="password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        placeholder="Password"
-        required
-      />
+            <div className="space-y-2">
+              <Label htmlFor="password">{t('auth.login.password')}</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
-      <button type="submit" disabled={loading}>
-        {loading ? 'Logging in…' : 'Login'}
-      </button>
+            {error && <div className="text-sm text-red-500">{error}</div>}
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-    </form>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? `${t('common.loading')}` : t('auth.login.submit')}
+            </Button>
+
+            <div className="text-sm text-center text-muted-foreground">
+              {t('auth.login.noAccount')}{' '}
+              <Link href="/register" className="underline">
+                {t('auth.login.signUp')}
+              </Link>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <LocaleProvider>
+      <LoginPageContent />
+    </LocaleProvider>
   )
 }
