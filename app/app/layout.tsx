@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
-import { getSupabaseClient } from '@/lib/supabase-client'
+import { getSupabaseClient } from '@/lib/Bolt Database-client'
 
 interface AppUser {
   id: string
@@ -19,41 +19,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const supabase = getSupabaseClient()
 
     const loadUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      const { data, error } = await supabase.auth.getUser()
 
-      if (!session?.user) {
-        router.push('/login')
+      if (error || !data?.user) {
+        setUser(null)
         setLoading(false)
+        router.replace('/login')
         return
       }
 
       setUser({
-        id: session.user.id,
-        email: session.user.email ?? null,
+        id: data.user.id,
+        email: data.user.email ?? null,
       })
       setLoading(false)
     }
 
     loadUser()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session?.user) {
-        router.push('/login')
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user
+      if (!u) {
         setUser(null)
-      } else {
-        setUser({
-          id: session.user.id,
-          email: session.user.email ?? null,
-        })
+        router.replace('/login')
+        return
       }
+      setUser({ id: u.id, email: u.email ?? null })
     })
 
     return () => {
-      subscription.unsubscribe()
+      sub.subscription.unsubscribe()
     }
   }, [router])
 
@@ -65,8 +60,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
+  // ВАЖНО: НЕ return null. Показываем понятный экран, чтобы не было "черного экрана"
   if (!user) {
-    return null
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Нет сессии. Перенаправляю на вход...</div>
+      </div>
+    )
   }
 
   return <AppShell user={user}>{children}</AppShell>
