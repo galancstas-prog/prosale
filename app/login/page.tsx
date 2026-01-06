@@ -31,6 +31,9 @@ function LoginPageContent() {
         password,
       })
 
+const { data: sessionData } = await supabase.auth.getSession()
+console.log('[SESSION AFTER LOGIN]', sessionData.session)
+      
       console.log('[LOGIN]', { data, error })
 
       if (error) {
