@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
-import { getSupabaseClient } from '@/lib/Bolt Database-client'
+import { getSupabaseClient } from '@/lib/supabase-client'
 
 interface AppUser {
   id: string
