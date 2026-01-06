@@ -1,5 +1,6 @@
 'use client'
 
+console.log('LOGIN HANDLER CALLED')
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
