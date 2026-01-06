@@ -14,41 +14,53 @@ import { LocaleSwitcher } from '@/components/locale-switcher'
 function LoginPageContent() {
   const { t } = useLocale()
   const router = useRouter()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setErrorMsg('')
     setLoading(true)
 
     try {
       const supabase = getSupabaseClient()
-const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-console.log('[LOGIN]', { data, error })
 
-const { data: sessionData } = await supabase.auth.getSession()
-console.log('[SESSION AFTER LOGIN]', sessionData.session)
-      
-      console.log('[LOGIN]', { data, error })
+      console.log('[LOGIN CLICK]', { email, passwordLen: password.length })
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      console.log('[LOGIN RESULT]', { data, error })
+
+      // Extra verification: do we have a session right after login?
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      console.log('[SESSION AFTER LOGIN]', { session: sessionData.session, sessionError })
 
       if (error) {
-        setError(error.message)
+        setErrorMsg(error.message || 'Login failed')
         setLoading(false)
         return
       }
 
-      if (data.session) {
-        router.replace('/app')
-      } else {
-        setError('No session returned')
+      // If signIn succeeded but session is still missing, that means cookies/session persistence is broken in this runtime.
+      if (!sessionData.session) {
+        setErrorMsg('Login succeeded, but session is missing. (Cookies/session persistence problem in this environment.)')
         setLoading(false)
+        return
       }
+
+      // Success
+      setLoading(false)
+      router.replace('/app')
+      return
     } catch (e: any) {
       console.error('[LOGIN ERROR]', e)
-      setError(e?.message ?? 'Login failed')
+      setErrorMsg(e?.message ?? 'Login failed')
       setLoading(false)
     }
   }
@@ -58,6 +70,7 @@ console.log('[SESSION AFTER LOGIN]', sessionData.session)
       <div className="absolute top-4 right-4">
         <LocaleSwitcher />
       </div>
+
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="text-center mb-2">
@@ -66,6 +79,7 @@ console.log('[SESSION AFTER LOGIN]', sessionData.session)
           <CardTitle>{t('auth.login.title')}</CardTitle>
           <CardDescription>{t('auth.login.subtitle')}</CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
@@ -76,6 +90,7 @@ console.log('[SESSION AFTER LOGIN]', sessionData.session)
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
               />
             </div>
 
@@ -87,10 +102,11 @@ console.log('[SESSION AFTER LOGIN]', sessionData.session)
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
 
-            {error && <div className="text-sm text-red-500">{error}</div>}
+            {errorMsg && <div className="text-sm text-red-500">{errorMsg}</div>}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? `${t('common.loading')}` : t('auth.login.submit')}
