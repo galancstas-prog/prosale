@@ -5,39 +5,26 @@ export async function GET() {
   try {
     const supabase = await getSupabaseServerClient()
 
-    // 1) user из текущей сессии (cookies)
+    // 1. Получаем пользователя из cookies
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser()
 
-    if (userError) {
+    if (userError || !user) {
       return NextResponse.json(
         {
           user: null,
           currentTenant: null,
           isAdmin: false,
           memberships: [],
-          error: `auth.getUser(): ${userError.message}`,
+          error: userError?.message ?? 'No active session',
         },
         { status: 401 }
       )
     }
 
-    if (!user) {
-      return NextResponse.json(
-        {
-          user: null,
-          currentTenant: null,
-          isAdmin: false,
-          memberships: [],
-          error: 'No active session (cookies not present).',
-        },
-        { status: 401 }
-      )
-    }
-
-    // 2) memberships из tenant_members
+    // 2. Получаем memberships
     const { data: memberships, error: memError } = await supabase
       .from('tenant_members')
       .select('tenant_id, role')
@@ -46,42 +33,40 @@ export async function GET() {
     if (memError) {
       return NextResponse.json(
         {
-          user: { id: user.id, email: user.email, metadata: user.user_metadata },
+          user: { id: user.id, email: user.email },
           currentTenant: null,
           isAdmin: false,
           memberships: [],
-          error: `tenant_members select: ${memError.message}`,
+          error: memError.message,
         },
         { status: 500 }
       )
     }
 
-    const membershipsList = memberships || []
-    const currentTenant = membershipsList.length > 0 ? membershipsList[0].tenant_id : null
-    const currentMembership = membershipsList.find(m => m.tenant_id === currentTenant)
-    const isAdmin = currentMembership ? currentMembership.role.toUpperCase() === 'ADMIN' : false
+    const list = memberships ?? []
+    const current = list[0] ?? null
+    const isAdmin = current?.role?.toUpperCase() === 'ADMIN'
 
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
-        metadata: user.user_metadata,
       },
-      memberships: membershipsList.map((m) => ({
+      currentTenant: current?.tenant_id ?? null,
+      isAdmin,
+      memberships: list.map((m) => ({
         tenantId: m.tenant_id,
         role: m.role,
       })),
-      currentTenant,
-      isAdmin,
     })
-  } catch (error: any) {
+  } catch (e: any) {
     return NextResponse.json(
       {
         user: null,
         currentTenant: null,
         isAdmin: false,
         memberships: [],
-        error: error?.message || 'Unexpected error',
+        error: e?.message ?? 'Unexpected error',
       },
       { status: 500 }
     )
