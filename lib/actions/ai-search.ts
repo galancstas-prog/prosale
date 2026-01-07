@@ -3,6 +3,7 @@
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { createEmbedding, createChatCompletion } from '@/lib/ai/openai'
 import { chunkText } from '@/lib/ai/chunking'
+import { createEmbeddingsBatch } from '@/lib/ai/openai'
 
 export interface AISource {
   module: 'scripts' | 'training' | 'faq' | 'kb'
