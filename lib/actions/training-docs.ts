@@ -166,9 +166,10 @@ export async function uploadTrainingImage(formData: FormData) {
 
   // (опционально) жестко ограничим upload только админам на уровне кода
   // даже если UI скрыт — это лишняя страховка
-  if (tm.role !== 'ADMIN') {
-    return { error: 'Only ADMIN can upload images' }
-  }
+  const role = String(tm.role || '').toUpperCase()
+if (!['ADMIN', 'OWNER'].includes(role)) {
+  return { error: 'Only ADMIN can upload images' }
+}
 
   const tenantId = tm.tenant_id as string
 
@@ -255,4 +256,87 @@ export async function searchTrainingDocs(query: string) {
   })
 
   return { data: results, error: null }
+}
+
+async function refreshTrainingSignedUrls(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  html: string
+): Promise<string> {
+  if (!html) return html
+
+  // Ищем все <img ... src="..."> / src='...'
+  const imgSrcRegex = /<img\b[^>]*\bsrc=(["'])(.*?)\1[^>]*>/gi
+
+  // Соберём уникальные src
+  const srcSet = new Set<string>()
+  let match: RegExpExecArray | null
+  while ((match = imgSrcRegex.exec(html)) !== null) {
+    const src = match[2]?.trim()
+    if (src) srcSet.add(src)
+  }
+  if (srcSet.size === 0) return html
+
+  // Пытаемся вытащить path из supabase storage URL.
+  // Поддерживаем форматы:
+  // 1) .../storage/v1/object/sign/training-images/<path>?token=...
+  // 2) .../storage/v1/object/public/training-images/<path>  (на всякий случай)
+  // 3) .../storage/v1/object/training-images/<path> (редко, но бывает)
+  const extractPath = (src: string): string | null => {
+    try {
+      const url = new URL(src)
+
+      // quick reject
+      if (!url.pathname.includes(`/storage/v1/object/`)) return null
+      if (!url.pathname.includes(`/${TRAINING_BUCKET}/`)) return null
+
+      // pathname example:
+      // /storage/v1/object/sign/training-images/tenantId/uuid.png
+      // /storage/v1/object/public/training-images/tenantId/uuid.png
+      const parts = url.pathname.split(`/${TRAINING_BUCKET}/`)
+      if (parts.length < 2) return null
+
+      const rawPath = parts[1] // "tenantId/uuid.png"
+      const path = decodeURIComponent(rawPath).replace(/^\/+/, '')
+      if (!path) return null
+      return path
+    } catch {
+      return null
+    }
+  }
+
+  const srcList = Array.from(srcSet)
+
+  // Составляем мапу src -> newSignedUrl
+  const replacements = new Map<string, string>()
+
+  for (const src of srcList) {
+    const path = extractPath(src)
+    if (!path) continue
+
+    // Перевыпускаем signed url на 30 дней
+    const { data: signed, error: signErr } = await supabase.storage
+      .from(TRAINING_BUCKET)
+      .createSignedUrl(path, 60 * 60 * 24 * 30)
+
+    if (signErr || !signed?.signedUrl) {
+      // Не ломаем страницу — оставляем старый src
+      console.warn('[refreshTrainingSignedUrls] Failed for path:', path, signErr?.message)
+      continue
+    }
+
+    replacements.set(src, signed.signedUrl)
+  }
+
+  if (replacements.size === 0) return html
+
+  // Аккуратно заменяем только точные совпадения src
+  let updated = html
+  for (const [oldSrc, newSrc] of replacements.entries()) {
+    // заменяем и "src="old"" и "src='old'"
+    updated = updated
+      .replaceAll(`src="${oldSrc}"`, `src="${newSrc}"`)
+      .replaceAll(`src='${oldSrc}'`, `src='${newSrc}'`)
+  }
+
+  return updated
 }
