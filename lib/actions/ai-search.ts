@@ -3,7 +3,6 @@
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { createEmbedding, createChatCompletion } from '@/lib/ai/openai'
 import { chunkText } from '@/lib/ai/chunking'
-import { createEmbeddingsBatch } from '@/lib/ai/openai'
 
 export interface AISource {
   module: 'scripts' | 'training' | 'faq' | 'kb'
@@ -19,6 +18,106 @@ export interface AISearchResult {
   error?: string
 }
 
+// ------------------------- language detect (for answer) -------------------------
+function detectLang(text: string): 'kk' | 'ru' | 'en' {
+  const t = (text || '').toLowerCase()
+
+  // Kazakh Cyrillic specific letters
+  if (/[әғқңөұүһі]/i.test(t)) return 'kk'
+
+  const latin = (t.match(/[a-z]/g) || []).length
+  const cyr = (t.match(/[а-яё]/g) || []).length
+  if (latin > cyr) return 'en'
+
+  return 'ru'
+}
+
+function getAnswerLangInstruction(query: string) {
+  const lang = detectLang(query)
+  return lang === 'kk'
+    ? 'Отвечай на казахском языке.'
+    : lang === 'en'
+      ? 'Answer in English.'
+      : 'Отвечай на русском языке.'
+}
+
+// ------------------------- embeddings helpers (retry + concurrency) -------------------------
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+async function createEmbeddingWithRetry(text: string, attempts = 6): Promise<number[]> {
+  let lastErr: any = null
+
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const emb = await createEmbedding(text)
+
+      if (!Array.isArray(emb) || emb.length !== 1536) {
+        throw new Error('Invalid embedding format: must be array of 1536 numbers')
+      }
+      if (!emb.every((v) => typeof v === 'number' && Number.isFinite(v))) {
+        throw new Error('Invalid embedding format: all values must be finite numbers')
+      }
+
+      return emb
+    } catch (e: any) {
+      lastErr = e
+      const msg = String(e?.message || e)
+
+      const isRate =
+        msg.includes('Too Many Requests') ||
+        msg.includes('429') ||
+        msg.toLowerCase().includes('rate')
+
+      const isTemp =
+        msg.toLowerCase().includes('timeout') ||
+        msg.toLowerCase().includes('tempor') ||
+        msg.toLowerCase().includes('fetch failed')
+
+      if (i === attempts - 1 || (!isRate && !isTemp)) {
+        throw e
+      }
+
+      const backoff = Math.min(8000, 600 * Math.pow(2, i)) + Math.floor(Math.random() * 250)
+      await sleep(backoff)
+    }
+  }
+
+  throw lastErr || new Error('Embedding failed')
+}
+
+// small concurrency to avoid OpenAI throttling
+async function createEmbeddingsBatch(texts: string[], concurrency = 3): Promise<number[][]> {
+  const out: number[][] = new Array(texts.length)
+  let idx = 0
+
+  async function worker() {
+    while (true) {
+      const cur = idx++
+      if (cur >= texts.length) return
+      out[cur] = await createEmbeddingWithRetry(texts[cur])
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, texts.length) }, () => worker())
+  await Promise.all(workers)
+  return out
+}
+
+async function insertAiChunksBulk(
+  supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>,
+  rows: any[],
+  batchSize = 100
+) {
+  for (let i = 0; i < rows.length; i += batchSize) {
+    const batch = rows.slice(i, i + batchSize)
+    const { error } = await supabase.from('ai_chunks').insert(batch)
+    if (error) throw new Error(`ai_chunks bulk insert failed: ${error.message}`)
+  }
+}
+
+// ===================================================================================
+// AI SEARCH
+// ===================================================================================
 export async function aiSearch(
   query: string,
   filters: { scripts: boolean; training: boolean; faq: boolean; kb: boolean }
@@ -36,7 +135,6 @@ export async function aiSearch(
 
     const queryEmbedding = await createEmbedding(query)
 
-    // важно: в pgvector vector(1536) должен прийти массив чисел
     if (!Array.isArray(queryEmbedding) || queryEmbedding.length !== 1536) {
       throw new Error('Invalid embedding format: must be array of 1536 numbers')
     }
@@ -71,29 +169,9 @@ export async function aiSearch(
 
     const context = chunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
 
-function detectLang(text: string): 'kk' | 'ru' | 'en' {
-  const t = (text || '').toLowerCase()
+    const answerLangInstruction = getAnswerLangInstruction(query)
 
-  // Kazakh Cyrillic specific letters
-  if (/[әғқңөұүһі]/i.test(t)) return 'kk'
-
-  // crude latin check
-  const latin = (t.match(/[a-z]/g) || []).length
-  const cyr = (t.match(/[а-яё]/g) || []).length
-  if (latin > cyr) return 'en'
-
-  return 'ru'
-}
-
-const lang = detectLang(query)
-const answerLangInstruction =
-  lang === 'kk'
-    ? 'Отвечай на казахском языке.'
-    : lang === 'en'
-      ? 'Answer in English.'
-      : 'Отвечай на русском языке.'
-
-const systemPrompt = `Ты — полезный ассистент для ProSale CRM.
+    const systemPrompt = `Ты — полезный ассистент для ProSale CRM.
 ${answerLangInstruction}
 Отвечай кратко и по делу, используя только информацию из предоставленного контекста. Твой ответ должен быть пригоден для отправки клиенту. Формат ответа:
 
@@ -124,6 +202,9 @@ ${answerLangInstruction}
   }
 }
 
+// ===================================================================================
+// REINDEX
+// ===================================================================================
 export async function reindexAllContent() {
   try {
     if (!process.env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is missing')
@@ -136,183 +217,124 @@ export async function reindexAllContent() {
 
     if (!user) throw new Error('User not authenticated')
 
-    // чистим текущие чанки (RLS сам ограничит тенантом)
-    await supabase.from('ai_chunks').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    // clean existing chunks (RLS should scope by tenant)
+    const { error: delErr } = await supabase
+      .from('ai_chunks')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+    if (delErr) throw new Error(`ai_chunks delete failed: ${delErr.message}`)
 
-   // ---- helpers: embeddings with retry + small concurrency, and bulk insert ----
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    // ------------------------- FAQ -------------------------
+    const { data: faqItems, error: faqErr } = await supabase.from('faq_items').select('id, question, answer')
+    if (faqErr) throw new Error(`faq_items select failed: ${faqErr.message}`)
 
-async function createEmbeddingWithRetry(text: string, attempts = 6): Promise<number[]> {
-  let lastErr: any = null
+    if (faqItems && faqItems.length) {
+      for (const item of faqItems as any[]) {
+        const text = `${item.question}\n\n${item.answer}`
+        const chunks = chunkText(text)
+        if (!chunks.length) continue
 
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const emb = await createEmbedding(text)
+        const embeddings = await createEmbeddingsBatch(chunks, 3)
 
-      if (!Array.isArray(emb) || emb.length !== 1536) {
-        throw new Error('Invalid embedding format: must be array of 1536 numbers')
+        const rows = chunks.map((chunk, i) => ({
+          module: 'faq',
+          entity_id: item.id,
+          title: item.question,
+          url_path: `/app/faq?highlight=${item.id}`,
+          chunk_text: chunk,
+          embedding: embeddings[i],
+          metadata: { id: item.id },
+        }))
+
+        await insertAiChunksBulk(supabase, rows)
       }
-      if (!emb.every((v) => typeof v === 'number' && Number.isFinite(v))) {
-        throw new Error('Invalid embedding format: all values must be finite numbers')
-      }
-
-      return emb
-    } catch (e: any) {
-      lastErr = e
-      const msg = String(e?.message || e)
-
-      // мягкий retry для лимитов/временных ошибок
-      const isRate =
-        msg.includes('Too Many Requests') ||
-        msg.includes('429') ||
-        msg.toLowerCase().includes('rate')
-
-      const isTemp =
-        msg.toLowerCase().includes('timeout') ||
-        msg.toLowerCase().includes('tempor') ||
-        msg.toLowerCase().includes('fetch failed')
-
-      if (i === attempts - 1 || (!isRate && !isTemp)) {
-        throw e
-      }
-
-      // exponential backoff + jitter
-      const backoff = Math.min(8000, 600 * Math.pow(2, i)) + Math.floor(Math.random() * 250)
-      await sleep(backoff)
     }
-  }
 
-  throw lastErr || new Error('Embedding failed')
-}
+    // ------------------------- SCRIPTS (script_turns) -------------------------
+    const { data: scriptTurns, error: turnsErr } = await supabase
+      .from('script_turns')
+      .select('id, message, thread_id, script_threads!inner(id, title, category_id)')
+    if (turnsErr) throw new Error(`script_turns select failed: ${turnsErr.message}`)
 
-// небольшая конкуррентность, чтобы не убивать OpenAI
-async function createEmbeddingsBatch(texts: string[], concurrency = 3): Promise<number[][]> {
-  const out: number[][] = new Array(texts.length)
-  let idx = 0
+    if (scriptTurns && scriptTurns.length) {
+      for (const turn of scriptTurns as any[]) {
+        const chunks = chunkText(turn.message || '')
+        if (!chunks.length) continue
 
-  async function worker() {
-    while (true) {
-      const cur = idx++
-      if (cur >= texts.length) return
-      out[cur] = await createEmbeddingWithRetry(texts[cur])
+        const thread = turn.script_threads
+        const embeddings = await createEmbeddingsBatch(chunks, 3)
+
+        const rows = chunks.map((chunk, i) => ({
+          module: 'scripts',
+          entity_id: turn.id,
+          title: thread?.title || 'Script',
+          url_path: `/app/scripts/thread/${turn.thread_id}?turnId=${turn.id}`,
+          chunk_text: chunk,
+          embedding: embeddings[i],
+          metadata: { threadId: turn.thread_id, turnId: turn.id },
+        }))
+
+        await insertAiChunksBulk(supabase, rows)
+      }
     }
-  }
 
-  const workers = Array.from({ length: Math.min(concurrency, texts.length) }, () => worker())
-  await Promise.all(workers)
-  return out
-}
+    // ------------------------- TRAINING -------------------------
+    const { data: trainingDocs, error: trainErr } = await supabase
+      .from('training_docs')
+      .select('id, title, content_richtext, category_id')
+    if (trainErr) throw new Error(`training_docs select failed: ${trainErr.message}`)
 
-async function insertAiChunksBulk(rows: any[], batchSize = 100) {
-  for (let i = 0; i < rows.length; i += batchSize) {
-    const batch = rows.slice(i, i + batchSize)
-    const { error } = await supabase.from('ai_chunks').insert(batch)
-    if (error) throw new Error(`ai_chunks bulk insert failed: ${error.message}`)
-  }
-}
+    if (trainingDocs && trainingDocs.length) {
+      for (const doc of trainingDocs as any[]) {
+        const text = doc.content_richtext || ''
+        const chunks = chunkText(text)
+        if (!chunks.length) continue
 
-// ------------------------- FAQ -------------------------
-const { data: faqItems } = await supabase.from('faq_items').select('id, question, answer')
+        const embeddings = await createEmbeddingsBatch(chunks, 3)
 
-if (faqItems && faqItems.length) {
-  for (const item of faqItems) {
-    const text = `${item.question}\n\n${item.answer}`
-    const chunks = chunkText(text)
-    if (!chunks.length) continue
+        const rows = chunks.map((chunk, i) => ({
+          module: 'training',
+          entity_id: doc.id,
+          title: doc.title,
+          url_path: `/app/training/doc/${doc.id}`,
+          chunk_text: chunk,
+          embedding: embeddings[i],
+          metadata: { docId: doc.id },
+        }))
 
-    const embeddings = await createEmbeddingsBatch(chunks, 3)
+        await insertAiChunksBulk(supabase, rows)
+      }
+    }
 
-    const rows = chunks.map((chunk, i) => ({
-      module: 'faq',
-      entity_id: item.id,
-      title: item.question,
-      url_path: `/app/faq?highlight=${item.id}`,
-      chunk_text: chunk,
-      embedding: embeddings[i],
-      metadata: { id: item.id },
-    }))
+    // ------------------------- KB -------------------------
+    const { data: kbPages, error: kbErr } = await supabase.from('kb_pages').select('id, title, content_richtext')
+    if (kbErr) throw new Error(`kb_pages select failed: ${kbErr.message}`)
 
-    await insertAiChunksBulk(rows)
-  }
-}
+    if (kbPages && kbPages.length) {
+      for (const page of kbPages as any[]) {
+        const text = page.content_richtext || ''
+        const chunks = chunkText(text)
+        if (!chunks.length) continue
 
-// ------------------------- SCRIPTS (script_turns) -------------------------
-const { data: scriptTurns } = await supabase
-  .from('script_turns')
-  .select('id, message, thread_id, script_threads!inner(id, title, category_id)')
+        const embeddings = await createEmbeddingsBatch(chunks, 3)
 
-if (scriptTurns && scriptTurns.length) {
-  for (const turn of scriptTurns as any[]) {
-    const chunks = chunkText(turn.message || '')
-    if (!chunks.length) continue
+        const rows = chunks.map((chunk, i) => ({
+          module: 'kb',
+          entity_id: page.id,
+          title: page.title,
+          url_path: `/app/knowledge/${page.id}`,
+          chunk_text: chunk,
+          embedding: embeddings[i],
+          metadata: { pageId: page.id },
+        }))
 
-    const thread = turn.script_threads
-    const embeddings = await createEmbeddingsBatch(chunks, 3)
+        await insertAiChunksBulk(supabase, rows)
+      }
+    }
 
-    const rows = chunks.map((chunk, i) => ({
-      module: 'scripts',
-      entity_id: turn.id,
-      title: thread?.title || 'Script',
-      url_path: `/app/scripts/thread/${turn.thread_id}?turnId=${turn.id}`,
-      chunk_text: chunk,
-      embedding: embeddings[i],
-      metadata: { threadId: turn.thread_id, turnId: turn.id },
-    }))
-
-    await insertAiChunksBulk(rows)
+    return { success: true }
+  } catch (error: any) {
+    console.error('Reindex error:', error)
+    return { success: false, error: error.message }
   }
 }
-
-// ------------------------- TRAINING -------------------------
-const { data: trainingDocs } = await supabase
-  .from('training_docs')
-  .select('id, title, content_richtext, category_id')
-
-if (trainingDocs && trainingDocs.length) {
-  for (const doc of trainingDocs as any[]) {
-    const text = doc.content_richtext || ''
-    const chunks = chunkText(text)
-    if (!chunks.length) continue
-
-    const embeddings = await createEmbeddingsBatch(chunks, 3)
-
-    const rows = chunks.map((chunk, i) => ({
-      module: 'training',
-      entity_id: doc.id,
-      title: doc.title,
-      url_path: `/app/training/doc/${doc.id}`,
-      chunk_text: chunk,
-      embedding: embeddings[i],
-      metadata: { docId: doc.id },
-    }))
-
-    await insertAiChunksBulk(rows)
-  }
-}
-
-// ------------------------- KB -------------------------
-const { data: kbPages } = await supabase.from('kb_pages').select('id, title, content_richtext')
-
-if (kbPages && kbPages.length) {
-  for (const page of kbPages as any[]) {
-    const text = page.content_richtext || ''
-    const chunks = chunkText(text)
-    if (!chunks.length) continue
-
-    const embeddings = await createEmbeddingsBatch(chunks, 3)
-
-    const rows = chunks.map((chunk, i) => ({
-      module: 'kb',
-      entity_id: page.id,
-      title: page.title,
-      url_path: `/app/knowledge/${page.id}`,
-      chunk_text: chunk,
-      embedding: embeddings[i],
-      metadata: { pageId: page.id },
-    }))
-
-    await insertAiChunksBulk(rows)
-  }
-}
-
-return { success: true }
