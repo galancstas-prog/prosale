@@ -130,8 +130,37 @@ export async function uploadTrainingImage(formData: FormData) {
   if (!file.type.startsWith('image/')) return { error: 'Only images allowed' }
   if (file.size > 5 * 1024 * 1024) return { error: 'Max file size is 5MB' }
 
+  // 1) достаем текущего юзера
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser()
+
+  if (userErr || !user) return { error: 'Not authenticated' }
+
+  // 2) достаем tenant_id (вариант: из tenant_members)
+  const { data: tm, error: tmErr } = await supabase
+    .from('tenant_members')
+    .select('tenant_id, role')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single()
+
+  if (tmErr || !tm?.tenant_id) {
+    return { error: 'Tenant not found for user' }
+  }
+
+  // (опционально) жестко ограничим upload только админам на уровне кода
+  // даже если UI скрыт — это лишняя страховка
+  if (tm.role !== 'ADMIN') {
+    return { error: 'Only ADMIN can upload images' }
+  }
+
+  const tenantId = tm.tenant_id as string
+
+  // 3) грузим в PRIVATE bucket по пути tenantId/uuid.ext
   const ext = file.name.split('.').pop() || 'png'
-  const path = `${randomUUID()}.${ext}`
+  const path = `${tenantId}/${randomUUID()}.${ext}`
 
   const arrayBuffer = await file.arrayBuffer()
   const bytes = new Uint8Array(arrayBuffer)
@@ -141,6 +170,7 @@ export async function uploadTrainingImage(formData: FormData) {
     .upload(path, bytes, {
       contentType: file.type,
       upsert: false,
+      cacheControl: '3600',
     })
 
   if (uploadError) {
@@ -148,8 +178,19 @@ export async function uploadTrainingImage(formData: FormData) {
     return { error: uploadError.message }
   }
 
-  const { data } = supabase.storage.from(TRAINING_BUCKET).getPublicUrl(path)
-  return { url: data.publicUrl }
+  // 4) PRIVATE bucket => publicUrl НЕ работает
+  // возвращаем signedUrl, чтобы картинка сразу отображалась
+  const { data: signed, error: signErr } = await supabase.storage
+    .from(TRAINING_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 30) // 30 дней
+
+  if (signErr || !signed?.signedUrl) {
+    console.error('[uploadTrainingImage] Signed URL error:', signErr)
+    return { error: signErr?.message ?? 'Failed to create signed URL' }
+  }
+
+  // Можно вернуть и path на будущее (чтобы позже уметь обновлять url)
+  return { url: signed.signedUrl, path }
 }
 
 export async function searchTrainingDocs(query: string) {
