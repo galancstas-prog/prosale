@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { getSupabaseClient } from '@/lib/supabase-client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +21,18 @@ interface DashboardContentProps {
 export function DashboardContent({ isAdmin }: DashboardContentProps) {
   const { t } = useLocale()
   const router = useRouter()
+  const supabase = getSupabaseClient()
+  const [firstName, setFirstName] = useState<string>('')
+
+  useEffect(() => {
+    async function loadUserName() {
+      const { data } = await supabase.auth.getUser()
+      if (data?.user?.user_metadata?.first_name) {
+        setFirstName(data.user.user_metadata.first_name)
+      }
+    }
+    loadUserName()
+  }, [])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -103,7 +116,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2">
-            {t('dashboard.welcome')}
+            {firstName ? `С возвращением, ${firstName}!` : t('dashboard.welcome')}
           </p>
         </div>
         {isAdmin && (

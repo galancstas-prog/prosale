@@ -2,8 +2,8 @@ export type Locale = 'en' | 'ru'
 
 export const translations = {
   en: {
-    'app.name': 'ProSale',
-    'landing.title': 'ProSale',
+    'app.name': 'SalesPilot',
+    'landing.title': 'SalesPilot',
     'landing.subtitle': 'Manage your business efficiently',
     'landing.login': 'Login',
     'landing.register': 'Get Started',
@@ -42,7 +42,7 @@ export const translations = {
     'dashboard.step2Desc': 'Review training materials and track your learning progress',
     'dashboard.step3Title': 'Check FAQ',
     'dashboard.step3Desc': 'Find answers to frequently asked questions',
-    'dashboard.workspace': 'Demo Workspace',
+    'dashboard.workspace': 'Workspace',
     'nav.dashboard': 'Dashboard',
     'nav.scripts': 'Scripts',
     'nav.training': 'Training',
@@ -135,8 +135,8 @@ export const translations = {
     'admin.progress.noProgress': 'No training progress data yet',
   },
   ru: {
-    'app.name': 'ProSale',
-    'landing.title': 'ProSale',
+    'app.name': 'SalesPilot',
+    'landing.title': 'SalesPilot',
     'landing.subtitle': 'Эффективное управление вашим бизнесом',
     'landing.login': 'Войти',
     'landing.register': 'Начать',
@@ -175,7 +175,7 @@ export const translations = {
     'dashboard.step2Desc': 'Изучите обучающие материалы и отслеживайте свой прогресс',
     'dashboard.step3Title': 'Проверьте FAQ',
     'dashboard.step3Desc': 'Найдите ответы на часто задаваемые вопросы',
-    'dashboard.workspace': 'Демо рабочее пространство',
+    'dashboard.workspace': 'Рабочее пространство',
     'nav.dashboard': 'Панель',
     'nav.scripts': 'Скрипты',
     'nav.training': 'Обучение',

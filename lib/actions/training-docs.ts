@@ -331,12 +331,12 @@ async function refreshTrainingSignedUrls(
 
   // Аккуратно заменяем только точные совпадения src
   let updated = html
-  for (const [oldSrc, newSrc] of replacements.entries()) {
+  Array.from(replacements.entries()).forEach(([oldSrc, newSrc]) => {
     // заменяем и "src="old"" и "src='old'"
     updated = updated
       .replaceAll(`src="${oldSrc}"`, `src="${newSrc}"`)
       .replaceAll(`src='${oldSrc}'`, `src='${newSrc}'`)
-  }
+  })
 
   return updated
 }

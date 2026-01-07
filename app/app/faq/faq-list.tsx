@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/empty-state'
-import { Copy, Trash2, MessageCircle, Loader2 } from 'lucide-react'
+import { Copy, Trash2, MessageCircle, Loader2, Check } from 'lucide-react'
 import { deleteFaqItem } from '@/lib/actions/faq-items'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -37,6 +37,7 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
   const { toast } = useToast()
   const [deleting, setDeleting] = useState<string | null>(null)
   const [accordionValue, setAccordionValue] = useState<string | undefined>(undefined)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
     if (openItemId) {
@@ -44,13 +45,11 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
     }
   }, [openItemId])
 
-  const handleCopy = async (answer: string) => {
+  const handleCopy = async (itemId: string, answer: string) => {
     try {
       await navigator.clipboard.writeText(answer)
-      toast({
-        title: 'Copied!',
-        description: 'Answer copied to clipboard',
-      })
+      setCopiedId(itemId)
+      setTimeout(() => setCopiedId(null), 1500)
     } catch (err) {
       toast({
         title: 'Failed to copy',
@@ -164,11 +163,15 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleCopy(item.answer)}
+                    onClick={() => handleCopy(item.id, item.answer)}
                     className="shrink-0"
                   >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy
+                    {copiedId === item.id ? (
+                      <Check className="h-4 w-4 mr-2 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4 mr-2" />
+                    )}
+                    {copiedId === item.id ? 'Copied' : 'Copy'}
                   </Button>
                 </div>
               </div>

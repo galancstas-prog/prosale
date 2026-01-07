@@ -13,6 +13,8 @@ import { EmptyState } from '@/components/empty-state'
 import { FolderOpen, ArrowRight, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { updateCategory, deleteCategory } from '@/lib/actions/categories'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { getCategoryColor } from '@/lib/color-utils'
+import { cn } from '@/lib/utils'
 
 interface Category {
   id: string
@@ -77,12 +79,14 @@ export function CategoryList({ categories, isAdmin }: CategoryListProps) {
   return (
     <>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((category) => (
+        {categories.map((category) => {
+          const color = getCategoryColor(category.id)
+          return (
           <Card key={category.id} className="h-full hover:shadow-lg transition-all border-2 relative group">
             <Link href={`/app/scripts/${category.id}`}>
               <CardHeader className="cursor-pointer">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
-                  <FolderOpen className="w-6 h-6" />
+                <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center mb-3', color.bg, color.text)}>
+                  <span className="text-2xl">{color.emoji}</span>
                 </div>
                 <CardTitle className="flex items-center justify-between">
                   {category.name}
@@ -118,7 +122,7 @@ export function CategoryList({ categories, isAdmin }: CategoryListProps) {
               </div>
             )}
           </Card>
-        ))}
+        )})}
       </div>
 
       <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>

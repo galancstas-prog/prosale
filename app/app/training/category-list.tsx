@@ -13,6 +13,8 @@ import { EmptyState } from '@/components/empty-state'
 import { BookOpen, ArrowRight, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { updateTrainingCategory, deleteTrainingCategory } from '@/lib/actions/training-categories'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { getCategoryColor } from '@/lib/color-utils'
+import { cn } from '@/lib/utils'
 
 interface Category {
   id: string
@@ -77,12 +79,14 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
   return (
     <>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((category) => (
+        {categories.map((category) => {
+          const color = getCategoryColor(category.id)
+          return (
           <Card key={category.id} className="h-full hover:shadow-lg transition-all border-2 relative group">
             <Link href={`/app/training/${category.id}`}>
               <CardHeader className="cursor-pointer">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 bg-green-100 dark:bg-green-950 text-green-600 dark:text-green-400">
-                  <BookOpen className="w-6 h-6" />
+                <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center mb-3', color.bg, color.text)}>
+                  <span className="text-2xl">{color.emoji}</span>
                 </div>
                 <CardTitle className="flex items-center justify-between">
                   {category.name}
@@ -118,7 +122,7 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
               </div>
             )}
           </Card>
-        ))}
+        )})}
       </div>
 
       <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>

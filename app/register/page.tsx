@@ -16,6 +16,8 @@ function RegisterPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -62,6 +64,8 @@ function RegisterPageContent() {
         options?: {
           data?: {
             invite_code?: string
+            first_name?: string
+            last_name?: string
           }
         }
       } = {
@@ -69,12 +73,19 @@ function RegisterPageContent() {
         password,
       }
 
+      const metadata: any = {}
       if (inviteCode.trim()) {
-        signUpData.options = {
-          data: {
-            invite_code: inviteCode.trim(),
-          },
-        }
+        metadata.invite_code = inviteCode.trim()
+      }
+      if (firstName.trim()) {
+        metadata.first_name = firstName.trim()
+      }
+      if (lastName.trim()) {
+        metadata.last_name = lastName.trim()
+      }
+
+      if (Object.keys(metadata).length > 0) {
+        signUpData.options = { data: metadata }
       }
 
       console.log('[REGISTER]', { email, inviteCode: inviteCode.trim() || 'none' })
@@ -117,6 +128,29 @@ function RegisterPageContent() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">{t('auth.register.email')}</Label>
               <Input

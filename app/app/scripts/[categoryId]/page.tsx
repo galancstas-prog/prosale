@@ -16,24 +16,40 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
   const { membership } = useMembership()
   const [category, setCategory] = useState<any>(null)
   const [threads, setThreads] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
 
   const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true)
       const threadsResult = await getThreadsByCategory(params.categoryId)
       const categoriesResult = await getCategories()
 
       const categories = categoriesResult.data || []
       const foundCategory = categories.find(c => c.id === params.categoryId)
 
-      setCategory(foundCategory)
-      setThreads(threadsResult.data || [])
+      if (!foundCategory) {
+        setNotFound(true)
+      } else {
+        setCategory(foundCategory)
+        setThreads(threadsResult.data || [])
+      }
+      setLoading(false)
     }
     loadData()
   }, [params.categoryId])
 
-  if (!category) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
+
+  if (notFound) {
     return <div>Category not found</div>
   }
 
