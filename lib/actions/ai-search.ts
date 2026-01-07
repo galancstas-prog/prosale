@@ -71,7 +71,31 @@ export async function aiSearch(
 
     const context = chunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
 
-    const systemPrompt = `Ты — полезный ассистент для ProSale CRM. Отвечай кратко и по делу на русском языке, используя только информацию из предоставленного контекста. Твой ответ должен быть пригоден для отправки клиенту. Формат ответа:
+function detectLang(text: string): 'kk' | 'ru' | 'en' {
+  const t = (text || '').toLowerCase()
+
+  // Kazakh Cyrillic specific letters
+  if (/[әғқңөұүһі]/i.test(t)) return 'kk'
+
+  // crude latin check
+  const latin = (t.match(/[a-z]/g) || []).length
+  const cyr = (t.match(/[а-яё]/g) || []).length
+  if (latin > cyr) return 'en'
+
+  return 'ru'
+}
+
+const lang = detectLang(query)
+const answerLangInstruction =
+  lang === 'kk'
+    ? 'Отвечай на казахском языке.'
+    : lang === 'en'
+      ? 'Answer in English.'
+      : 'Отвечай на русском языке.'
+
+const systemPrompt = `Ты — полезный ассистент для ProSale CRM.
+${answerLangInstruction}
+Отвечай кратко и по делу, используя только информацию из предоставленного контекста. Твой ответ должен быть пригоден для отправки клиенту. Формат ответа:
 
 Вопрос: [перефразируй вопрос пользователя]
 Ответ: [краткий ответ на основе контекста]
