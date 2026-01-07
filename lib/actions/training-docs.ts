@@ -37,6 +37,20 @@ export async function getTrainingDocById(docId: string) {
     return { error: error.message, data: null }
   }
 
+  // ✅ Авто-обновление протухших signed-url в HTML
+  // (работает только если ты ДОБАВИШЬ helper refreshTrainingSignedUrls в этом файле)
+  try {
+    if (data?.content_richtext) {
+      data.content_richtext = await refreshTrainingSignedUrls(supabase, data.content_richtext)
+    }
+    if (data?.content) {
+      data.content = await refreshTrainingSignedUrls(supabase, data.content)
+    }
+  } catch (e) {
+    console.warn('[getTrainingDocById] Signed URL refresh failed:', e)
+    // не валим страницу — просто вернем как есть
+  }
+
   return { data, error: null }
 }
 
