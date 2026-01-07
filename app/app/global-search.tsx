@@ -6,10 +6,17 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Search, X, MessageSquare, BookOpen, FileText, Database, Copy, Sparkles } from 'lucide-react'
+import { Search, X, MessageSquare, BookOpen, FileText, Database, Copy, Sparkles, Lock } from 'lucide-react'
 import { globalSearch, GlobalSearchResult } from '@/lib/actions/global-search'
 import { aiSearch, AISource } from '@/lib/actions/ai-search'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useTenantPlan } from '@/lib/hooks/use-tenant-plan'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface ModuleFilter {
   scripts: boolean
@@ -20,6 +27,7 @@ interface ModuleFilter {
 
 export function GlobalSearch() {
   const { t } = useLocale()
+  const { plan } = useTenantPlan()
   const router = useRouter()
   const [mode, setMode] = useState<'search' | 'ai'>('search')
   const [query, setQuery] = useState('')
@@ -37,6 +45,8 @@ export function GlobalSearch() {
     faq: true,
     kb: true,
   })
+
+  const isAiEnabled = plan === 'PRO' || plan === 'TEAM'
 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
@@ -83,6 +93,9 @@ export function GlobalSearch() {
   }
 
   const handleModeSwitch = (checked: boolean) => {
+    if (!isAiEnabled && checked) {
+      return
+    }
     setMode(checked ? 'ai' : 'search')
     setQuery('')
     setResults([])
@@ -212,11 +225,29 @@ export function GlobalSearch() {
           <span className={`text-sm font-medium ${mode === 'search' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500'}`}>
             Поиск
           </span>
-          <Switch checked={mode === 'ai'} onCheckedChange={handleModeSwitch} />
-          <span className={`text-sm font-medium flex items-center gap-1 ${mode === 'ai' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500'}`}>
-            <Sparkles className="h-4 w-4" />
-            AI
-          </span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={mode === 'ai'}
+                    onCheckedChange={handleModeSwitch}
+                    disabled={!isAiEnabled}
+                  />
+                  <span className={`text-sm font-medium flex items-center gap-1 ${mode === 'ai' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500'} ${!isAiEnabled ? 'opacity-50' : ''}`}>
+                    {!isAiEnabled && <Lock className="h-3 w-3" />}
+                    <Sparkles className="h-4 w-4" />
+                    AI
+                  </span>
+                </div>
+              </TooltipTrigger>
+              {!isAiEnabled && (
+                <TooltipContent>
+                  <p>Доступно на тарифе PRO</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -227,12 +258,13 @@ export function GlobalSearch() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && mode === 'ai') {
+              if (e.key === 'Enter' && mode === 'ai' && isAiEnabled) {
                 handleAiSearch()
               }
             }}
             placeholder={mode === 'ai' ? 'Задайте вопрос (мин. 4 символа)' : t('common.search')}
             className="pl-10 pr-10 h-12 text-base"
+            disabled={mode === 'ai' && !isAiEnabled}
           />
           {query && (
             <button
@@ -243,14 +275,14 @@ export function GlobalSearch() {
             </button>
           )}
         </div>
-        {mode === 'ai' && (
+        {mode === 'ai' && isAiEnabled && (
           <Button onClick={handleAiSearch} disabled={loading || query.length < 4} size="lg">
             {loading ? 'Поиск...' : 'Найти'}
           </Button>
         )}
       </div>
 
-      {mode === 'ai' && (
+      {mode === 'ai' && isAiEnabled && (
         <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Фильтр</div>
           <div className="grid grid-cols-2 gap-3">

@@ -10,6 +10,9 @@ import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import { useMembership } from '@/lib/auth/use-membership'
+import { useTenantPlan } from '@/lib/hooks/use-tenant-plan'
+import { AccessExpiredModal } from '@/components/access-expired-modal'
+import { PlanBadge } from '@/components/plan-badge'
 import {
   LayoutDashboard,
   MessageSquare,
@@ -17,6 +20,7 @@ import {
   FileText,
   Database,
   Users,
+  CreditCard,
   Menu,
   X,
   LogOut,
@@ -35,6 +39,7 @@ function AppShellContent({ children, user }: AppShellProps) {
   const router = useRouter()
   const { t } = useLocale()
   const { membership } = useMembership()
+  const { plan, isExpired, daysLeft } = useTenantPlan()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -50,12 +55,17 @@ function AppShellContent({ children, user }: AppShellProps) {
     { name: t('nav.faq'), href: '/app/faq', icon: FileText },
     { name: t('nav.knowledge'), href: '/app/knowledge', icon: Database },
     ...(membership?.role === 'ADMIN'
-      ? [{ name: 'Team', href: '/app/team', icon: Users }]
+      ? [
+          { name: 'Team', href: '/app/team', icon: Users },
+          { name: 'Billing', href: '/app/billing', icon: CreditCard },
+        ]
       : []),
   ]
 
   return (
-    <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900">
+    <>
+      <AccessExpiredModal open={isExpired} />
+      <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900">
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-950 border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
@@ -133,8 +143,11 @@ function AppShellContent({ children, user }: AppShellProps) {
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div className="flex-1 lg:ml-0 ml-4">
+          <div className="flex-1 lg:ml-0 ml-4 flex items-center gap-3">
             <div className="text-sm text-slate-500">{t('dashboard.workspace')}</div>
+            {plan && daysLeft !== null && (
+              <PlanBadge plan={plan} daysLeft={daysLeft} />
+            )}
           </div>
 
           <LocaleSwitcher />
@@ -145,6 +158,7 @@ function AppShellContent({ children, user }: AppShellProps) {
         </main>
       </div>
     </div>
+    </>
   )
 }
 
