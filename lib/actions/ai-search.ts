@@ -211,7 +211,13 @@ export async function aiSearch(
       }
     }
 
-    const context = chunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
+    const cleaned = (chunks || [])
+  .filter((c: any) => typeof c.chunk_text === 'string' && c.chunk_text.trim().length >= 80)
+  .filter((c: any) => (typeof c.similarity === 'number' ? c.similarity >= 0.45 : true))
+
+const topChunks = cleaned.slice(0, 10)
+
+    const context = topChunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
 
     const systemPrompt = buildSystemPrompt(query)
     const userPrompt = `Контекст из базы знаний:\n\n${context}\n\nВопрос пользователя: ${query}`
@@ -221,13 +227,13 @@ export async function aiSearch(
       { role: 'user', content: userPrompt },
     ])
 
-    const sources: AISource[] = chunks.slice(0, 10).map((c: any) => ({
-      module: c.module,
-      id: c.entity_id,
-      title: c.title,
-      snippet: String(c.chunk_text).substring(0, 150) + '...',
-      meta: c.metadata,
-    }))
+   const sources: AISource[] = topChunks.map((c: any) => ({
+  module: c.module,
+  id: c.entity_id,
+  title: c.title,
+  snippet: String(c.chunk_text).substring(0, 150) + '...',
+  meta: c.metadata,
+}))
 
     return { answer, sources }
   } catch (error: any) {
