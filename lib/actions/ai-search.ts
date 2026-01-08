@@ -35,10 +35,57 @@ function detectLang(text: string): 'kk' | 'ru' | 'en' {
 function getAnswerLangInstruction(query: string) {
   const lang = detectLang(query)
   return lang === 'kk'
-    ? 'Отвечай на казахском языке.'
+    ? 'Жауапты қазақ тілінде бер.'
     : lang === 'en'
       ? 'Answer in English.'
       : 'Отвечай на русском языке.'
+}
+
+// ------------------------- intent detect (list/questions like "какие виды...") -------------------------
+function isListIntent(query: string): boolean {
+  const q = (query || '').toLowerCase()
+
+  return (
+    /(какие|какой|какая)\s+(виды|варианты|способы|форматы|типы|опции)/i.test(q) ||
+    /(перечисли|список|что входит|какие есть|варианты|виды)/i.test(q)
+  )
+}
+
+function buildSystemPrompt(query: string): string {
+  const answerLangInstruction = getAnswerLangInstruction(query)
+  const listMode = isListIntent(query)
+
+  // Мягкий, “менеджерский” тон: дружелюбно, по делу, без канцелярита.
+  // Важно: запрещаем выдумывать.
+  if (listMode) {
+    return `Ты — помощник менеджера ProSale CRM.
+${answerLangInstruction}
+Тон: дружелюбный и уверенный, как сообщение клиенту. Без лишней воды.
+ВАЖНО: отвечай ТОЛЬКО на основе контекста, ничего не придумывай.
+
+Задача: если вопрос просит перечень (виды/варианты/способы) — собери список из контекста.
+Если перечень размазан по тексту — аккуратно собери его в один список.
+Если данных не хватает — честно скажи, чего не хватает (1–2 уточнения).
+
+Формат:
+Вопрос: [перефразируй кратко]
+Ответ:
+- пункт 1
+- пункт 2
+...`
+  }
+
+  return `Ты — помощник менеджера ProSale CRM.
+${answerLangInstruction}
+Тон: дружелюбный и уверенный, как готовый ответ клиенту. Без лишней воды.
+ВАЖНО: отвечай ТОЛЬКО на основе контекста, ничего не придумывай.
+
+Формат:
+Вопрос: [перефразируй вопрос клиента кратко]
+Ответ: [краткий понятный ответ, как от менеджера]
+
+Если в контексте нет информации для ответа, скажи:
+"Похоже, в нашей базе знаний пока нет точной информации по этому вопросу. Уточните, пожалуйста, [1 короткое уточнение], и я помогу."`
 }
 
 // ------------------------- embeddings helpers (retry + concurrency) -------------------------
@@ -63,10 +110,7 @@ async function createEmbeddingWithRetry(text: string, attempts = 6): Promise<num
       lastErr = e
       const msg = String(e?.message || e)
 
-      const isRate =
-        msg.includes('Too Many Requests') ||
-        msg.includes('429') ||
-        msg.toLowerCase().includes('rate')
+      const isRate = msg.includes('Too Many Requests') || msg.includes('429') || msg.toLowerCase().includes('rate')
 
       const isTemp =
         msg.toLowerCase().includes('timeout') ||
@@ -150,9 +194,9 @@ export async function aiSearch(
       return { answer: 'Включите хотя бы один модуль для поиска.', sources: [] }
     }
 
+    // ✅ ВАЖНО: match_threshold убран — функция match_ai_chunks теперь возвращает TOP-N без порога
     const { data: chunks, error: searchError } = await supabase.rpc('match_ai_chunks', {
       query_embedding: queryEmbedding,
-      match_threshold: 0.5,
       match_count: 20,
       filter_modules: enabledModules,
     })
@@ -162,24 +206,14 @@ export async function aiSearch(
     if (!chunks || chunks.length === 0) {
       return {
         answer:
-          'К сожалению, я не нашёл информации по вашему запросу в базе знаний. Пожалуйста, уточните ваш вопрос или попробуйте другую формулировку.',
+          'Похоже, в базе знаний пока нет точной информации по этому вопросу. Уточните, пожалуйста, детали — и я помогу.',
         sources: [],
       }
     }
 
     const context = chunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
 
-    const answerLangInstruction = getAnswerLangInstruction(query)
-
-    const systemPrompt = `Ты — полезный ассистент для ProSale CRM.
-${answerLangInstruction}
-Отвечай кратко и по делу, используя только информацию из предоставленного контекста. Твой ответ должен быть пригоден для отправки клиенту. Формат ответа:
-
-Вопрос: [перефразируй вопрос пользователя]
-Ответ: [краткий ответ на основе контекста]
-
-Если в контексте нет информации для ответа, скажи: "К сожалению, в базе знаний нет информации по этому вопросу. Пожалуйста, уточните ваш запрос."`
-
+    const systemPrompt = buildSystemPrompt(query)
     const userPrompt = `Контекст из базы знаний:\n\n${context}\n\nВопрос пользователя: ${query}`
 
     const answer = await createChatCompletion([
