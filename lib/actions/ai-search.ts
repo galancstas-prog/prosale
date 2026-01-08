@@ -211,13 +211,33 @@ export async function aiSearch(
       }
     }
 
-    const cleaned = (chunks || [])
-  .filter((c: any) => typeof c.chunk_text === 'string' && c.chunk_text.trim().length >= 80)
+// 1) чистим мусор (слишком короткие, слабая близость)
+const cleaned = (chunks || [])
+  .filter((c: any) => typeof c.chunk_text === 'string' && c.chunk_text.trim().length >= 120)
   .filter((c: any) => (typeof c.similarity === 'number' ? c.similarity >= 0.45 : true))
 
-const topChunks = cleaned.slice(0, 10)
+// 2) дедуп: один лучший чанк на документ (entity_id + module)
+const bestByEntity = new Map<string, any>()
+for (const c of cleaned) {
+  const key = `${c.module}:${c.entity_id}`
+  const prev = bestByEntity.get(key)
+  if (!prev) {
+    bestByEntity.set(key, c)
+    continue
+  }
+  const prevSim = typeof prev.similarity === 'number' ? prev.similarity : 0
+  const curSim = typeof c.similarity === 'number' ? c.similarity : 0
+  if (curSim > prevSim) bestByEntity.set(key, c)
+}
 
-    const context = topChunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
+// 3) итоговые чанки: если вдруг всё отфильтровали — fallback на оригинальные top N
+const topChunks = Array.from(bestByEntity.values())
+  .sort((a, b) => (Number(b.similarity) || 0) - (Number(a.similarity) || 0))
+  .slice(0, 10)
+
+const finalChunks = topChunks.length ? topChunks : (chunks || []).slice(0, 10)
+
+const context = finalChunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
 
     const systemPrompt = buildSystemPrompt(query)
     const userPrompt = `Контекст из базы знаний:\n\n${context}\n\nВопрос пользователя: ${query}`
@@ -227,11 +247,11 @@ const topChunks = cleaned.slice(0, 10)
       { role: 'user', content: userPrompt },
     ])
 
-   const sources: AISource[] = topChunks.map((c: any) => ({
+const sources: AISource[] = finalChunks.map((c: any) => ({
   module: c.module,
   id: c.entity_id,
   title: c.title,
-  snippet: String(c.chunk_text).substring(0, 150) + '...',
+  snippet: String(c.chunk_text).substring(0, 200) + '...',
   meta: c.metadata,
 }))
 
