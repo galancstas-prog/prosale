@@ -106,37 +106,46 @@ export async function globalSearch(query: string) {
   }
 
   const { data: trainingDocs } = await supabase
-    .from('training_docs')
-    .select('id, title, content_richtext, category_id, training_categories!inner(id, name)')
-    .ilike('content_richtext', searchPattern)
-    .order('created_at', { ascending: false })
-    .limit(50)
+  .from('training_docs')
+  .select('id, title, content_richtext')
+  .or(
+    `title.ilike.${searchPattern},content_richtext.ilike.${searchPattern}`
+  )
+  .order('created_at', { ascending: false })
+  .limit(50)
 
-  if (trainingDocs) {
-    trainingDocs.forEach((doc) => {
-      const content = doc.content_richtext || ''
-      const normalizedContent = content.toLowerCase().replace(/ё/gi, 'е')
-      const searchTerms = normalizedQuery.toLowerCase()
-      const matchIndex = normalizedContent.indexOf(searchTerms)
-      const start = Math.max(0, matchIndex - 30)
-      const end = Math.min(content.length, matchIndex + searchTerms.length + 30)
-      const snippet = (start > 0 ? '...' : '') + content.substring(start, end) + (end < content.length ? '...' : '')
+if (trainingDocs) {
+  trainingDocs.forEach((doc) => {
+    const content = doc.content_richtext || ''
+    const normalizedContent = content.toLowerCase().replace(/ё/gi, 'е')
+    const searchTerms = normalizedQuery.toLowerCase()
 
-      const category = doc.training_categories as any
+    const sourceText = content || doc.title
+    const normalizedSource = sourceText.toLowerCase().replace(/ё/gi, 'е')
 
-      results.push({
-        module: 'training',
-        id: doc.id,
-        title: doc.title,
-        breadcrumb: `Training / ${category.name} / ${doc.title}`,
-        snippet,
-        meta: {
-          docId: doc.id,
-          categoryName: category.name,
-        },
-      })
+    const matchIndex = normalizedSource.indexOf(searchTerms)
+    const start = Math.max(0, matchIndex - 30)
+    const end = Math.min(sourceText.length, matchIndex + searchTerms.length + 30)
+
+    const snippet =
+      matchIndex >= 0
+        ? (start > 0 ? '...' : '') +
+          sourceText.substring(start, end) +
+          (end < sourceText.length ? '...' : '')
+        : ''
+
+    results.push({
+      module: 'training',
+      id: doc.id,
+      title: doc.title,
+      breadcrumb: `Training / ${doc.title}`,
+      snippet,
+      meta: {
+        docId: doc.id,
+      },
     })
-  }
+  })
+}
 
   const { data: kbPages } = await supabase
     .from('kb_pages')
