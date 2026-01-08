@@ -24,7 +24,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
   const router = useRouter()
   const supabase = getSupabaseClient()
   const [firstName, setFirstName] = useState<string>('')
-  const [userEmail, setUserEmail] = useState<string>('')
+  const [userId, setUserId] = useState<string>('')
   const [aiStatus, setAiStatus] = useState<'ready' | 'indexing' | 'needs_reindex' | 'empty'>('empty')
   const [aiStatusLoading, setAiStatusLoading] = useState(false)
 
@@ -34,8 +34,8 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
       if (data?.user?.user_metadata?.first_name) {
         setFirstName(data.user.user_metadata.first_name)
       }
-      if (data?.user?.email) {
-        setUserEmail(data.user.email)
+      if (data?.user?.id) {
+        setUserId(data.user.id)
       }
     }
     loadUserName()
@@ -135,19 +135,6 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     setReindexLoading(false)
   }
 
-  const handleStartIndexing = async () => {
-    setAiStatusLoading(true)
-    try {
-      const { error } = await supabase.rpc('start_ai_indexing')
-      if (!error) {
-        setAiStatus('indexing')
-      }
-    } catch (e) {
-      console.error('[START INDEXING ERROR]', e)
-    }
-    setAiStatusLoading(false)
-  }
-
   const getAiStatusConfig = () => {
     switch (aiStatus) {
       case 'ready':
@@ -163,17 +150,21 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
 
   return (
     <>
-      <WelcomePopup isAdmin={isAdmin} userEmail={userEmail} />
+      <WelcomePopup isAdmin={isAdmin} userId={userId} />
       <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">
+          <p className="text-slate-600 dark:text-slate-400 mt-2 truncate">
             {firstName ? `С возвращением, ${firstName}!` : t('dashboard.welcome')}
           </p>
         </div>
         {isAdmin && (
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <div className={cn('w-2 h-2 rounded-full', getAiStatusConfig().color)} />
+              <span className="text-muted-foreground whitespace-nowrap">{getAiStatusConfig().text}</span>
+            </div>
             <Button onClick={handleReindex} disabled={reindexLoading || reindexSuccess}>
               {reindexLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -208,29 +199,6 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
         <Alert>
           <AlertDescription>AI индексация завершена успешно</AlertDescription>
         </Alert>
-      )}
-
-      {isAdmin && (
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={cn('w-3 h-3 rounded-full', getAiStatusConfig().color)} />
-              <div>
-                <div className="font-semibold">AI Status</div>
-                <div className="text-sm text-muted-foreground">{getAiStatusConfig().text}</div>
-              </div>
-            </div>
-            {getAiStatusConfig().showButton && (
-              <Button
-                onClick={handleStartIndexing}
-                disabled={aiStatusLoading}
-                size="sm"
-              >
-                {aiStatusLoading ? 'Запуск...' : 'Переиндексировать'}
-              </Button>
-            )}
-          </div>
-        </Card>
       )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">

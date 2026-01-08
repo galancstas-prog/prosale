@@ -110,8 +110,8 @@ function AppShellContent({ children, user }: AppShellProps) {
           </ScrollArea>
 
           <div className="border-t p-4 space-y-2">
-            <div className="px-3 py-2 text-sm">
-              <div className="font-medium">{user.email}</div>
+            <div className="px-3 py-2 text-sm min-w-0">
+              <div className="font-medium truncate">{user.email}</div>
             </div>
             <Button
               variant="ghost"

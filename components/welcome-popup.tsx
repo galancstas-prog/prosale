@@ -8,23 +8,24 @@ import { Label } from '@/components/ui/label'
 
 interface WelcomePopupProps {
   isAdmin: boolean
-  userEmail: string
+  userId: string
 }
 
-export function WelcomePopup({ isAdmin, userEmail }: WelcomePopupProps) {
+export function WelcomePopup({ isAdmin, userId }: WelcomePopupProps) {
   const [open, setOpen] = useState(false)
   const [accepted, setAccepted] = useState(false)
 
   useEffect(() => {
-    const hasSeenWelcome = localStorage.getItem(`welcome_seen_${userEmail}`)
+    if (!userId) return
+    const hasSeenWelcome = localStorage.getItem(`salespilot_welcome_seen_${userId}`)
     if (!hasSeenWelcome) {
       setOpen(true)
     }
-  }, [userEmail])
+  }, [userId])
 
   const handleClose = () => {
     if (isAdmin && !accepted) return
-    localStorage.setItem(`welcome_seen_${userEmail}`, 'true')
+    localStorage.setItem(`salespilot_welcome_seen_${userId}`, 'true')
     setOpen(false)
   }
 

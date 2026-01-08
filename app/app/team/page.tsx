@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LocaleProvider, useLocale } from '@/lib/i18n/use-locale'
 import { Users, Mail, Trash2, Shield, User, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 interface TeamMember {
   user_id: string
@@ -309,13 +310,13 @@ function TeamPageContent() {
               <div className="space-y-2">
                 {overview.members.map((member) => (
                   <div key={member.user_id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       {member.first_name && member.last_name && (
-                        <div className="font-semibold">
+                        <div className="font-semibold truncate">
                           {member.first_name} {member.last_name}
                         </div>
                       )}
-                      <div className={member.first_name || member.last_name ? 'text-sm' : 'font-medium'}>{member.email}</div>
+                      <div className={cn('truncate', member.first_name || member.last_name ? 'text-sm' : 'font-medium')}>{member.email}</div>
                       <div className="text-sm text-muted-foreground">{member.role}</div>
                     </div>
                     {member.user_id !== membership.user.id && (
