@@ -14,13 +14,16 @@ export default function ScriptsPage() {
   const { membership } = useMembership()
   const router = useRouter()
   const [categories, setCategories] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true)
       const categoriesResult = await getCategories()
       setCategories(categoriesResult.data || [])
+      setLoading(false)
     }
     loadData()
   }, [])
@@ -43,7 +46,13 @@ export default function ScriptsPage() {
 
       <ScriptsSearch onResultClick={handleSearchResultClick} />
 
-      <CategoryList categories={categories} isAdmin={isAdmin} />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      ) : (
+        <CategoryList categories={categories} isAdmin={isAdmin} />
+      )}
     </div>
   )
 }

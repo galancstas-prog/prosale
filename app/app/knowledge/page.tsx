@@ -14,13 +14,16 @@ export default function KnowledgePage() {
   const { membership } = useMembership()
   const router = useRouter()
   const [pages, setPages] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   const isAdmin = membership?.role === 'ADMIN'
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true)
       const result = await getKbPages()
       setPages(result.data || [])
+      setLoading(false)
     }
     loadData()
   }, [])
@@ -43,7 +46,13 @@ export default function KnowledgePage() {
 
       <KbSearch onResultClick={handleSearchResultClick} />
 
-      <KbList pages={pages} isAdmin={isAdmin} />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      ) : (
+        <KbList pages={pages} isAdmin={isAdmin} />
+      )}
     </div>
   )
 }

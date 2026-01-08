@@ -79,14 +79,12 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
   return (
     <>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((category) => {
-          const color = getCategoryColor(category.id)
-          return (
+        {categories.map((category) => (
           <Card key={category.id} className="h-full hover:shadow-lg transition-all border-2 relative group">
             <Link href={`/app/training/${category.id}`}>
               <CardHeader className="cursor-pointer">
-                <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center mb-3', color.bg, color.text)}>
-                  <span className="text-2xl">{color.emoji}</span>
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  <BookOpen className="w-6 h-6" />
                 </div>
                 <CardTitle className="flex items-center justify-between">
                   {category.name}
@@ -122,7 +120,7 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
               </div>
             )}
           </Card>
-        )})}
+        ))}
       </div>
 
       <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>

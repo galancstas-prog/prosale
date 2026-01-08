@@ -13,6 +13,7 @@ import { reindexAllContent } from '@/lib/actions/ai-search'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { GlobalSearch } from './global-search'
+import { WelcomePopup } from '@/components/welcome-popup'
 
 interface DashboardContentProps {
   isAdmin: boolean
@@ -23,6 +24,9 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
   const router = useRouter()
   const supabase = getSupabaseClient()
   const [firstName, setFirstName] = useState<string>('')
+  const [userEmail, setUserEmail] = useState<string>('')
+  const [aiStatus, setAiStatus] = useState<'ready' | 'indexing' | 'needs_reindex' | 'empty'>('empty')
+  const [aiStatusLoading, setAiStatusLoading] = useState(false)
 
   useEffect(() => {
     async function loadUserName() {
@@ -30,9 +34,30 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
       if (data?.user?.user_metadata?.first_name) {
         setFirstName(data.user.user_metadata.first_name)
       }
+      if (data?.user?.email) {
+        setUserEmail(data.user.email)
+      }
     }
     loadUserName()
   }, [])
+
+  useEffect(() => {
+    async function loadAiStatus() {
+      if (!isAdmin) return
+      setAiStatusLoading(true)
+      try {
+        const { data, error } = await supabase.rpc('get_ai_status')
+        if (!error && data) {
+          setAiStatus(data.status || 'empty')
+        }
+      } catch (e) {
+        console.error('[AI STATUS ERROR]', e)
+      }
+      setAiStatusLoading(false)
+    }
+    loadAiStatus()
+  }, [isAdmin])
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -110,8 +135,36 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     setReindexLoading(false)
   }
 
+  const handleStartIndexing = async () => {
+    setAiStatusLoading(true)
+    try {
+      const { error } = await supabase.rpc('start_ai_indexing')
+      if (!error) {
+        setAiStatus('indexing')
+      }
+    } catch (e) {
+      console.error('[START INDEXING ERROR]', e)
+    }
+    setAiStatusLoading(false)
+  }
+
+  const getAiStatusConfig = () => {
+    switch (aiStatus) {
+      case 'ready':
+        return { color: 'bg-green-500', text: 'ИИ готов', showButton: false }
+      case 'indexing':
+        return { color: 'bg-blue-500', text: 'Идёт индексация', showButton: false }
+      case 'needs_reindex':
+        return { color: 'bg-yellow-500', text: 'Требуется переиндексация', showButton: true }
+      case 'empty':
+        return { color: 'bg-gray-400', text: 'Нет данных для ИИ', showButton: false }
+    }
+  }
+
   return (
-    <div className="space-y-8">
+    <>
+      <WelcomePopup isAdmin={isAdmin} userEmail={userEmail} />
+      <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
@@ -157,6 +210,29 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
         </Alert>
       )}
 
+      {isAdmin && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn('w-3 h-3 rounded-full', getAiStatusConfig().color)} />
+              <div>
+                <div className="font-semibold">AI Status</div>
+                <div className="text-sm text-muted-foreground">{getAiStatusConfig().text}</div>
+              </div>
+            </div>
+            {getAiStatusConfig().showButton && (
+              <Button
+                onClick={handleStartIndexing}
+                disabled={aiStatusLoading}
+                size="sm"
+              >
+                {aiStatusLoading ? 'Запуск...' : 'Переиндексировать'}
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
+
       <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
         {tiles.map((tile) => {
           const Icon = tile.icon
@@ -189,5 +265,6 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
         <GlobalSearch />
       </Card>
     </div>
+    </>
   )
 }

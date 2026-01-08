@@ -16,6 +16,7 @@ export default function FaqPage() {
   const urlHighlightId = searchParams.get('highlight') || null
   const urlSearchQuery = searchParams.get('q') || ''
   const [faqItems, setFaqItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [highlightId, setHighlightId] = useState<string | null>(urlHighlightId)
   const [searchQuery, setSearchQuery] = useState(urlSearchQuery)
   const [openItemId, setOpenItemId] = useState<string | null>(urlHighlightId)
@@ -24,8 +25,10 @@ export default function FaqPage() {
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true)
       const faqResult = await getFaqItems()
       setFaqItems(faqResult.data || [])
+      setLoading(false)
     }
     loadData()
   }, [])
@@ -82,13 +85,19 @@ export default function FaqPage() {
 
       <FaqSearch onResultClick={handleSearchResultClick} />
 
-      <FaqList
-        items={faqItems}
-        isAdmin={isAdmin}
-        highlightId={highlightId}
-        searchQuery={searchQuery}
-        openItemId={openItemId}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      ) : (
+        <FaqList
+          items={faqItems}
+          isAdmin={isAdmin}
+          highlightId={highlightId}
+          searchQuery={searchQuery}
+          openItemId={openItemId}
+        />
+      )}
     </div>
   )
 }

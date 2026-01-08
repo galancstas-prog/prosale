@@ -15,6 +15,8 @@ interface TeamMember {
   email: string
   role: 'ADMIN' | 'MANAGER'
   created_at?: string
+  first_name?: string
+  last_name?: string
 }
 
 interface Invite {
@@ -308,7 +310,12 @@ function TeamPageContent() {
                 {overview.members.map((member) => (
                   <div key={member.user_id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
-                      <div className="font-medium">{member.email}</div>
+                      {member.first_name && member.last_name && (
+                        <div className="font-semibold">
+                          {member.first_name} {member.last_name}
+                        </div>
+                      )}
+                      <div className={member.first_name || member.last_name ? 'text-sm' : 'font-medium'}>{member.email}</div>
                       <div className="text-sm text-muted-foreground">{member.role}</div>
                     </div>
                     {member.user_id !== membership.user.id && (

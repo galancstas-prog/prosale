@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Search, X, MessageSquare, BookOpen, FileText, Database, Copy, Sparkles, Lock } from 'lucide-react'
+import { Search, X, MessageSquare, BookOpen, FileText, Database, Copy, Sparkles, Lock, Check } from 'lucide-react'
 import { globalSearch, GlobalSearchResult } from '@/lib/actions/global-search'
 import { aiSearch, AISource } from '@/lib/actions/ai-search'
 import { useLocale } from '@/lib/i18n/use-locale'
@@ -37,6 +37,7 @@ export function GlobalSearch() {
   const [aiError, setAiError] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout>()
   const [filters, setFilters] = useState<ModuleFilter>({
@@ -169,6 +170,8 @@ export function GlobalSearch() {
 
   const handleCopyAnswer = () => {
     navigator.clipboard.writeText(aiAnswer)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   const highlightText = (text: string, query: string) => {
@@ -319,8 +322,17 @@ export function GlobalSearch() {
               AI-ответ
             </h3>
             <Button variant="outline" size="sm" onClick={handleCopyAnswer}>
-              <Copy className="h-4 w-4 mr-2" />
-              Копировать
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 mr-2 text-green-600" />
+                  Скопировано
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Копировать
+                </>
+              )}
             </Button>
           </div>
 
