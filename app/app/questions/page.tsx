@@ -1,3 +1,4 @@
+// app/app/questions/page.tsx  (или твой client page компонент, который ты прислал)
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -48,7 +49,7 @@ function QuestionsPageContent() {
   const [magicNextAllowed, setMagicNextAllowed] = useState<string | null>(null)
   const [magicResult, setMagicResult] = useState<MagicResult | null>(null)
 
-  const isAdmin = membership?.role === 'ADMIN'
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
   const hasAccess = plan === 'PRO' || plan === 'TEAM'
 
   useEffect(() => {
@@ -62,7 +63,7 @@ function QuestionsPageContent() {
         getTodayDashboard({ limit: 50 }),
         getTopNotFound({ limit: 20 }),
         canRunMagicToday(),
-        getTodayMagicSuggestions()
+        getTodayMagicSuggestions(),
       ])
 
       if (dashboardResult.success) {
@@ -110,9 +111,7 @@ function QuestionsPageContent() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Alert className="max-w-md">
-          <AlertDescription>
-            Доступ к этому разделу есть только у администраторов
-          </AlertDescription>
+          <AlertDescription>Доступ к этому разделу есть только у администраторов</AlertDescription>
         </Alert>
       </div>
     )
@@ -122,9 +121,7 @@ function QuestionsPageContent() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Alert className="max-w-md">
-          <AlertDescription>
-            Эта функция доступна на тарифах PRO и TEAM
-          </AlertDescription>
+          <AlertDescription>Эта функция доступна на тарифах PRO и TEAM</AlertDescription>
         </Alert>
       </div>
     )
@@ -145,9 +142,7 @@ function QuestionsPageContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Что у вас спрашивали сегодня</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">
-            Анализ вопросов от клиентов и сотрудников
-          </p>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">Анализ вопросов от клиентов и сотрудников</p>
         </div>
 
         {canShowMagicButton && (
@@ -155,11 +150,7 @@ function QuestionsPageContent() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <Button
-                    onClick={handleMagic}
-                    disabled={magicLoading || !magicAllowed}
-                    className="gap-2"
-                  >
+                  <Button onClick={handleMagic} disabled={magicLoading || !magicAllowed} className="gap-2">
                     {magicLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -174,6 +165,7 @@ function QuestionsPageContent() {
                   </Button>
                 </div>
               </TooltipTrigger>
+
               {!magicAllowed && (
                 <TooltipContent>
                   <p>
@@ -194,9 +186,7 @@ function QuestionsPageContent() {
         </Alert>
       )}
 
-      {magicResult && (
-        <FaqMagicDrafts clusters={magicResult.clusters} />
-      )}
+      {magicResult && <FaqMagicDrafts clusters={magicResult.clusters} />}
 
       <Card>
         <CardHeader>
@@ -204,9 +194,7 @@ function QuestionsPageContent() {
         </CardHeader>
         <CardContent>
           {dashboard.length === 0 ? (
-            <div className="text-center py-12 text-slate-500">
-              Сегодня вопросов не было
-            </div>
+            <div className="text-center py-12 text-slate-500">Сегодня вопросов не было</div>
           ) : (
             <div className="space-y-3">
               {dashboard.map((entry, idx) => (
@@ -215,13 +203,13 @@ function QuestionsPageContent() {
                   className="flex items-start justify-between p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
                 >
                   <div className="flex-1 min-w-0 mr-4">
-                    <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">
-                      {entry.query}
-                    </p>
+                    <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">{entry.query}</p>
                     <div className="flex items-center gap-3 text-sm text-slate-500">
                       <span>Повторов: {entry.count}</span>
                       <span>•</span>
-                      <span>{new Date(entry.last_asked).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>
+                        {new Date(entry.last_asked).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
                   </div>
 
@@ -252,23 +240,18 @@ function QuestionsPageContent() {
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-2">
               <span>ИИ не справился</span>
-              <Badge variant="outline" className="ml-2">{notFound.length}</Badge>
+              <Badge variant="outline" className="ml-2">
+                {notFound.length}
+              </Badge>
             </CardTitle>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Эти вопросы — кандидаты в FAQ
-            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Эти вопросы — кандидаты в FAQ</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {notFound.map((entry, idx) => (
-                <div
-                  key={idx}
-                  className="p-3 bg-white dark:bg-slate-950 border rounded-lg"
-                >
+                <div key={idx} className="p-3 bg-white dark:bg-slate-950 border rounded-lg">
                   <div className="flex items-start justify-between">
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 flex-1">
-                      {entry.query}
-                    </p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 flex-1">{entry.query}</p>
                     <Badge variant="secondary" className="ml-3 text-xs">
                       {entry.count}x
                     </Badge>
@@ -282,9 +265,7 @@ function QuestionsPageContent() {
 
       {dashboard.length > 0 && notFound.length === 0 && !magicResult && (
         <Alert>
-          <AlertDescription>
-            ИИ всё нашёл — отлично
-          </AlertDescription>
+          <AlertDescription>ИИ всё нашёл — отлично</AlertDescription>
         </Alert>
       )}
     </div>
