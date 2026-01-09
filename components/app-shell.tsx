@@ -1,3 +1,4 @@
+// components/app-shell.tsx  (или где у тебя лежит этот файл с AppShellContent)
 'use client'
 
 import { useState } from 'react'
@@ -43,6 +44,8 @@ function AppShellContent({ children, user }: AppShellProps) {
   const { plan, isExpired, daysLeft } = useTenantPlan()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
+
   const handleLogout = async () => {
     const supabase = getSupabaseClient()
     await supabase.auth.signOut()
@@ -55,7 +58,7 @@ function AppShellContent({ children, user }: AppShellProps) {
     { name: t('nav.training'), href: '/app/training', icon: BookOpen },
     { name: t('nav.faq'), href: '/app/faq', icon: FileText },
     { name: t('nav.knowledge'), href: '/app/knowledge', icon: Database },
-    ...(membership?.role === 'ADMIN'
+    ...(isAdmin
       ? [
           { name: 'Вопросы клиентов', href: '/app/questions', icon: HelpCircle },
           { name: 'Team', href: '/app/team', icon: Users },
@@ -68,98 +71,89 @@ function AppShellContent({ children, user }: AppShellProps) {
     <>
       <AccessExpiredModal open={isExpired} />
       <div className="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900">
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-950 border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        <aside
+          className={cn(
+            'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-950 border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between h-16 px-6 border-b">
+              <div className="text-xl font-bold">{t('landing.title')}</div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <ScrollArea className="flex-1 px-3 py-4">
+              <nav className="space-y-1">
+                {navigation.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
+                      <Button variant={isActive ? 'secondary' : 'ghost'} className="w-full justify-start">
+                        <Icon className="mr-3 h-4 w-4" />
+                        {item.name}
+                      </Button>
+                    </Link>
+                  )
+                })}
+              </nav>
+            </ScrollArea>
+
+            <div className="border-t p-4 space-y-2">
+              <div className="px-3 py-2 text-sm min-w-0">
+                <div className="font-medium truncate">{user.email}</div>
+              </div>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-3 h-4 w-4" />
+                {t('nav.logout')}
+              </Button>
+            </div>
+          </div>
+        </aside>
+
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
-      >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between h-16 px-6 border-b">
-            <div className="text-xl font-bold">{t('landing.title')}</div>
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="h-16 border-b bg-white dark:bg-slate-950 flex items-center justify-between px-4 lg:px-6">
             <Button
               variant="ghost"
               size="icon"
               className="lg:hidden"
-              onClick={() => setSidebarOpen(false)}
+              onClick={() => setSidebarOpen(true)}
             >
-              <X className="h-5 w-5" />
+              <Menu className="h-5 w-5" />
             </Button>
-          </div>
 
-          <ScrollArea className="flex-1 px-3 py-4">
-            <nav className="space-y-1">
-              {navigation.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <Button
-                      variant={isActive ? 'secondary' : 'ghost'}
-                      className="w-full justify-start"
-                    >
-                      <Icon className="mr-3 h-4 w-4" />
-                      {item.name}
-                    </Button>
-                  </Link>
-                )
-              })}
-            </nav>
-          </ScrollArea>
-
-          <div className="border-t p-4 space-y-2">
-            <div className="px-3 py-2 text-sm min-w-0">
-              <div className="font-medium truncate">{user.email}</div>
+            <div className="flex-1 lg:ml-0 ml-4 flex items-center gap-3">
+              <div className="text-sm text-slate-500">{t('dashboard.workspace')}</div>
+              {plan && daysLeft !== null && <PlanBadge plan={plan} daysLeft={daysLeft} />}
             </div>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-3 h-4 w-4" />
-              {t('nav.logout')}
-            </Button>
-          </div>
+
+            <LocaleSwitcher />
+          </header>
+
+          <main className="flex-1 overflow-y-auto">
+            <div className="container mx-auto px-4 py-8">{children}</div>
+          </main>
         </div>
-      </aside>
-
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 border-b bg-white dark:bg-slate-950 flex items-center justify-between px-4 lg:px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-
-          <div className="flex-1 lg:ml-0 ml-4 flex items-center gap-3">
-            <div className="text-sm text-slate-500">{t('dashboard.workspace')}</div>
-            {plan && daysLeft !== null && (
-              <PlanBadge plan={plan} daysLeft={daysLeft} />
-            )}
-          </div>
-
-          <LocaleSwitcher />
-        </header>
-
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto px-4 py-8">{children}</div>
-        </main>
       </div>
-    </div>
     </>
   )
 }
