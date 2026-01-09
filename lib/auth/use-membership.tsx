@@ -1,13 +1,16 @@
+// lib/auth/use-membership.tsx
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import type { User } from '@supabase/supabase-js'
 
+type Role = 'ADMIN' | 'OWNER' | 'MANAGER'
+
 interface Membership {
   user: User
   tenantId: string
-  role: 'ADMIN' | 'MANAGER'
+  role: Role
 }
 
 interface MembershipContextValue {
@@ -18,6 +21,13 @@ interface MembershipContextValue {
 }
 
 const MembershipContext = createContext<MembershipContextValue | undefined>(undefined)
+
+function normalizeRole(input: unknown): Role {
+  const r = String(input ?? '').toUpperCase()
+  if (r === 'ADMIN' || r === 'OWNER' || r === 'MANAGER') return r as Role
+  // безопасный дефолт
+  return 'MANAGER'
+}
 
 export function MembershipProvider({ children }: { children: ReactNode }) {
   const [membership, setMembership] = useState<Membership | null>(null)
@@ -59,7 +69,7 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
       setMembership({
         user: userData.user,
         tenantId: memberData.tenant_id,
-        role: memberData.role as 'ADMIN' | 'MANAGER',
+        role: normalizeRole(memberData.role),
       })
     } catch (e: any) {
       console.error('[MEMBERSHIP ERROR]', e)
