@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react'
 import { useMembership } from '@/lib/auth/use-membership'
 import { useTenantPlan } from '@/lib/hooks/use-tenant-plan'
 import { getTodayDashboard, getTopNotFound } from '@/lib/actions/question-logs'
+import { canRunMagicToday, runFaqMagicForToday, getTodayMagicSuggestions } from '@/lib/actions/faq-magic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
+import { FaqMagicDrafts } from '@/components/faq-magic-drafts'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface QuestionEntry {
   query: string
@@ -16,6 +19,21 @@ interface QuestionEntry {
   last_asked: string
   found: boolean
   source: string
+}
+
+interface MagicCluster {
+  cluster_title: string
+  reason: string
+  items: {
+    question: string
+    answer_draft: string
+    source_hint: string | null
+    confidence: number
+  }[]
+}
+
+interface MagicResult {
+  clusters: MagicCluster[]
 }
 
 function QuestionsPageContent() {
@@ -26,6 +44,9 @@ function QuestionsPageContent() {
   const [notFound, setNotFound] = useState<QuestionEntry[]>([])
   const [error, setError] = useState('')
   const [magicLoading, setMagicLoading] = useState(false)
+  const [magicAllowed, setMagicAllowed] = useState(true)
+  const [magicNextAllowed, setMagicNextAllowed] = useState<string | null>(null)
+  const [magicResult, setMagicResult] = useState<MagicResult | null>(null)
 
   const isAdmin = membership?.role === 'ADMIN'
   const hasAccess = plan === 'PRO' || plan === 'TEAM'
@@ -37,9 +58,11 @@ function QuestionsPageContent() {
       setLoading(true)
       setError('')
 
-      const [dashboardResult, notFoundResult] = await Promise.all([
+      const [dashboardResult, notFoundResult, magicCheck, suggestionsResult] = await Promise.all([
         getTodayDashboard({ limit: 50 }),
-        getTopNotFound({ limit: 20 })
+        getTopNotFound({ limit: 20 }),
+        canRunMagicToday(),
+        getTodayMagicSuggestions()
       ])
 
       if (dashboardResult.success) {
@@ -52,18 +75,35 @@ function QuestionsPageContent() {
         setNotFound(notFoundResult.data || [])
       }
 
+      if (magicCheck.success) {
+        setMagicAllowed(magicCheck.allowed)
+        setMagicNextAllowed(magicCheck.next_allowed_at)
+      }
+
+      if (suggestionsResult.success && suggestionsResult.data) {
+        setMagicResult(suggestionsResult.data)
+      }
+
       setLoading(false)
     }
 
     loadData()
   }, [isAdmin, hasAccess])
 
-  const handleMagic = () => {
+  const handleMagic = async () => {
     setMagicLoading(true)
-    setTimeout(() => {
-      setMagicLoading(false)
-      alert('Генерация FAQ скоро')
-    }, 1500)
+    setError('')
+
+    const result = await runFaqMagicForToday()
+
+    setMagicLoading(false)
+
+    if (result.success && result.data) {
+      setMagicResult(result.data)
+      setMagicAllowed(false)
+    } else {
+      setError(result.error || 'Ошибка генерации FAQ')
+    }
   }
 
   if (!isAdmin) {
@@ -98,6 +138,8 @@ function QuestionsPageContent() {
     )
   }
 
+  const canShowMagicButton = dashboard.length > 0 || notFound.length > 0
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -108,17 +150,41 @@ function QuestionsPageContent() {
           </p>
         </div>
 
-        {notFound.length > 0 && (
-          <Button onClick={handleMagic} disabled={magicLoading}>
-            {magicLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Генерация...
-              </>
-            ) : (
-              'Магия'
-            )}
-          </Button>
+        {canShowMagicButton && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Button
+                    onClick={handleMagic}
+                    disabled={magicLoading || !magicAllowed}
+                    className="gap-2"
+                  >
+                    {magicLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Генерация...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Магия
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              {!magicAllowed && (
+                <TooltipContent>
+                  <p>
+                    {magicNextAllowed
+                      ? `Уже запускали сегодня. Следующий запуск после ${new Date(magicNextAllowed).toLocaleString('ru-RU')}`
+                      : 'Магия уже использовалась сегодня'}
+                  </p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
 
@@ -126,6 +192,10 @@ function QuestionsPageContent() {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {magicResult && (
+        <FaqMagicDrafts clusters={magicResult.clusters} />
       )}
 
       <Card>
@@ -210,7 +280,7 @@ function QuestionsPageContent() {
         </Card>
       )}
 
-      {dashboard.length > 0 && notFound.length === 0 && (
+      {dashboard.length > 0 && notFound.length === 0 && !magicResult && (
         <Alert>
           <AlertDescription>
             ИИ всё нашёл — отлично

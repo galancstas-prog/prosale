@@ -72,7 +72,11 @@ export async function createEmbeddingsBatch(texts: string[]): Promise<number[][]
 }
 
 export async function createChatCompletion(
-  messages: Array<{ role: string; content: string }>
+  messages: Array<{ role: string; content: string }>,
+  options?: {
+    temperature?: number
+    max_tokens?: number
+  }
 ): Promise<string> {
   if (!OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not set')
@@ -87,8 +91,8 @@ export async function createChatCompletion(
     body: JSON.stringify({
       model: OPENAI_CHAT_MODEL,
       messages,
-      temperature: 0.3,
-      max_tokens: 800,
+      temperature: options?.temperature ?? 0.3,
+      max_tokens: options?.max_tokens ?? 800,
     }),
   })
 
