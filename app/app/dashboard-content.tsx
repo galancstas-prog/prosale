@@ -1,4 +1,3 @@
-// app/app/dashboard-content.tsx  (или где у тебя лежит DashboardContent)
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -23,13 +22,23 @@ interface DashboardContentProps {
 export function DashboardContent({ isAdmin }: DashboardContentProps) {
   const { t } = useLocale()
   const router = useRouter()
-  const supabase = getSupabaseClient()
+
   const [firstName, setFirstName] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
+
   const [aiStatus, setAiStatus] = useState<'ready' | 'indexing' | 'needs_reindex' | 'empty'>('empty')
+  const [aiStatusLoading, setAiStatusLoading] = useState(false)
+
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [reindexLoading, setReindexLoading] = useState(false)
+  const [reindexSuccess, setReindexSuccess] = useState(false)
+  const [reindexError, setReindexError] = useState('')
 
   useEffect(() => {
     async function loadUserName() {
+      const supabase = getSupabaseClient()
       const { data } = await supabase.auth.getUser()
       if (data?.user?.user_metadata?.first_name) {
         setFirstName(data.user.user_metadata.first_name)
@@ -41,27 +50,26 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     loadUserName()
   }, [])
 
-  useEffect(() => {
-    async function loadAiStatus() {
-      if (!isAdmin) return
-      try {
-        const { data, error } = await supabase.rpc('get_ai_status')
-        if (!error && data) {
-          setAiStatus((data.status || 'empty') as any)
-        }
-      } catch (e) {
-        console.error('[AI STATUS ERROR]', e)
+  const loadAiStatus = async () => {
+    if (!isAdmin) return
+    setAiStatusLoading(true)
+    try {
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase.rpc('get_ai_status')
+      if (!error && data) {
+        setAiStatus((data.status as any) || 'empty')
       }
+    } catch (e) {
+      console.error('[AI STATUS ERROR]', e)
+    } finally {
+      setAiStatusLoading(false)
     }
-    loadAiStatus()
-  }, [isAdmin])
+  }
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
-  const [reindexLoading, setReindexLoading] = useState(false)
-  const [reindexSuccess, setReindexSuccess] = useState(false)
-  const [reindexError, setReindexError] = useState('')
+  useEffect(() => {
+    loadAiStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
 
   const tiles = [
     { title: t('dashboard.scripts'), description: t('dashboard.scriptsDesc'), icon: MessageSquare, href: '/app/scripts', color: 'blue' },
@@ -102,6 +110,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     if (result.success) {
       setReindexSuccess(true)
       setTimeout(() => setReindexSuccess(false), 5000)
+      await loadAiStatus() // <<< важно: обновить статус после индексации
     } else {
       setReindexError(result.error || 'Ошибка переиндексации')
     }
@@ -125,7 +134,9 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
 
   return (
     <>
-      <WelcomePopup isAdmin={isAdmin} userId={userId} />
+      {/* Попап показываем только когда точно есть userId */}
+      {userId ? <WelcomePopup isAdmin={isAdmin} userId={userId} /> : null}
+
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div className="min-w-0 flex-1">
@@ -139,11 +150,17 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 text-sm">
                 <div className={cn('w-2 h-2 rounded-full', getAiStatusConfig().color)} />
-                <span className="text-muted-foreground whitespace-nowrap">{getAiStatusConfig().text}</span>
+                <span className="text-muted-foreground whitespace-nowrap">
+                  {aiStatusLoading ? 'Проверяю ИИ...' : getAiStatusConfig().text}
+                </span>
               </div>
 
               <Button onClick={handleReindex} disabled={reindexLoading || reindexSuccess}>
-                {reindexLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                {reindexLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
                 Переиндексировать AI
               </Button>
             </div>
@@ -195,6 +212,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
                     </CardTitle>
                     <CardDescription>{tile.description}</CardDescription>
                   </CardHeader>
+                  <CardContent />
                 </Card>
               </Link>
             )
