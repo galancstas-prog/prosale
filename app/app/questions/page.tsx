@@ -1,4 +1,3 @@
-// app/app/questions/page.tsx  (или твой client page компонент, который ты прислал)
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -14,12 +13,18 @@ import { Loader2, Sparkles } from 'lucide-react'
 import { FaqMagicDrafts } from '@/components/faq-magic-drafts'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
-interface QuestionEntry {
+type DashboardRow = {
   query: string
-  count: number
-  last_asked: string
-  found: boolean
-  source: string
+  total_count: number
+  last_seen: string
+  found_any: boolean
+  sources_used: string[] | null
+}
+
+type NotFoundRow = {
+  query: string
+  total_count: number
+  last_seen: string
 }
 
 interface MagicCluster {
@@ -41,15 +46,15 @@ function QuestionsPageContent() {
   const { membership } = useMembership()
   const { plan } = useTenantPlan()
   const [loading, setLoading] = useState(true)
-  const [dashboard, setDashboard] = useState<QuestionEntry[]>([])
-  const [notFound, setNotFound] = useState<QuestionEntry[]>([])
+  const [dashboard, setDashboard] = useState<DashboardRow[]>([])
+  const [notFound, setNotFound] = useState<NotFoundRow[]>([])
   const [error, setError] = useState('')
   const [magicLoading, setMagicLoading] = useState(false)
   const [magicAllowed, setMagicAllowed] = useState(true)
   const [magicNextAllowed, setMagicNextAllowed] = useState<string | null>(null)
   const [magicResult, setMagicResult] = useState<MagicResult | null>(null)
 
-  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
+  const isAdmin = membership?.role === 'ADMIN'
   const hasAccess = plan === 'PRO' || plan === 'TEAM'
 
   useEffect(() => {
@@ -67,13 +72,13 @@ function QuestionsPageContent() {
       ])
 
       if (dashboardResult.success) {
-        setDashboard(dashboardResult.data || [])
+        setDashboard((dashboardResult.data || []) as DashboardRow[])
       } else {
         setError(dashboardResult.error || 'Ошибка загрузки данных')
       }
 
       if (notFoundResult.success) {
-        setNotFound(notFoundResult.data || [])
+        setNotFound((notFoundResult.data || []) as NotFoundRow[])
       }
 
       if (magicCheck.success) {
@@ -142,7 +147,9 @@ function QuestionsPageContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Что у вас спрашивали сегодня</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">Анализ вопросов от клиентов и сотрудников</p>
+          <p className="text-slate-600 dark:text-slate-400 mt-2">
+            Анализ вопросов от клиентов и сотрудников
+          </p>
         </div>
 
         {canShowMagicButton && (
@@ -150,7 +157,11 @@ function QuestionsPageContent() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <Button onClick={handleMagic} disabled={magicLoading || !magicAllowed} className="gap-2">
+                  <Button
+                    onClick={handleMagic}
+                    disabled={magicLoading || !magicAllowed}
+                    className="gap-2"
+                  >
                     {magicLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -165,12 +176,13 @@ function QuestionsPageContent() {
                   </Button>
                 </div>
               </TooltipTrigger>
-
               {!magicAllowed && (
                 <TooltipContent>
                   <p>
                     {magicNextAllowed
-                      ? `Уже запускали сегодня. Следующий запуск после ${new Date(magicNextAllowed).toLocaleString('ru-RU')}`
+                      ? `Уже запускали сегодня. Следующий запуск после ${new Date(
+                          magicNextAllowed
+                        ).toLocaleString('ru-RU')}`
                       : 'Магия уже использовалась сегодня'}
                   </p>
                 </TooltipContent>
@@ -203,18 +215,23 @@ function QuestionsPageContent() {
                   className="flex items-start justify-between p-4 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
                 >
                   <div className="flex-1 min-w-0 mr-4">
-                    <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">{entry.query}</p>
+                    <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">
+                      {entry.query}
+                    </p>
                     <div className="flex items-center gap-3 text-sm text-slate-500">
-                      <span>Повторов: {entry.count}</span>
+                      <span>Повторов: {entry.total_count}</span>
                       <span>•</span>
                       <span>
-                        {new Date(entry.last_asked).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(entry.last_seen).toLocaleTimeString('ru-RU', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {entry.found ? (
+                    {entry.found_any ? (
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                         Найдено
                       </Badge>
@@ -225,7 +242,7 @@ function QuestionsPageContent() {
                     )}
 
                     <Badge variant="secondary" className="text-xs">
-                      {entry.source === 'ai_search' ? 'AI' : 'Ручной ввод'}
+                      {entry.sources_used?.includes('ai_search') ? 'AI' : 'Ручной ввод'}
                     </Badge>
                   </div>
                 </div>
@@ -240,20 +257,22 @@ function QuestionsPageContent() {
           <CardHeader>
             <CardTitle className="text-xl flex items-center gap-2">
               <span>ИИ не справился</span>
-              <Badge variant="outline" className="ml-2">
-                {notFound.length}
-              </Badge>
+              <Badge variant="outline" className="ml-2">{notFound.length}</Badge>
             </CardTitle>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Эти вопросы — кандидаты в FAQ</p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Эти вопросы — кандидаты в FAQ
+            </p>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {notFound.map((entry, idx) => (
                 <div key={idx} className="p-3 bg-white dark:bg-slate-950 border rounded-lg">
                   <div className="flex items-start justify-between">
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 flex-1">{entry.query}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100 flex-1">
+                      {entry.query}
+                    </p>
                     <Badge variant="secondary" className="ml-3 text-xs">
-                      {entry.count}x
+                      {entry.total_count}x
                     </Badge>
                   </div>
                 </div>
