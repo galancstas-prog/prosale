@@ -1,16 +1,13 @@
-// lib/auth/use-membership.tsx
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import type { User } from '@supabase/supabase-js'
-
-type Role = 'ADMIN' | 'OWNER' | 'MANAGER'
 
 interface Membership {
   user: User
   tenantId: string
-  role: Role
+  role: 'ADMIN' | 'MANAGER'
 }
 
 interface MembershipContextValue {
@@ -22,66 +19,82 @@ interface MembershipContextValue {
 
 const MembershipContext = createContext<MembershipContextValue | undefined>(undefined)
 
-function normalizeRole(input: unknown): Role {
-  const r = String(input ?? '').toUpperCase()
-  if (r === 'ADMIN' || r === 'OWNER' || r === 'MANAGER') return r as Role
-  // безопасный дефолт
-  return 'MANAGER'
-}
-
 export function MembershipProvider({ children }: { children: ReactNode }) {
   const [membership, setMembership] = useState<Membership | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // prevent duplicate parallel fetches (auth события могут стрелять пачкой)
+  const inFlightRef = useRef<Promise<void> | null>(null)
+
   const fetchMembership = async () => {
-    try {
-      setLoading(true)
-      setError(null)
+    if (inFlightRef.current) return inFlightRef.current
 
-      const supabase = getSupabaseClient()
+    const run = (async () => {
+      try {
+        setLoading(true)
+        setError(null)
 
-      const { data: userData, error: userError } = await supabase.auth.getUser()
+        const supabase = getSupabaseClient()
 
-      if (userError || !userData.user) {
-        throw new Error(userError?.message ?? 'No user found')
+        const { data: userData, error: userError } = await supabase.auth.getUser()
+
+        if (userError || !userData.user) {
+          // ВАЖНО: не считаем это “фатальной” ошибкой, просто ждём auth state change
+          setMembership(null)
+          return
+        }
+
+        const { data: memberData, error: memberError } = await supabase
+          .from('tenant_members')
+          .select('tenant_id, role')
+          .eq('user_id', userData.user.id)
+          .limit(1)
+          .maybeSingle()
+
+        if (memberError) {
+          throw new Error(memberError.message)
+        }
+
+        if (!memberData) {
+          throw new Error('User is not a member of any tenant')
+        }
+
+        setMembership({
+          user: userData.user,
+          tenantId: memberData.tenant_id,
+          role: memberData.role as 'ADMIN' | 'MANAGER',
+        })
+      } catch (e: any) {
+        console.error('[MEMBERSHIP ERROR]', e)
+        setError(e?.message ?? 'Failed to fetch membership')
+        setMembership(null)
+      } finally {
+        setLoading(false)
+        inFlightRef.current = null
       }
+    })()
 
-      console.log('[MEMBERSHIP] Fetching for user:', userData.user.id)
-
-      const { data: memberData, error: memberError } = await supabase
-        .from('tenant_members')
-        .select('tenant_id, role')
-        .eq('user_id', userData.user.id)
-        .limit(1)
-        .maybeSingle()
-
-      console.log('[MEMBERSHIP] Result:', { memberData, memberError })
-
-      if (memberError) {
-        throw new Error(memberError.message)
-      }
-
-      if (!memberData) {
-        throw new Error('User is not a member of any tenant')
-      }
-
-      setMembership({
-        user: userData.user,
-        tenantId: memberData.tenant_id,
-        role: normalizeRole(memberData.role),
-      })
-    } catch (e: any) {
-      console.error('[MEMBERSHIP ERROR]', e)
-      setError(e?.message ?? 'Failed to fetch membership')
-      setMembership(null)
-    } finally {
-      setLoading(false)
-    }
+    inFlightRef.current = run
+    return run
   }
 
   useEffect(() => {
+    const supabase = getSupabaseClient()
+
+    // 1) первый запрос
     fetchMembership()
+
+    // 2) КЛЮЧЕВОЕ: подписка на изменения auth
+    const { data: sub } = supabase.auth.onAuthStateChange((_event) => {
+      // при любом изменении сессии/юзера — обновляем membership
+      fetchMembership()
+    })
+
+    return () => {
+      sub?.subscription?.unsubscribe()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
