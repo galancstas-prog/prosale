@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Search, X, MessageSquare, BookOpen, FileText, Database, Copy, Sparkles, Lock, Check } from 'lucide-react'
+import { QuestionCaptureBar } from '@/components/question-capture-bar'
 import { globalSearch, GlobalSearchResult } from '@/lib/actions/global-search'
 import { aiSearch, AISource } from '@/lib/actions/ai-search'
 import { useLocale } from '@/lib/i18n/use-locale'
@@ -445,6 +446,13 @@ export function GlobalSearch() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {mode === 'ai' && (
+        <div className="mt-6 pt-6 border-t">
+          <h3 className="text-sm font-medium mb-3 text-slate-700 dark:text-slate-300">Не нашли ответ?</h3>
+          <QuestionCaptureBar />
         </div>
       )}
     </div>

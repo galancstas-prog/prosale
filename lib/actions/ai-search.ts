@@ -3,6 +3,7 @@
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { createEmbedding, createChatCompletion } from '@/lib/ai/openai'
 import { chunkText } from '@/lib/ai/chunking'
+import { logQuestion } from './question-logs'
 
 export interface AISource {
   module: 'scripts' | 'training' | 'faq' | 'kb'
@@ -204,6 +205,13 @@ export async function aiSearch(
     if (searchError) throw new Error(`Search error: ${searchError.message}`)
 
     if (!chunks || chunks.length === 0) {
+      logQuestion({
+        query,
+        source: 'ai_search',
+        found: false,
+        sources: []
+      }).catch(err => console.error('[LOG QUESTION ERROR]', err))
+
       return {
         answer:
           'Похоже, в базе знаний пока нет точной информации по этому вопросу. Уточните, пожалуйста, детали — и я помогу.',
@@ -254,6 +262,18 @@ const sources: AISource[] = finalChunks.map((c: any) => ({
   snippet: String(c.chunk_text).substring(0, 200) + '...',
   meta: c.metadata,
 }))
+
+    logQuestion({
+      query,
+      source: 'ai_search',
+      found: finalChunks.length > 0,
+      sources: finalChunks.slice(0, 5).map((c: any) => ({
+        module: c.module,
+        entity_id: c.entity_id,
+        title: c.title,
+        similarity: typeof c.similarity === 'number' ? c.similarity : undefined
+      }))
+    }).catch(err => console.error('[LOG QUESTION ERROR]', err))
 
     return { answer, sources }
   } catch (error: any) {
