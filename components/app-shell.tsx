@@ -1,4 +1,3 @@
-// components/app-shell.tsx  (или где у тебя лежит этот файл с AppShellContent)
 'use client'
 
 import { useState } from 'react'
@@ -40,11 +39,9 @@ function AppShellContent({ children, user }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useLocale()
-  const { membership } = useMembership()
+  const { membership, loading: membershipLoading } = useMembership()
   const { plan, isExpired, daysLeft } = useTenantPlan()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   const handleLogout = async () => {
     const supabase = getSupabaseClient()
@@ -52,19 +49,25 @@ function AppShellContent({ children, user }: AppShellProps) {
     router.replace('/login')
   }
 
+  const isAdmin = membership?.role === 'ADMIN'
+
   const navigation = [
     { name: t('nav.dashboard'), href: '/app', icon: LayoutDashboard },
     { name: t('nav.scripts'), href: '/app/scripts', icon: MessageSquare },
     { name: t('nav.training'), href: '/app/training', icon: BookOpen },
     { name: t('nav.faq'), href: '/app/faq', icon: FileText },
     { name: t('nav.knowledge'), href: '/app/knowledge', icon: Database },
-    ...(isAdmin
-      ? [
-          { name: 'Вопросы клиентов', href: '/app/questions', icon: HelpCircle },
-          { name: 'Team', href: '/app/team', icon: Users },
-          { name: 'Billing', href: '/app/billing', icon: CreditCard },
-        ]
-      : []),
+
+    // Админ-пункты показываем только когда мы УЖЕ точно знаем роль.
+    ...(membershipLoading
+      ? []
+      : isAdmin
+        ? [
+            { name: 'Вопросы клиентов', href: '/app/questions', icon: HelpCircle },
+            { name: 'Team', href: '/app/team', icon: Users },
+            { name: 'Billing', href: '/app/billing', icon: CreditCard },
+          ]
+        : []),
   ]
 
   return (
@@ -96,8 +99,15 @@ function AppShellContent({ children, user }: AppShellProps) {
                   const Icon = item.icon
                   const isActive = pathname === item.href
                   return (
-                    <Link key={item.href} href={item.href} onClick={() => setSidebarOpen(false)}>
-                      <Button variant={isActive ? 'secondary' : 'ghost'} className="w-full justify-start">
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                    >
+                      <Button
+                        variant={isActive ? 'secondary' : 'ghost'}
+                        className="w-full justify-start"
+                      >
                         <Icon className="mr-3 h-4 w-4" />
                         {item.name}
                       </Button>
@@ -111,6 +121,7 @@ function AppShellContent({ children, user }: AppShellProps) {
               <div className="px-3 py-2 text-sm min-w-0">
                 <div className="font-medium truncate">{user.email}</div>
               </div>
+
               <Button
                 variant="ghost"
                 className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -143,7 +154,9 @@ function AppShellContent({ children, user }: AppShellProps) {
 
             <div className="flex-1 lg:ml-0 ml-4 flex items-center gap-3">
               <div className="text-sm text-slate-500">{t('dashboard.workspace')}</div>
-              {plan && daysLeft !== null && <PlanBadge plan={plan} daysLeft={daysLeft} />}
+              {plan && daysLeft !== null && (
+                <PlanBadge plan={plan} daysLeft={daysLeft} />
+              )}
             </div>
 
             <LocaleSwitcher />
