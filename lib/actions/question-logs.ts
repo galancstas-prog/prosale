@@ -1,3 +1,4 @@
+// lib/actions/question-logs.ts
 'use server'
 
 import { getSupabaseServerClient } from '@/lib/supabase-server'
@@ -15,13 +16,7 @@ interface LogQuestionParams {
   meta?: any
 }
 
-export async function logQuestion({
-  query,
-  source,
-  found = false,
-  sources = [],
-  meta = {}
-}: LogQuestionParams) {
+export async function logQuestion({ query, source, found = false, sources = [], meta = {} }: LogQuestionParams) {
   try {
     const trimmedQuery = query.trim()
 
@@ -36,15 +31,13 @@ export async function logQuestion({
       return { success: false, error: 'Not authenticated' }
     }
 
-    const { error } = await supabase
-      .from('ai_search_logs')
-      .insert({
-        query: trimmedQuery,
-        source,
-        found,
-        sources: sources.length > 0 ? sources : null,
-        meta: Object.keys(meta).length > 0 ? meta : null
-      })
+    const { error } = await supabase.from('ai_search_logs').insert({
+      query: trimmedQuery,
+      source,
+      found,
+      sources: sources.length > 0 ? sources : null,
+      meta: Object.keys(meta).length > 0 ? meta : null,
+    })
 
     if (error) {
       console.error('[LOG QUESTION ERROR]', error)
@@ -64,11 +57,7 @@ interface GetDashboardParams {
   limit?: number
 }
 
-export async function getTodayDashboard({
-  sourceFilter = 'all',
-  onlyNotFound = false,
-  limit = 50
-}: GetDashboardParams = {}) {
+export async function getTodayDashboard({ sourceFilter = 'all', onlyNotFound = false, limit = 50 }: GetDashboardParams = {}) {
   try {
     const supabase = await getSupabaseServerClient()
 
@@ -85,7 +74,7 @@ export async function getTodayDashboard({
       to_ts: now.toISOString(),
       source_filter: sourceFilter,
       only_not_found: onlyNotFound,
-      limit_count: limit
+      limit_count: limit,
     })
 
     if (error) {
@@ -115,7 +104,7 @@ export async function getTopNotFound({ limit = 20 }: { limit?: number } = {}) {
     const { data, error } = await supabase.rpc('get_top_not_found_questions', {
       from_ts: startOfDay.toISOString(),
       to_ts: now.toISOString(),
-      limit_count: limit
+      limit_count: limit,
     })
 
     if (error) {
