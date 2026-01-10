@@ -54,7 +54,7 @@ function QuestionsPageContent() {
   const [magicNextAllowed, setMagicNextAllowed] = useState<string | null>(null)
   const [magicResult, setMagicResult] = useState<MagicResult | null>(null)
 
-  const isAdmin = membership?.role === 'ADMIN'
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
   const hasAccess = plan === 'PRO' || plan === 'TEAM'
 
   useEffect(() => {
