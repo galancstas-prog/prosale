@@ -19,7 +19,7 @@ export default function KnowledgePageView({ params }: { params: { pageId: string
   const [page, setPage] = useState<any>(null)
   const [error, setError] = useState(false)
 
-  const isAdmin = membership?.role === 'ADMIN'
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   useEffect(() => {
     async function loadData() {
