@@ -20,7 +20,7 @@ export default function ThreadPage({ params }: { params: { threadId: string } })
   const [thread, setThread] = useState<any>(null)
   const [turns, setTurns] = useState<any[]>([])
 
-  const isAdmin = membership?.role === 'ADMIN'
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   useEffect(() => {
     async function loadData() {
