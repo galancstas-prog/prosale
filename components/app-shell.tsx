@@ -49,7 +49,7 @@ function AppShellContent({ children, user }: AppShellProps) {
     router.replace('/login')
   }
 
-  const isAdmin = membership?.role === 'ADMIN'
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   const navigation = [
     { name: t('nav.dashboard'), href: '/app', icon: LayoutDashboard },
