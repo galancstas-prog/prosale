@@ -19,7 +19,8 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
-  const isAdmin = membership?.role === 'ADMIN'
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
+
 
   useEffect(() => {
     async function loadData() {
