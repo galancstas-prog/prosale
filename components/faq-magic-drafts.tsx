@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { publishFaqDraft } from '@/lib/actions/faq-magic'
-import { Check, Loader2 } from 'lucide-react'
+import { publishFaqDraft, deleteFaqDraft } from '@/lib/actions/faq-magic'
+import { Check, Loader2, Trash2 } from 'lucide-react'
 
 interface DraftItem {
   question: string
@@ -27,9 +28,10 @@ interface FaqMagicDraftsProps {
 }
 
 export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
+  const router = useRouter()
   const [editedItems, setEditedItems] = useState<Record<string, { question: string; answer: string }>>({})
-  const [publishedItems, setPublishedItems] = useState<Set<string>>(new Set())
-  const [publishingItems, setPublishingItems] = useState<Set<string>>(new Set())
+  const [removedItems, setRemovedItems] = useState<Set<string>>(new Set())
+  const [processingItems, setProcessingItems] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
 
   const getItemKey = (clusterIdx: number, itemIdx: number) => `${clusterIdx}-${itemIdx}`
@@ -57,21 +59,45 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
       return
     }
 
-    setPublishingItems(prev => new Set(prev).add(key))
+    setProcessingItems(prev => new Set(prev).add(key))
     setError('')
 
     const result = await publishFaqDraft({ question, answer })
 
-    setPublishingItems(prev => {
+    setProcessingItems(prev => {
       const next = new Set(prev)
       next.delete(key)
       return next
     })
 
     if (result.success) {
-      setPublishedItems(prev => new Set(prev).add(key))
+      setRemovedItems(prev => new Set(prev).add(key))
+      router.refresh()
     } else {
       setError(result.error || 'Ошибка публикации')
+      setTimeout(() => setError(''), 3000)
+    }
+  }
+
+  const handleDelete = async (clusterIdx: number, itemIdx: number, originalItem: DraftItem) => {
+    const key = getItemKey(clusterIdx, itemIdx)
+
+    setProcessingItems(prev => new Set(prev).add(key))
+    setError('')
+
+    const result = await deleteFaqDraft({ question: originalItem.question })
+
+    setProcessingItems(prev => {
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+
+    if (result.success) {
+      setRemovedItems(prev => new Set(prev).add(key))
+      router.refresh()
+    } else {
+      setError(result.error || 'Ошибка удаления')
       setTimeout(() => setError(''), 3000)
     }
   }
@@ -82,7 +108,7 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
     clusters.forEach((cluster, clusterIdx) => {
       cluster.items.forEach((item, itemIdx) => {
         const key = getItemKey(clusterIdx, itemIdx)
-        if (!publishedItems.has(key)) {
+        if (!removedItems.has(key)) {
           allItems.push({ clusterIdx, itemIdx, item })
         }
       })
@@ -93,8 +119,12 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
     }
   }
 
-  const totalItems = clusters.reduce((sum, c) => sum + c.items.length, 0)
-  const publishedCount = publishedItems.size
+  const visibleItems = clusters.flatMap((cluster, clusterIdx) =>
+    cluster.items.map((item, itemIdx) => ({ clusterIdx, itemIdx, item }))
+  ).filter(({ clusterIdx, itemIdx }) => !removedItems.has(getItemKey(clusterIdx, itemIdx)))
+
+  const totalItems = visibleItems.length
+  const hasItemsToPublish = totalItems > 0
 
   return (
     <div className="space-y-6">
@@ -102,11 +132,11 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
         <div>
           <h2 className="text-2xl font-bold">Черновики FAQ</h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Опубликовано: {publishedCount} из {totalItems}
+            Осталось: {totalItems} {totalItems === 1 ? 'черновик' : totalItems < 5 ? 'черновика' : 'черновиков'}
           </p>
         </div>
 
-        {publishedCount < totalItems && (
+        {hasItemsToPublish && (
           <Button onClick={handlePublishAll} variant="outline">
             Опубликовать все
           </Button>
@@ -135,9 +165,13 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
           <CardContent className="space-y-4">
             {cluster.items.map((item, itemIdx) => {
               const key = getItemKey(clusterIdx, itemIdx)
+
+              if (removedItems.has(key)) {
+                return null
+              }
+
               const edited = editedItems[key]
-              const isPublished = publishedItems.has(key)
-              const isPublishing = publishingItems.has(key)
+              const isProcessing = processingItems.has(key)
 
               const currentQuestion = edited?.question ?? item.question
               const currentAnswer = edited?.answer ?? item.answer_draft
@@ -145,7 +179,7 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
               return (
                 <div
                   key={itemIdx}
-                  className={`p-4 border rounded-lg space-y-3 ${isPublished ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900' : 'bg-slate-50 dark:bg-slate-900'}`}
+                  className="p-4 border rounded-lg space-y-3 bg-slate-50 dark:bg-slate-900"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 space-y-3">
@@ -156,7 +190,7 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
                         <Textarea
                           value={currentQuestion}
                           onChange={(e) => handleEdit(key, 'question', e.target.value)}
-                          disabled={isPublished}
+                          disabled={isProcessing}
                           className="min-h-[60px] text-sm"
                         />
                       </div>
@@ -168,7 +202,7 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
                         <Textarea
                           value={currentAnswer}
                           onChange={(e) => handleEdit(key, 'answer', e.target.value)}
-                          disabled={isPublished}
+                          disabled={isProcessing}
                           className="min-h-[100px] text-sm"
                         />
                       </div>
@@ -183,28 +217,31 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
                       </div>
                     </div>
 
-                    <div className="flex-shrink-0">
-                      {isPublished ? (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <Check className="h-4 w-4" />
-                          <span className="text-sm font-medium">Опубликовано</span>
-                        </div>
-                      ) : (
-                        <Button
-                          onClick={() => handlePublish(clusterIdx, itemIdx, item)}
-                          disabled={isPublishing}
-                          size="sm"
-                        >
-                          {isPublishing ? (
-                            <>
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                              Публикация...
-                            </>
-                          ) : (
-                            'Опубликовать'
-                          )}
-                        </Button>
-                      )}
+                    <div className="flex-shrink-0 flex flex-col gap-2">
+                      <Button
+                        onClick={() => handlePublish(clusterIdx, itemIdx, item)}
+                        disabled={isProcessing}
+                        size="sm"
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Обработка...
+                          </>
+                        ) : (
+                          'Опубликовать'
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => handleDelete(clusterIdx, itemIdx, item)}
+                        disabled={isProcessing}
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Удалить
+                      </Button>
                     </div>
                   </div>
                 </div>

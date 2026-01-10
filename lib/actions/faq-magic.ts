@@ -239,6 +239,62 @@ export async function getTodayMagicSuggestions() {
   }
 }
 
+async function removeItemFromPayload(question: string) {
+  const supabase = await getSupabaseServerClient()
+
+  const now = new Date()
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  const { data: suggestion, error: fetchError } = await supabase
+    .from('ai_faq_suggestions')
+    .select('*')
+    .gte('period_from', startOfDay.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (fetchError || !suggestion) {
+    throw new Error('Failed to fetch suggestion')
+  }
+
+  const payload = suggestion.payload as MagicResult
+
+  let found = false
+
+  for (let clusterIdx = payload.clusters.length - 1; clusterIdx >= 0; clusterIdx--) {
+    const cluster = payload.clusters[clusterIdx]
+
+    for (let itemIdx = cluster.items.length - 1; itemIdx >= 0; itemIdx--) {
+      if (cluster.items[itemIdx].question === question) {
+        cluster.items.splice(itemIdx, 1)
+        found = true
+        break
+      }
+    }
+
+    if (cluster.items.length === 0) {
+      payload.clusters.splice(clusterIdx, 1)
+    }
+
+    if (found) break
+  }
+
+  if (!found) {
+    throw new Error('Item not found in payload')
+  }
+
+  const { error: updateError } = await supabase
+    .from('ai_faq_suggestions')
+    .update({ payload })
+    .eq('id', suggestion.id)
+
+  if (updateError) {
+    throw new Error('Failed to update payload')
+  }
+
+  return payload
+}
+
 export async function publishFaqDraft({
   question,
   answer
@@ -254,10 +310,12 @@ export async function publishFaqDraft({
       return { success: false, error: 'Not authenticated' }
     }
 
+    const originalQuestion = question.trim()
+
     const { data: existing } = await supabase
       .from('faq_items')
       .select('id')
-      .eq('question', question.trim())
+      .eq('question', originalQuestion)
       .maybeSingle()
 
     if (existing) {
@@ -277,7 +335,7 @@ export async function publishFaqDraft({
       const { error: insertError } = await supabase
         .from('faq_items')
         .insert({
-          question: question.trim(),
+          question: originalQuestion,
           answer: answer.trim()
         })
 
@@ -286,6 +344,8 @@ export async function publishFaqDraft({
         return { success: false, error: 'Failed to create FAQ' }
       }
     }
+
+    await removeItemFromPayload(originalQuestion)
 
     const { error: reindexError } = await supabase.rpc('mark_tenant_ai_needs_reindex')
 
@@ -302,6 +362,33 @@ export async function publishFaqDraft({
     return {
       success: false,
       error: e.message || 'Failed to publish FAQ'
+    }
+  }
+}
+
+export async function deleteFaqDraft({
+  question
+}: {
+  question: string
+}) {
+  try {
+    const supabase = await getSupabaseServerClient()
+
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData.user) {
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    await removeItemFromPayload(question)
+
+    revalidatePath('/app/questions')
+
+    return { success: true }
+  } catch (e: any) {
+    console.error('[DELETE FAQ DRAFT EXCEPTION]', e)
+    return {
+      success: false,
+      error: e.message || 'Failed to delete draft'
     }
   }
 }
