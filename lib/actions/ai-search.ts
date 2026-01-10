@@ -1,3 +1,4 @@
+// lib/actions/ai-search.ts
 'use server'
 
 import { getSupabaseServerClient } from '@/lib/supabase-server'
@@ -56,8 +57,6 @@ function buildSystemPrompt(query: string): string {
   const answerLangInstruction = getAnswerLangInstruction(query)
   const listMode = isListIntent(query)
 
-  // Мягкий, “менеджерский” тон: дружелюбно, по делу, без канцелярита.
-  // Важно: запрещаем выдумывать.
   if (listMode) {
     return `Ты — помощник менеджера ProSale CRM.
 ${answerLangInstruction}
@@ -195,7 +194,6 @@ export async function aiSearch(
       return { answer: 'Включите хотя бы один модуль для поиска.', sources: [] }
     }
 
-    // ✅ ВАЖНО: match_threshold убран — функция match_ai_chunks теперь возвращает TOP-N без порога
     const { data: chunks, error: searchError } = await supabase.rpc('match_ai_chunks', {
       query_embedding: queryEmbedding,
       match_count: 20,
@@ -204,13 +202,15 @@ export async function aiSearch(
 
     if (searchError) throw new Error(`Search error: ${searchError.message}`)
 
+    // --- NOT FOUND ---
     if (!chunks || chunks.length === 0) {
-      logQuestion({
+      await logQuestion({
         query,
         source: 'ai_search',
         found: false,
-        sources: []
-      }).catch(err => console.error('[LOG QUESTION ERROR]', err))
+        sources: [],
+        meta: { filters, enabledModules },
+      })
 
       return {
         answer:
@@ -219,33 +219,33 @@ export async function aiSearch(
       }
     }
 
-// 1) чистим мусор (слишком короткие, слабая близость)
-const cleaned = (chunks || [])
-  .filter((c: any) => typeof c.chunk_text === 'string' && c.chunk_text.trim().length >= 120)
-  .filter((c: any) => (typeof c.similarity === 'number' ? c.similarity >= 0.45 : true))
+    // 1) чистим мусор (слишком короткие, слабая близость)
+    const cleaned = (chunks || [])
+      .filter((c: any) => typeof c.chunk_text === 'string' && c.chunk_text.trim().length >= 120)
+      .filter((c: any) => (typeof c.similarity === 'number' ? c.similarity >= 0.45 : true))
 
-// 2) дедуп: один лучший чанк на документ (entity_id + module)
-const bestByEntity = new Map<string, any>()
-for (const c of cleaned) {
-  const key = `${c.module}:${c.entity_id}`
-  const prev = bestByEntity.get(key)
-  if (!prev) {
-    bestByEntity.set(key, c)
-    continue
-  }
-  const prevSim = typeof prev.similarity === 'number' ? prev.similarity : 0
-  const curSim = typeof c.similarity === 'number' ? c.similarity : 0
-  if (curSim > prevSim) bestByEntity.set(key, c)
-}
+    // 2) дедуп: один лучший чанк на документ (entity_id + module)
+    const bestByEntity = new Map<string, any>()
+    for (const c of cleaned) {
+      const key = `${c.module}:${c.entity_id}`
+      const prev = bestByEntity.get(key)
+      if (!prev) {
+        bestByEntity.set(key, c)
+        continue
+      }
+      const prevSim = typeof prev.similarity === 'number' ? prev.similarity : 0
+      const curSim = typeof c.similarity === 'number' ? c.similarity : 0
+      if (curSim > prevSim) bestByEntity.set(key, c)
+    }
 
-// 3) итоговые чанки: если вдруг всё отфильтровали — fallback на оригинальные top N
-const topChunks = Array.from(bestByEntity.values())
-  .sort((a, b) => (Number(b.similarity) || 0) - (Number(a.similarity) || 0))
-  .slice(0, 10)
+    // 3) итоговые чанки: если вдруг всё отфильтровали — fallback на оригинальные top N
+    const topChunks = Array.from(bestByEntity.values())
+      .sort((a, b) => (Number(b.similarity) || 0) - (Number(a.similarity) || 0))
+      .slice(0, 10)
 
-const finalChunks = topChunks.length ? topChunks : (chunks || []).slice(0, 10)
+    const finalChunks = topChunks.length ? topChunks : (chunks || []).slice(0, 10)
 
-const context = finalChunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
+    const context = finalChunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_text}`).join('\n\n')
 
     const systemPrompt = buildSystemPrompt(query)
     const userPrompt = `Контекст из базы знаний:\n\n${context}\n\nВопрос пользователя: ${query}`
@@ -255,25 +255,34 @@ const context = finalChunks.map((c: any, i: number) => `[${i + 1}] ${c.chunk_tex
       { role: 'user', content: userPrompt },
     ])
 
-const sources: AISource[] = finalChunks.map((c: any) => ({
-  module: c.module,
-  id: c.entity_id,
-  title: c.title,
-  snippet: String(c.chunk_text).substring(0, 200) + '...',
-  meta: c.metadata,
-}))
+    const sources: AISource[] = finalChunks.map((c: any) => ({
+      module: c.module,
+      id: c.entity_id,
+      title: c.title,
+      snippet: String(c.chunk_text).substring(0, 200) + '...',
+      meta: c.metadata,
+    }))
 
-    logQuestion({
+    // ✅ ОДИН лог "найдено" (без дублей)
+    await logQuestion({
       query,
       source: 'ai_search',
       found: finalChunks.length > 0,
-      sources: finalChunks.slice(0, 5).map((c: any) => ({
-        module: c.module,
-        entity_id: c.entity_id,
-        title: c.title,
-        similarity: typeof c.similarity === 'number' ? c.similarity : undefined
-      }))
-    }).catch(err => console.error('[LOG QUESTION ERROR]', err))
+      sources: (finalChunks || []).slice(0, 10).map((c: any) => ({
+        module: String(c.module),
+        entity_id: String(c.entity_id),
+        title: String(c.title || ''),
+        similarity: typeof c.similarity === 'number' ? c.similarity : undefined,
+      })),
+      meta: {
+        filters,
+        enabledModules,
+        topSimilarity:
+          finalChunks && finalChunks[0] && typeof (finalChunks[0] as any).similarity === 'number'
+            ? (finalChunks[0] as any).similarity
+            : null,
+      },
+    })
 
     return { answer, sources }
   } catch (error: any) {
