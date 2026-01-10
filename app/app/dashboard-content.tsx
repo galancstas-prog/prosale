@@ -13,6 +13,7 @@ import { reindexAllContent } from '@/lib/actions/ai-search'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { GlobalSearch } from './global-search'
+import { QuestionCaptureBar } from '@/components/question-capture-bar'
 import { WelcomePopup } from '@/components/welcome-popup'
 
 interface DashboardContentProps {
