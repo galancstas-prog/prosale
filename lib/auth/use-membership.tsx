@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { getSupabaseClient } from '@/lib/supabase-client'
 import type { User } from '@supabase/supabase-js'
 
-type Role = 'ADMIN' | 'MANAGER'
+type Role = 'ADMIN' | 'OWNER' | 'MANAGER'
 
 interface Membership {
   user: User
