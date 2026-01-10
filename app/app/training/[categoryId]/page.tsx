@@ -17,7 +17,7 @@ export default function TrainingCategoryPage({ params }: { params: { categoryId:
   const [category, setCategory] = useState<any>(null)
   const [docs, setDocs] = useState<any[]>([])
 
-  const isAdmin = membership?.role === 'ADMIN'
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   useEffect(() => {
     async function loadData() {
