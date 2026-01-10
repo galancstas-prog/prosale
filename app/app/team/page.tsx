@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 interface TeamMember {
   user_id: string
   email: string
-  role: 'ADMIN' | 'MANAGER'
+  role: 'ADMIN' | 'OWNER' | 'MANAGER'
   created_at?: string
   first_name?: string
   last_name?: string
