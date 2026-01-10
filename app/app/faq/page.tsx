@@ -21,7 +21,7 @@ export default function FaqPage() {
   const [searchQuery, setSearchQuery] = useState(urlSearchQuery)
   const [openItemId, setOpenItemId] = useState<string | null>(urlHighlightId)
 
-  const isAdmin = membership?.role === 'ADMIN'
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   useEffect(() => {
     async function loadData() {
