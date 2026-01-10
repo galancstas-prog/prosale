@@ -4,10 +4,12 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { getSupabaseClient } from '@/lib/supabase-client'
 import type { User } from '@supabase/supabase-js'
 
+type Role = 'ADMIN' | 'MANAGER'
+
 interface Membership {
   user: User
   tenantId: string
-  role: 'ADMIN' | 'MANAGER'
+  role: Role
 }
 
 interface MembershipContextValue {
@@ -40,30 +42,33 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
         const { data: userData, error: userError } = await supabase.auth.getUser()
 
         if (userError || !userData.user) {
-          // ВАЖНО: не считаем это “фатальной” ошибкой, просто ждём auth state change
+          // не считаем это фатальной ошибкой
           setMembership(null)
           return
         }
 
-        const { data: memberData, error: memberError } = await supabase
+        // ✅ ВАЖНО: НЕ limit(1). Берём все членства и выбираем приоритетно ADMIN.
+        const { data: members, error: memberError } = await supabase
           .from('tenant_members')
           .select('tenant_id, role')
           .eq('user_id', userData.user.id)
-          .limit(1)
-          .maybeSingle()
 
         if (memberError) {
           throw new Error(memberError.message)
         }
 
-        if (!memberData) {
+        if (!members || members.length === 0) {
           throw new Error('User is not a member of any tenant')
         }
 
+        // ✅ если есть ADMIN — берём его, иначе первую запись
+        const preferred =
+          members.find((m) => m.role === 'ADMIN') ?? members[0]
+
         setMembership({
           user: userData.user,
-          tenantId: memberData.tenant_id,
-          role: memberData.role as 'ADMIN' | 'MANAGER',
+          tenantId: preferred.tenant_id,
+          role: preferred.role as Role,
         })
       } catch (e: any) {
         console.error('[MEMBERSHIP ERROR]', e)
@@ -85,9 +90,8 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
     // 1) первый запрос
     fetchMembership()
 
-    // 2) КЛЮЧЕВОЕ: подписка на изменения auth
-    const { data: sub } = supabase.auth.onAuthStateChange((_event) => {
-      // при любом изменении сессии/юзера — обновляем membership
+    // 2) подписка на изменения auth
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
       fetchMembership()
     })
 
