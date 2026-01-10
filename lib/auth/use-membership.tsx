@@ -65,6 +65,8 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
         const preferred =
           members.find((m) => m.role === 'ADMIN') ?? members[0]
 
+        console.log('[DEBUG MEMBERSHIP] user:', userData.user.id, 'tenantId:', preferred.tenant_id, 'role:', preferred.role, 'all members:', members)
+
         setMembership({
           user: userData.user,
           tenantId: preferred.tenant_id,

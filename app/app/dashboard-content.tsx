@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { GlobalSearch } from './global-search'
 import { QuestionCaptureBar } from '@/components/question-capture-bar'
 import { WelcomePopup } from '@/components/welcome-popup'
+import { useMembership } from '@/lib/auth/use-membership'
 
 interface DashboardContentProps {
   isAdmin: boolean
@@ -23,6 +24,7 @@ interface DashboardContentProps {
 export function DashboardContent({ isAdmin }: DashboardContentProps) {
   const { t } = useLocale()
   const router = useRouter()
+  const { membership } = useMembership()
 
   const [firstName, setFirstName] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
@@ -133,6 +135,10 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     }
   }
 
+  const hasQuestionCaptureAccess = membership?.role === 'ADMIN' || membership?.role === 'OWNER' || membership?.role === 'MANAGER'
+
+  console.log('[DEBUG DASHBOARD] membership:', membership?.role, 'hasQuestionCaptureAccess:', hasQuestionCaptureAccess)
+
   return (
     <>
       {/* Попап показываем только когда точно есть userId */}
@@ -219,18 +225,20 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
             )
           })}
         </div>
- {/* ✅ НОВЫЙ КОНТЕЙНЕР: ручной ввод вопросов */}
-        <Card className="p-6">
-          <div className="space-y-2 mb-4">
-            <h2 className="text-xl font-semibold">Что спрашивали сегодня</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Записывай вопросы клиентов вручную — админ увидит их в разделе “Вопросы клиентов”.
-            </p>
-          </div>
 
-          <QuestionCaptureBar />
-        </Card>
-        
+        {hasQuestionCaptureAccess && (
+          <Card className="p-6">
+            <div className="space-y-2 mb-4">
+              <h2 className="text-xl font-semibold">Что спрашивали сегодня</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Записывай вопросы клиентов вручную — админ увидит их в разделе "Вопросы клиентов".
+              </p>
+            </div>
+
+            <QuestionCaptureBar />
+          </Card>
+        )}
+
         <Card className="p-6">
           <div className="space-y-2 mb-4">
             <h2 className="text-xl font-semibold">Global Search</h2>

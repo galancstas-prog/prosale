@@ -55,10 +55,13 @@ function QuestionsPageContent() {
   const [magicResult, setMagicResult] = useState<MagicResult | null>(null)
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
+  const hasManagerAccess = membership?.role === 'MANAGER' || isAdmin
   const hasAccess = plan === 'PRO' || plan === 'TEAM'
 
+  console.log('[DEBUG QUESTIONS PAGE] membership:', membership?.role, 'hasManagerAccess:', hasManagerAccess, 'hasAccess:', hasAccess)
+
   useEffect(() => {
-    if (!isAdmin || !hasAccess) return
+    if (!hasManagerAccess || !hasAccess) return
 
     async function loadData() {
       setLoading(true)
@@ -94,9 +97,11 @@ function QuestionsPageContent() {
     }
 
     loadData()
-  }, [isAdmin, hasAccess])
+  }, [hasManagerAccess, hasAccess])
 
   const handleMagic = async () => {
+    if (!isAdmin) return
+
     setMagicLoading(true)
     setError('')
 
@@ -112,11 +117,11 @@ function QuestionsPageContent() {
     }
   }
 
-  if (!isAdmin) {
+  if (!hasManagerAccess) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Alert className="max-w-md">
-          <AlertDescription>Доступ к этому разделу есть только у администраторов</AlertDescription>
+          <AlertDescription>Доступ к этому разделу есть только у администраторов и менеджеров</AlertDescription>
         </Alert>
       </div>
     )
@@ -152,7 +157,7 @@ function QuestionsPageContent() {
           </p>
         </div>
 
-        {canShowMagicButton && (
+        {canShowMagicButton && isAdmin && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -198,7 +203,7 @@ function QuestionsPageContent() {
         </Alert>
       )}
 
-      {magicResult && <FaqMagicDrafts clusters={magicResult.clusters} />}
+      {magicResult && isAdmin && <FaqMagicDrafts clusters={magicResult.clusters} />}
 
       <Card>
         <CardHeader>

@@ -50,6 +50,10 @@ function AppShellContent({ children, user }: AppShellProps) {
   }
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
+  const isManager = membership?.role === 'MANAGER'
+  const hasQuestionsAccess = isAdmin || isManager
+
+  console.log('[DEBUG APP-SHELL] membership:', membership?.role, 'isAdmin:', isAdmin, 'isManager:', isManager, 'hasQuestionsAccess:', hasQuestionsAccess)
 
   const navigation = [
     { name: t('nav.dashboard'), href: '/app', icon: LayoutDashboard },
@@ -58,16 +62,16 @@ function AppShellContent({ children, user }: AppShellProps) {
     { name: t('nav.faq'), href: '/app/faq', icon: FileText },
     { name: t('nav.knowledge'), href: '/app/knowledge', icon: Database },
 
-    // Админ-пункты показываем только когда мы УЖЕ точно знаем роль.
+    // Показываем только когда мы УЖЕ точно знаем роль.
     ...(membershipLoading
       ? []
-      : isAdmin
-        ? [
-            { name: 'Вопросы клиентов', href: '/app/questions', icon: HelpCircle },
+      : [
+          ...(hasQuestionsAccess ? [{ name: 'Вопросы клиентов', href: '/app/questions', icon: HelpCircle }] : []),
+          ...(isAdmin ? [
             { name: 'Team', href: '/app/team', icon: Users },
             { name: 'Billing', href: '/app/billing', icon: CreditCard },
-          ]
-        : []),
+          ] : []),
+        ]),
   ]
 
   return (
