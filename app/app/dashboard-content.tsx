@@ -226,19 +226,6 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
           })}
         </div>
 
-        {hasQuestionCaptureAccess && (
-          <Card className="p-6">
-            <div className="space-y-2 mb-4">
-              <h2 className="text-xl font-semibold">Что спрашивали сегодня</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Записывай вопросы клиентов вручную — админ увидит их в разделе "Вопросы клиентов".
-              </p>
-            </div>
-
-            <QuestionCaptureBar />
-          </Card>
-        )}
-
         <Card className="p-6">
           <div className="space-y-2 mb-4">
             <h2 className="text-xl font-semibold">Global Search</h2>
@@ -248,6 +235,19 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
           </div>
           <GlobalSearch />
         </Card>
+
+        {hasQuestionCaptureAccess && (
+          <Card className="p-6">
+            <div className="space-y-2 mb-4">
+              <h2 className="text-xl font-semibold">Не нашли ответ?</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Симуляция вопроса клиента для аналитики и Auto-FAQ
+              </p>
+            </div>
+
+            <QuestionCaptureBar />
+          </Card>
+        )}
       </div>
     </>
   )
