@@ -85,14 +85,13 @@ export async function getTopClusters(
     }
 
     const clusters: TopCluster[] = (data || []).map((cluster: any) => ({
-      id: cluster.id,
-      // ВАЖНО: в БД нет question, берем centroid (или title как запасной)
-      question: cluster.centroid || cluster.title || '',
-      score: cluster.score,
-      total_asks: cluster.total_asks,
-      match_type: cluster.faq_matches?.[0]?.match_type || null,
-      created_at: cluster.created_at
-    }))
+  id: cluster.id,
+  question: cluster.question || cluster.title || '',
+  score: cluster.score,
+  total_asks: cluster.total_asks,
+  match_type: cluster.faq_matches?.[0]?.match_type || null,
+  created_at: cluster.created_at
+}))
 
     return { success: true, data: clusters }
   } catch (e: any) {
