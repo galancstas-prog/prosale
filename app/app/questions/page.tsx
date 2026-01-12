@@ -362,7 +362,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                                 <div className="flex items-center gap-2">
                                   <Button
                                     size="sm"
-                                    onClick={() => handlePublishDraft(draft.question, currentAnswer)}
+                                    onClick={() => handlePublishDraft(draft.id, draft.question, currentAnswer)}
                                     disabled={isPublishing}
                                     className="gap-2"
                                   >
