@@ -314,29 +314,30 @@ export async function publishFaqDraft({
   }
 }
 
-export async function deleteFaqDraft({
-  question
-}: {
-  question: string
-}) {
+export async function deleteFaqDraft({ question }: { question: string }) {
   try {
     const supabase = await getSupabaseServerClient()
 
     const { data: userData } = await supabase.auth.getUser()
-    if (!userData.user) {
-      return { success: false, error: 'Not authenticated' }
+    if (!userData.user) return { success: false, error: 'Not authenticated' }
+
+    const q = question.trim()
+
+    const { error } = await supabase
+      .from('faq_drafts')
+      .delete()
+      .eq('question', q)
+      .eq('status', 'draft')
+
+    if (error) {
+      console.error('[DELETE DRAFT ERROR]', error)
+      return { success: false, error: error.message }
     }
 
-    await removeItemFromPayload(question)
-
     revalidatePath('/app/questions')
-
     return { success: true }
   } catch (e: any) {
     console.error('[DELETE FAQ DRAFT EXCEPTION]', e)
-    return {
-      success: false,
-      error: e.message || 'Failed to delete draft'
-    }
+    return { success: false, error: e.message || 'Failed to delete draft' }
   }
 }
