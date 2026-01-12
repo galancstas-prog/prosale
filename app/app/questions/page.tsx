@@ -86,11 +86,14 @@ function QuestionsPageContent() {
       toast.success('Черновик опубликован в FAQ')
 
       setDraftsMap(prev => {
-        const next = { ...prev }
-        const key = question.toLowerCase().trim()
-        delete next[key]
-        return next
-      })
+  const next = { ...prev }
+  // удалить draft внутри всех ключей (без угадываний)
+  for (const k of Object.keys(next)) {
+    next[k] = (next[k] || []).filter(d => d.question !== question)
+    if (next[k].length === 0) delete next[k]
+  }
+  return next
+})
 
       setEditingDrafts(prev => {
         const next = { ...prev }
@@ -109,11 +112,14 @@ function QuestionsPageContent() {
       toast.success('Черновик удалён')
 
       setDraftsMap(prev => {
-        const next = { ...prev }
-        const key = question.toLowerCase().trim()
-        delete next[key]
-        return next
-      })
+  const next = { ...prev }
+  // удалить draft внутри всех ключей (без угадываний)
+  for (const k of Object.keys(next)) {
+    next[k] = (next[k] || []).filter(d => d.question !== question)
+    if (next[k].length === 0) delete next[k]
+  }
+  return next
+})
 
       setEditingDrafts(prev => {
         const next = { ...prev }
