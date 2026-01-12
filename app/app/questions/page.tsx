@@ -66,24 +66,24 @@ function QuestionsPageContent() {
     setLoadingRecent(false)
   }
 
-  async function loadClusters() {
-    setLoadingClusters(true)
-    setError('')
+  async function loadData() {
+  setLoading(true)
+  setError('')
 
-    const clustersResult = await getTopClusters(filter, 100)
-    if (clustersResult.success) {
-      setTopClusters(clustersResult.data)
+  const recentResult = await getRecentQuestions(20)
+  if (recentResult.success) setRecentQuestions(recentResult.data)
+  else setError(recentResult.error || 'Ошибка загрузки данных')
 
-      const draftsResult = await getDraftsForClusters(clustersResult.data)
-      if (draftsResult.success) {
-        setDraftsMap(draftsResult.data)
-      }
-    } else {
-      setError(clustersResult.error || 'Ошибка загрузки данных')
-    }
+  const clustersResult = await getTopClusters(filter, 50)
+  if (clustersResult.success) setTopClusters(clustersResult.data)
 
-    setLoadingClusters(false)
-  }
+  // ✅ ВОТ ЭТО КРИТИЧНО: передаём массив ID
+  const clusterIds = clustersResult.success ? clustersResult.data.map(c => c.id) : []
+  const draftsResult = await getDraftsForClusters(clusterIds)
+  if (draftsResult.success) setDraftsMap(draftsResult.data)
+
+  setLoading(false)
+}
 
   const handleRunMagic = async () => {
   try {
