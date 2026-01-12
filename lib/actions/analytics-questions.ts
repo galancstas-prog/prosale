@@ -58,40 +58,51 @@ export async function getTopClusters(
       return { success: false, error: 'Not authenticated', data: [] }
     }
 
-    let query = supabase
+    // 1) Берём кластеры (ВАЖНО: centroid вместо question)
+    const { data: clustersData, error: clustersError } = await supabase
       .from('faq_clusters')
-      .select(`
-  id,
-  question:centroid,
-  title,
-  score,
-  total_asks,
-  created_at,
-  faq_matches (
-    match_type
-  )
-      `)
+      .select('id, centroid, score, total_asks, created_at')
       .order('score', { ascending: false })
+      .limit(limit)
+
+    if (clustersError) {
+      console.error('[GET TOP CLUSTERS ERROR]', clustersError)
+      return { success: false, error: clustersError.message, data: [] }
+    }
+
+    const clusterIds = (clustersData || []).map((c: any) => c.id)
+
+    // 2) Берём match_type отдельно (без period_from/period_to — их в matches нет)
+    let matchesMap: Record<string, string> = {}
+    if (clusterIds.length > 0) {
+      const { data: matchesData, error: matchesError } = await supabase
+        .from('faq_matches')
+        .select('cluster_id, match_type')
+        .in('cluster_id', clusterIds)
+
+      if (matchesError) {
+        console.error('[GET MATCHES ERROR]', matchesError)
+      } else {
+        // если вдруг несколько строк на cluster_id — берём первую попавшуюся
+        for (const m of (matchesData || []) as any[]) {
+          if (!matchesMap[m.cluster_id]) matchesMap[m.cluster_id] = m.match_type
+        }
+      }
+    }
+
+    // 3) Маппим в формат UI + фильтр
+    let clusters: TopCluster[] = (clustersData || []).map((c: any) => ({
+      id: c.id,
+      question: c.centroid, // <-- вот тут UI продолжает ждать "question"
+      score: c.score,
+      total_asks: c.total_asks,
+      match_type: (matchesMap[c.id] as any) || null,
+      created_at: c.created_at
+    }))
 
     if (matchTypeFilter && matchTypeFilter !== 'all') {
-      query = query.eq('faq_matches.match_type', matchTypeFilter)
+      clusters = clusters.filter(c => c.match_type === matchTypeFilter)
     }
-
-    const { data, error } = await query.limit(limit)
-
-    if (error) {
-      console.error('[GET TOP CLUSTERS ERROR]', error)
-      return { success: false, error: error.message, data: [] }
-    }
-
-    const clusters: TopCluster[] = (data || []).map((cluster: any) => ({
-  id: cluster.id,
-  question: cluster.question || cluster.title || '',
-  score: cluster.score,
-  total_asks: cluster.total_asks,
-  match_type: cluster.faq_matches?.[0]?.match_type || null,
-  created_at: cluster.created_at
-}))
 
     return { success: true, data: clusters }
   } catch (e: any) {
