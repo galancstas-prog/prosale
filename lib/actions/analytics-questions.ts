@@ -61,15 +61,15 @@ export async function getTopClusters(
     let query = supabase
       .from('faq_clusters')
       .select(`
-        id,
-        centroid,
-        title,
-        score,
-        total_asks,
-        created_at,
-        faq_matches (
-          match_type
-        )
+  id,
+  question:centroid,
+  title,
+  score,
+  total_asks,
+  created_at,
+  faq_matches (
+    match_type
+  )
       `)
       .order('score', { ascending: false })
 
