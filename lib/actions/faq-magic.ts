@@ -239,62 +239,6 @@ export async function getTodayMagicSuggestions() {
   }
 }
 
-async function removeItemFromPayload(question: string) {
-  const supabase = await getSupabaseServerClient()
-
-  const now = new Date()
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
-  const { data: suggestion, error: fetchError } = await supabase
-    .from('ai_faq_suggestions')
-    .select('*')
-    .gte('period_from', startOfDay.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (fetchError || !suggestion) {
-    throw new Error('Failed to fetch suggestion')
-  }
-
-  const payload = suggestion.payload as MagicResult
-
-  let found = false
-
-  for (let clusterIdx = payload.clusters.length - 1; clusterIdx >= 0; clusterIdx--) {
-    const cluster = payload.clusters[clusterIdx]
-
-    for (let itemIdx = cluster.items.length - 1; itemIdx >= 0; itemIdx--) {
-      if (cluster.items[itemIdx].question === question) {
-        cluster.items.splice(itemIdx, 1)
-        found = true
-        break
-      }
-    }
-
-    if (cluster.items.length === 0) {
-      payload.clusters.splice(clusterIdx, 1)
-    }
-
-    if (found) break
-  }
-
-  if (!found) {
-    throw new Error('Item not found in payload')
-  }
-
-  const { error: updateError } = await supabase
-    .from('ai_faq_suggestions')
-    .update({ payload })
-    .eq('id', suggestion.id)
-
-  if (updateError) {
-    throw new Error('Failed to update payload')
-  }
-
-  return payload
-}
-
 export async function publishFaqDraft({
   question,
   answer
@@ -306,52 +250,59 @@ export async function publishFaqDraft({
     const supabase = await getSupabaseServerClient()
 
     const { data: userData } = await supabase.auth.getUser()
-    if (!userData.user) {
-      return { success: false, error: 'Not authenticated' }
-    }
+    if (!userData.user) return { success: false, error: 'Not authenticated' }
 
-    const originalQuestion = question.trim()
+    const q = question.trim()
+    const a = answer.trim()
 
-    const { data: existing } = await supabase
+    // 1) upsert в faq_items
+    const { data: existing, error: existErr } = await supabase
       .from('faq_items')
       .select('id')
-      .eq('question', originalQuestion)
+      .eq('question', q)
       .maybeSingle()
 
-    if (existing) {
-      const { error: updateError } = await supabase
+    if (existErr) {
+      console.error('[FAQ EXIST ERROR]', existErr)
+      return { success: false, error: existErr.message }
+    }
+
+    if (existing?.id) {
+      const { error } = await supabase
         .from('faq_items')
-        .update({
-          answer: answer.trim(),
-          updated_at: new Date().toISOString()
-        })
+        .update({ answer: a, updated_at: new Date().toISOString() })
         .eq('id', existing.id)
 
-      if (updateError) {
-        console.error('[UPDATE FAQ ERROR]', updateError)
-        return { success: false, error: 'Failed to update FAQ' }
+      if (error) {
+        console.error('[FAQ UPDATE ERROR]', error)
+        return { success: false, error: error.message }
       }
     } else {
-      const { error: insertError } = await supabase
+      const { error } = await supabase
         .from('faq_items')
-        .insert({
-          question: originalQuestion,
-          answer: answer.trim()
-        })
+        .insert({ question: q, answer: a })
 
-      if (insertError) {
-        console.error('[INSERT FAQ ERROR]', insertError)
-        return { success: false, error: 'Failed to create FAQ' }
+      if (error) {
+        console.error('[FAQ INSERT ERROR]', error)
+        return { success: false, error: error.message }
       }
     }
 
-    await removeItemFromPayload(originalQuestion)
+    // 2) удалить черновик из faq_drafts (чтобы "исчез")
+    const { error: delErr } = await supabase
+      .from('faq_drafts')
+      .delete()
+      .eq('question', q)
+      .eq('status', 'draft')
 
-    const { error: reindexError } = await supabase.rpc('mark_tenant_ai_needs_reindex')
-
-    if (reindexError) {
-      console.error('[MARK REINDEX ERROR]', reindexError)
+    if (delErr) {
+      console.error('[DRAFT DELETE ERROR]', delErr)
+      // не фейлим publish — FAQ уже создан, но логируем
     }
+
+    // 3) опционально — флажок на реиндекс
+    const { error: reindexError } = await supabase.rpc('mark_tenant_ai_needs_reindex')
+    if (reindexError) console.error('[MARK REINDEX ERROR]', reindexError)
 
     revalidatePath('/app/faq')
     revalidatePath('/app/questions')
@@ -359,10 +310,7 @@ export async function publishFaqDraft({
     return { success: true }
   } catch (e: any) {
     console.error('[PUBLISH FAQ EXCEPTION]', e)
-    return {
-      success: false,
-      error: e.message || 'Failed to publish FAQ'
-    }
+    return { success: false, error: e.message || 'Failed to publish FAQ' }
   }
 }
 
