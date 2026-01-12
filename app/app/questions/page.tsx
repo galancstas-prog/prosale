@@ -97,7 +97,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
   }
 
   const handleDeleteDraft = async (draftId: string, question: string) => {
-    const result = await deleteFaqDraft({ question })
+    const result = await deleteFaqDraft({ draftId })
 
     if (result.success) {
       toast.success('Черновик удалён')
