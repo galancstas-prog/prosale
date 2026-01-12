@@ -189,6 +189,54 @@ JSON SCHEMA:
       return { success: false, error: 'Failed to save magic results' }
     }
 
+
+
+    // ===============================
+// SYNC MAGIC RESULT -> faq_drafts
+// ===============================
+const flatDrafts = (magicResult?.clusters || [])
+  .flatMap(c =>
+    (c.items || []).map(it => ({
+      question: (it.question || '').trim(),
+      answer_draft: (it.answer_draft || '').trim(),
+      source_hint: it.source_hint ?? null,
+      confidence: typeof it.confidence === 'number' ? it.confidence : 0,
+    }))
+  )
+  .filter(d => d.question.length > 0)
+
+if (flatDrafts.length > 0) {
+  // 1) пробуем upsert по question
+  const { error: upsertErr } = await supabase
+    .from('faq_drafts')
+    .upsert(flatDrafts, { onConflict: 'question' })
+
+  if (upsertErr) {
+    console.error('[FAQ_DRAFTS UPSERT ERROR]', upsertErr)
+
+    // 2) fallback: delete+insert (работает даже без unique на question)
+    const questionsToReplace = flatDrafts.map(d => d.question)
+
+    const { error: delErr } = await supabase
+      .from('faq_drafts')
+      .delete()
+      .in('question', questionsToReplace)
+
+    if (delErr) console.error('[FAQ_DRAFTS DELETE FALLBACK ERROR]', delErr)
+
+    const { error: insErr } = await supabase
+      .from('faq_drafts')
+      .insert(flatDrafts)
+
+    if (insErr) {
+      console.error('[FAQ_DRAFTS INSERT FALLBACK ERROR]', insErr)
+      return { success: false, error: 'Failed to sync drafts for UI' }
+    }
+  }
+}
+    
+
+    
     revalidatePath('/app/questions')
 
     const drafts_created =
