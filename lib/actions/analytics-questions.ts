@@ -62,7 +62,8 @@ export async function getTopClusters(
       .from('faq_clusters')
       .select(`
         id,
-        question,
+        centroid,
+        title,
         score,
         total_asks,
         created_at,
@@ -72,7 +73,9 @@ export async function getTopClusters(
       `)
       .order('score', { ascending: false })
 
-    
+    if (matchTypeFilter && matchTypeFilter !== 'all') {
+      query = query.eq('faq_matches.match_type', matchTypeFilter)
+    }
 
     const { data, error } = await query.limit(limit)
 
@@ -81,20 +84,17 @@ export async function getTopClusters(
       return { success: false, error: error.message, data: [] }
     }
 
-   let clusters: TopCluster[] = (data || []).map((cluster: any) => ({
-  id: cluster.id,
-  question: cluster.question,
-  score: cluster.score,
-  total_asks: cluster.total_asks,
-  match_type: cluster.faq_matches?.[0]?.match_type || null,
-  created_at: cluster.created_at
-}))
+    const clusters: TopCluster[] = (data || []).map((cluster: any) => ({
+      id: cluster.id,
+      // ВАЖНО: в БД нет question, берем centroid (или title как запасной)
+      question: cluster.centroid || cluster.title || '',
+      score: cluster.score,
+      total_asks: cluster.total_asks,
+      match_type: cluster.faq_matches?.[0]?.match_type || null,
+      created_at: cluster.created_at
+    }))
 
-if (matchTypeFilter && matchTypeFilter !== 'all') {
-  clusters = clusters.filter(c => c.match_type === matchTypeFilter)
-}
-
-return { success: true, data: clusters.slice(0, limit) }
+    return { success: true, data: clusters }
   } catch (e: any) {
     console.error('[GET TOP CLUSTERS EXCEPTION]', e)
     return { success: false, error: 'Failed to get top clusters', data: [] }
