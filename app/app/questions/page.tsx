@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react'
 import { useMembership } from '@/lib/auth/use-membership'
 import { useTenantPlan } from '@/lib/hooks/use-tenant-plan'
 import { getRecentQuestions, getTopClusters, getDraftsForClusters, RecentQuestion, TopCluster } from '@/lib/actions/analytics-questions'
-import { publishFaqDraft, deleteFaqDraft } from '@/lib/actions/faq-magic'
+import { publishFaqDraft, deleteFaqDraft, runFaqMagicForToday } from '@/lib/actions/faq-magic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, CheckCircle2, AlertCircle, Clock, Sparkles, X, Check } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle, Clock, Sparkles, X, Check, Wand2 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
@@ -27,7 +27,8 @@ interface DraftItem {
 function QuestionsPageContent() {
   const { membership } = useMembership()
   const { plan } = useTenantPlan()
-  const [loading, setLoading] = useState(true)
+  const [loadingRecent, setLoadingRecent] = useState(true)
+  const [loadingClusters, setLoadingClusters] = useState(true)
   const [recentQuestions, setRecentQuestions] = useState<RecentQuestion[]>([])
   const [topClusters, setTopClusters] = useState<TopCluster[]>([])
   const [draftsMap, setDraftsMap] = useState<Record<string, DraftItem[]>>({})
@@ -35,32 +36,66 @@ function QuestionsPageContent() {
   const [error, setError] = useState('')
   const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({})
   const [publishingDrafts, setPublishingDrafts] = useState<Set<string>>(new Set())
+  const [magicLoading, setMagicLoading] = useState(false)
+  const [recentDisplayLimit, setRecentDisplayLimit] = useState(15)
+  const [clustersDisplayLimit, setClustersDisplayLimit] = useState(15)
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
   const hasManagerAccess = membership?.role === 'MANAGER' || isAdmin
   const hasAccess = plan === 'PRO' || plan === 'TEAM'
 
+  const isLoading = loadingRecent || loadingClusters || !membership || !plan
+
   useEffect(() => {
     if (!hasManagerAccess || !hasAccess) return
-    loadData()
+    loadRecentQuestions()
+  }, [hasManagerAccess, hasAccess])
+
+  useEffect(() => {
+    if (!hasManagerAccess || !hasAccess) return
+    loadClusters()
   }, [hasManagerAccess, hasAccess, filter])
 
-  async function loadData() {
-  setLoading(true)
-  setError('')
+  async function loadRecentQuestions() {
+    setLoadingRecent(true)
+    const recentResult = await getRecentQuestions(50)
+    if (recentResult.success) {
+      setRecentQuestions(recentResult.data)
+    }
+    setLoadingRecent(false)
+  }
 
-  const recentResult = await getRecentQuestions(20)
-  if (recentResult.success) setRecentQuestions(recentResult.data)
-  else setError(recentResult.error || 'Ошибка загрузки данных')
+  async function loadClusters() {
+    setLoadingClusters(true)
+    setError('')
 
-  const clustersResult = await getTopClusters(filter, 50)
-  if (clustersResult.success) setTopClusters(clustersResult.data)
+    const clustersResult = await getTopClusters(filter, 100)
+    if (clustersResult.success) {
+      setTopClusters(clustersResult.data)
 
-  const draftsResult = await getDraftsForClusters(clustersResult.success ? clustersResult.data : [])
-  if (draftsResult.success) setDraftsMap(draftsResult.data)
+      const draftsResult = await getDraftsForClusters(clustersResult.data)
+      if (draftsResult.success) {
+        setDraftsMap(draftsResult.data)
+      }
+    } else {
+      setError(clustersResult.error || 'Ошибка загрузки данных')
+    }
 
-  setLoading(false)
-}
+    setLoadingClusters(false)
+  }
+
+  const handleRunMagic = async () => {
+    setMagicLoading(true)
+    const result = await runFaqMagicForToday()
+    setMagicLoading(false)
+
+    if (result.success) {
+      toast.success('Магия завершена! Черновики готовы')
+      loadClusters()
+    } else {
+      toast.error(result.error || 'Ошибка выполнения магии')
+    }
+  }
 
 const handlePublishDraft = async (draftId: string, question: string, answer: string) => {
     setPublishingDrafts(prev => new Set(prev).add(question))
@@ -138,6 +173,14 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    )
+  }
+
   if (!hasManagerAccess) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -158,16 +201,8 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
     )
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
-    )
-  }
-
-  const filteredClusters = topClusters
-
+  const displayedRecent = recentQuestions.slice(0, recentDisplayLimit)
+  const displayedClusters = topClusters.slice(0, clustersDisplayLimit)
   const hasDrafts = Object.keys(draftsMap).length > 0
 
   return (
@@ -180,12 +215,30 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
           </p>
         </div>
 
-        {hasDrafts && isAdmin && (
-          <Button onClick={handlePublishAll} className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Опубликовать все черновики
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button onClick={handleRunMagic} disabled={magicLoading} variant="outline" className="gap-2">
+              {magicLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Магия...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4" />
+                  Магия
+                </>
+              )}
+            </Button>
+          )}
+
+          {hasDrafts && isAdmin && (
+            <Button onClick={handlePublishAll} className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Опубликовать все
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -204,13 +257,17 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
               </p>
             </CardHeader>
             <CardContent>
-              {recentQuestions.length === 0 ? (
+              {loadingRecent ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                </div>
+              ) : recentQuestions.length === 0 ? (
                 <div className="text-center py-8 text-slate-500">
                   Нет вопросов
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {recentQuestions.map((q) => (
+                  {displayedRecent.map((q) => (
                     <div
                       key={q.id}
                       className="p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
@@ -238,6 +295,18 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                       </div>
                     </div>
                   ))}
+
+                  {recentQuestions.length > recentDisplayLimit && (
+                    <div className="flex justify-center pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRecentDisplayLimit(prev => prev + 15)}
+                      >
+                        Показать ещё
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -265,13 +334,17 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
               </div>
             </CardHeader>
             <CardContent>
-              {filteredClusters.length === 0 ? (
+              {loadingClusters ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                </div>
+              ) : topClusters.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                   Нет данных для выбранного фильтра
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredClusters.map((cluster) => {
+                  {displayedClusters.map((cluster) => {
                     const drafts = draftsMap[cluster.id] || []
                     const showDrafts = isAdmin && drafts.length > 0 && (cluster.match_type === 'missing' || cluster.match_type === 'partial')
                     const isCovered = cluster.match_type === 'covered'
@@ -396,6 +469,18 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                       </div>
                     )
                   })}
+
+                  {topClusters.length > clustersDisplayLimit && (
+                    <div className="flex justify-center pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setClustersDisplayLimit(prev => prev + 15)}
+                      >
+                        Показать ещё
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

@@ -322,12 +322,10 @@ export async function deleteFaqDraft({ draftId }: { draftId: string }) {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) return { success: false, error: 'Not authenticated' }
 
-    const q = question.trim()
-
-   const { error } = await supabase
-  .from('faq_drafts')
-  .delete()
-  .eq('id', draftId)
+    const { error } = await supabase
+      .from('faq_drafts')
+      .delete()
+      .eq('id', draftId)
 
     if (error) {
       console.error('[DELETE DRAFT ERROR]', error)

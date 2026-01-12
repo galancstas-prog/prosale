@@ -16,7 +16,6 @@ interface DraftItem {
   answer_draft: string
   source_hint: string | null
   confidence: number
-}ence: number
 }
 
 interface Cluster {

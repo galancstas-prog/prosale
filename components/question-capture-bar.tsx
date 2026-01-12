@@ -46,11 +46,6 @@ export function QuestionCaptureBar() {
 
   return (
     <div className="w-full max-w-2xl">
-      <div className="mb-2">
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          Симуляция вопроса клиента для аналитики и Auto-FAQ
-        </p>
-      </div>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <Input
           value={query}
