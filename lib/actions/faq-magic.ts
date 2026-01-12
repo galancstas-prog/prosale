@@ -316,7 +316,7 @@ export async function publishFaqDraft({
   }
 }
 
-export async function deleteFaqDraft({ question }: { question: string }) {
+export async function deleteFaqDraft({ draftId }: { draftId: string }) {
   try {
     const supabase = await getSupabaseServerClient()
 
