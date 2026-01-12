@@ -81,16 +81,20 @@ export async function getTopClusters(
       return { success: false, error: error.message, data: [] }
     }
 
-    const clusters: TopCluster[] = (data || []).map((cluster: any) => ({
-      id: cluster.id,
-      question: cluster.question,
-      score: cluster.score,
-      total_asks: cluster.total_asks,
-      match_type: cluster.faq_matches?.[0]?.match_type || null,
-      created_at: cluster.created_at
-    }))
+   let clusters: TopCluster[] = (data || []).map((cluster: any) => ({
+  id: cluster.id,
+  question: cluster.question,
+  score: cluster.score,
+  total_asks: cluster.total_asks,
+  match_type: cluster.faq_matches?.[0]?.match_type || null,
+  created_at: cluster.created_at
+}))
 
-    return { success: true, data: clusters }
+if (matchTypeFilter && matchTypeFilter !== 'all') {
+  clusters = clusters.filter(c => c.match_type === matchTypeFilter)
+}
+
+return { success: true, data: clusters.slice(0, limit) }
   } catch (e: any) {
     console.error('[GET TOP CLUSTERS EXCEPTION]', e)
     return { success: false, error: 'Failed to get top clusters', data: [] }
