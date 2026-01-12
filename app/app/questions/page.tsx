@@ -86,17 +86,26 @@ function QuestionsPageContent() {
   }
 
   const handleRunMagic = async () => {
+  try {
     setMagicLoading(true)
-    const result = await runFaqMagicForToday()
-    setMagicLoading(false)
 
-    if (result.success) {
-      toast.success('Магия завершена! Черновики готовы')
-      await Promise.all([loadRecentQuestions(), loadClusters()])
+    const result = await runFaqMagicForToday()
+
+    if (result?.success) {
+      toast.success(`Магия выполнена — создано черновиков: ${result.drafts_created ?? 0}`)
+
+      // ВАЖНО: не надеемся на router.refresh(), а реально перечитываем данные
+      await loadData()
     } else {
-      toast.error(result.error || 'Ошибка выполнения магии')
+      toast.error(result?.error || 'Не удалось запустить магию')
     }
+  } catch (e) {
+    console.error(e)
+    toast.error('Не удалось запустить магию')
+  } finally {
+    setMagicLoading(false)
   }
+}
 
 const handlePublishDraft = async (draftId: string, question: string, answer: string) => {
     setPublishingDrafts(prev => new Set(prev).add(question))
