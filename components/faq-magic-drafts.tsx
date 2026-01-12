@@ -11,10 +11,12 @@ import { publishFaqDraft, deleteFaqDraft } from '@/lib/actions/faq-magic'
 import { Check, Loader2, Trash2 } from 'lucide-react'
 
 interface DraftItem {
+  id: string
   question: string
   answer_draft: string
   source_hint: string | null
   confidence: number
+}ence: number
 }
 
 interface Cluster {
