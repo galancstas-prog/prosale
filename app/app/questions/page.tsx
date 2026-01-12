@@ -51,11 +51,10 @@ function QuestionsPageContent() {
     loadRecentQuestions()
   }, [hasManagerAccess, hasAccess])
 
-  useEffect(() => {
+useEffect(() => {
   if (!hasManagerAccess || !hasAccess) return
   setClustersDisplayLimit(5)
   loadData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [hasManagerAccess, hasAccess, filter])
 
   async function loadRecentQuestions() {
