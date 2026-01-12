@@ -137,13 +137,15 @@ export async function getDraftsForClusters(clusterIds: string[]) {
       return { success: false, error: error.message, data: {} }
     }
 
-    // Ключуем по cluster_id, чтобы в UI было draftsMap[cluster.id]
-    const draftsMap: Record<string, any[]> = {}
-    for (const row of data || []) {
-      const k = row.cluster_id
-      if (!draftsMap[k]) draftsMap[k] = []
-      draftsMap[k].push(row)
-    }
+   const normalize = (s: string) => (s || '').toLowerCase().trim()
+
+const draftsMap: Record<string, any[]> = {}
+for (const row of data || []) {
+  const k = normalize(row.question)
+  if (!k) continue
+  if (!draftsMap[k]) draftsMap[k] = []
+  draftsMap[k].push(row)
+}
 
     return { success: true, data: draftsMap }
   } catch (e: any) {
