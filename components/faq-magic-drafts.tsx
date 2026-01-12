@@ -64,7 +64,7 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
     setProcessingItems(prev => new Set(prev).add(key))
     setError('')
 
-    const result = await publishFaqDraft({ question, answer })
+ const result = await publishFaqDraft({ draftId: originalItem.id, question, answer })
 
     setProcessingItems(prev => {
       const next = new Set(prev)
