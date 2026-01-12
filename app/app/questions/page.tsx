@@ -62,10 +62,10 @@ function QuestionsPageContent() {
   setLoading(false)
 }
 
-  const handlePublishDraft = async (question: string, answer: string) => {
+const handlePublishDraft = async (draftId: string, question: string, answer: string) => {
     setPublishingDrafts(prev => new Set(prev).add(question))
 
-    const result = await publishFaqDraft({ question, answer })
+    const result = await publishFaqDraft({ draftId, question, answer })
 
     setPublishingDrafts(prev => {
       const next = new Set(prev)
