@@ -37,8 +37,8 @@ function QuestionsPageContent() {
   const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({})
   const [publishingDrafts, setPublishingDrafts] = useState<Set<string>>(new Set())
   const [magicLoading, setMagicLoading] = useState(false)
-  const [recentDisplayLimit, setRecentDisplayLimit] = useState(15)
-  const [clustersDisplayLimit, setClustersDisplayLimit] = useState(15)
+  const [recentDisplayLimit, setRecentDisplayLimit] = useState(5)
+  const [clustersDisplayLimit, setClustersDisplayLimit] = useState(5)
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
   const hasManagerAccess = membership?.role === 'MANAGER' || isAdmin
@@ -53,6 +53,7 @@ function QuestionsPageContent() {
 
   useEffect(() => {
     if (!hasManagerAccess || !hasAccess) return
+    setClustersDisplayLimit(5)
     loadClusters()
   }, [hasManagerAccess, hasAccess, filter])
 
@@ -91,7 +92,7 @@ function QuestionsPageContent() {
 
     if (result.success) {
       toast.success('Магия завершена! Черновики готовы')
-      loadClusters()
+      await Promise.all([loadRecentQuestions(), loadClusters()])
     } else {
       toast.error(result.error || 'Ошибка выполнения магии')
     }
@@ -301,7 +302,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setRecentDisplayLimit(prev => prev + 15)}
+                        onClick={() => setRecentDisplayLimit(prev => prev + 5)}
                       >
                         Показать ещё
                       </Button>
@@ -475,7 +476,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setClustersDisplayLimit(prev => prev + 15)}
+                        onClick={() => setClustersDisplayLimit(prev => prev + 5)}
                       >
                         Показать ещё
                       </Button>
