@@ -46,7 +46,7 @@ export async function canRunMagicToday() {
     return {
       success: true,
       allowed: data?.allowed || false,
-      next_allowed_at: data?.next_allowed_at || null
+      next_allowed_at: data?.next_allowed_at || null,
     }
   } catch (e) {
     console.error('[CAN RUN MAGIC EXCEPTION]', e)
@@ -73,7 +73,7 @@ export async function runFaqMagicForToday() {
       if (lockError.message?.includes('MAGIC_ALREADY_USED_TODAY')) {
         return {
           success: false,
-          error: 'Магия уже использовалась сегодня. Попробуйте завтра.'
+          error: 'Магия уже использовалась сегодня. Попробуйте завтра.',
         }
       }
       console.error('[LOCK MAGIC ERROR]', lockError)
@@ -83,13 +83,16 @@ export async function runFaqMagicForToday() {
     const now = new Date()
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    const { data: dashboardData, error: dashboardError } = await supabase.rpc('get_questions_dashboard', {
-      from_ts: startOfDay.toISOString(),
-      to_ts: now.toISOString(),
-      source_filter: 'all',
-      only_not_found: false,
-      limit_count: 200
-    })
+    const { data: dashboardData, error: dashboardError } = await supabase.rpc(
+      'get_questions_dashboard',
+      {
+        from_ts: startOfDay.toISOString(),
+        to_ts: now.toISOString(),
+        source_filter: 'all',
+        only_not_found: false,
+        limit_count: 200,
+      }
+    )
 
     if (dashboardError) {
       console.error('[DASHBOARD ERROR]', dashboardError)
@@ -99,21 +102,23 @@ export async function runFaqMagicForToday() {
     const questions = (dashboardData || []) as QuestionEntry[]
 
     if (questions.length === 0) {
-      return {
-        success: false,
-        error: 'Нет вопросов за сегодня для анализа'
-      }
+      return { success: false, error: 'Нет вопросов за сегодня для анализа' }
     }
 
     const prioritized = [
       ...questions.filter(q => !q.found).slice(0, 100),
       ...questions.filter(q => q.found && q.count > 1).slice(0, 50),
-      ...questions.filter(q => q.found && q.count === 1).slice(0, 50)
+      ...questions.filter(q => q.found && q.count === 1).slice(0, 50),
     ].slice(0, 200)
 
-    const questionsText = prioritized.map((q, i) =>
-      `${i + 1}. "${q.query}" (повторов: ${q.count}, найдено: ${q.found ? 'да' : 'нет'})`
-    ).join('\n')
+    const questionsText = prioritized
+      .map(
+        (q, i) =>
+          `${i + 1}. "${q.query}" (повторов: ${q.count}, найдено: ${
+            q.found ? 'да' : 'нет'
+          })`
+      )
+      .join('\n')
 
     const systemPrompt = `Ты — эксперт по созданию FAQ для SalesPilot, CRM-платформы для отделов продаж.
 
@@ -151,17 +156,21 @@ JSON SCHEMA:
 
     const userPrompt = `Вопросы клиентов за сегодня:\n\n${questionsText}\n\nВерни ТОЛЬКО JSON по указанной схеме, без дополнительного текста.`
 
-    const openaiResponse = await createChatCompletion([
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ], {
-      max_tokens: 1200,
-      temperature: 0.2
-    })
+    const openaiResponse = await createChatCompletion(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      { max_tokens: 1200, temperature: 0.2 }
+    )
 
     let magicResult: MagicResult
     try {
-      const cleaned = openaiResponse.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '')
+      const cleaned = openaiResponse
+        .trim()
+        .replace(/^```json\n?/, '')
+        .replace(/\n?```$/, '')
+
       magicResult = JSON.parse(cleaned)
 
       if (!magicResult.clusters || !Array.isArray(magicResult.clusters)) {
@@ -169,90 +178,69 @@ JSON SCHEMA:
       }
     } catch (parseError) {
       console.error('[OPENAI PARSE ERROR]', parseError, openaiResponse)
-      return {
-        success: false,
-        error: 'Не удалось обработать ответ OpenAI'
-      }
+      return { success: false, error: 'Не удалось обработать ответ OpenAI' }
     }
 
-    const { error: insertError } = await supabase
-      .from('ai_faq_suggestions')
-      .insert({
-        period_from: startOfDay.toISOString(),
-        period_to: now.toISOString(),
-        title: `FAQ Magic (${now.toLocaleDateString('ru-RU')})`,
-        payload: magicResult
-      })
+    // 1) сохраняем историю магии
+    const { error: insertError } = await supabase.from('ai_faq_suggestions').insert({
+      period_from: startOfDay.toISOString(),
+      period_to: now.toISOString(),
+      title: `FAQ Magic (${now.toLocaleDateString('ru-RU')})`,
+      payload: magicResult,
+    })
 
     if (insertError) {
       console.error('[INSERT SUGGESTIONS ERROR]', insertError)
       return { success: false, error: 'Failed to save magic results' }
     }
 
+    // 2) SYNC MAGIC RESULT -> faq_drafts (UI + publish/delete живут тут)
+    const flatDrafts = (magicResult?.clusters || [])
+      .flatMap(c =>
+        (c.items || []).map(it => ({
+          question: (it.question || '').trim(),
+          answer_draft: (it.answer_draft || '').trim(),
+          source_hint: it.source_hint ?? null,
+          confidence: typeof it.confidence === 'number' ? it.confidence : 0,
+        }))
+      )
+      .filter(d => d.question.length > 0)
 
+    if (flatDrafts.length > 0) {
+      const { error: upsertErr } = await supabase
+        .from('faq_drafts')
+        .upsert(flatDrafts, { onConflict: 'question' })
 
-    // ===============================
-// SYNC MAGIC RESULT -> faq_drafts
-// ===============================
-const flatDrafts = (magicResult?.clusters || [])
-  .flatMap(c =>
-    (c.items || []).map(it => ({
-      question: (it.question || '').trim(),
-      answer_draft: (it.answer_draft || '').trim(),
-      source_hint: it.source_hint ?? null,
-      confidence: typeof it.confidence === 'number' ? it.confidence : 0,
-    }))
-  )
-  .filter(d => d.question.length > 0)
+      if (upsertErr) {
+        console.error('[FAQ_DRAFTS UPSERT ERROR]', upsertErr)
 
-if (flatDrafts.length > 0) {
-  // 1) пробуем upsert по question
-  const { error: upsertErr } = await supabase
-    .from('faq_drafts')
-    .upsert(flatDrafts, { onConflict: 'question' })
+        const questionsToReplace = flatDrafts.map(d => d.question)
 
-  if (upsertErr) {
-    console.error('[FAQ_DRAFTS UPSERT ERROR]', upsertErr)
+        const { error: delErr } = await supabase
+          .from('faq_drafts')
+          .delete()
+          .in('question', questionsToReplace)
 
-    // 2) fallback: delete+insert (работает даже без unique на question)
-    const questionsToReplace = flatDrafts.map(d => d.question)
+        if (delErr) console.error('[FAQ_DRAFTS DELETE FALLBACK ERROR]', delErr)
 
-    const { error: delErr } = await supabase
-      .from('faq_drafts')
-      .delete()
-      .in('question', questionsToReplace)
+        const { error: insErr } = await supabase.from('faq_drafts').insert(flatDrafts)
 
-    if (delErr) console.error('[FAQ_DRAFTS DELETE FALLBACK ERROR]', delErr)
-
-    const { error: insErr } = await supabase
-      .from('faq_drafts')
-      .insert(flatDrafts)
-
-    if (insErr) {
-      console.error('[FAQ_DRAFTS INSERT FALLBACK ERROR]', insErr)
-      return { success: false, error: 'Failed to sync drafts for UI' }
+        if (insErr) {
+          console.error('[FAQ_DRAFTS INSERT FALLBACK ERROR]', insErr)
+          return { success: false, error: 'Failed to sync drafts for UI' }
+        }
+      }
     }
-  }
-}
-    
 
-    
     revalidatePath('/app/questions')
 
     const drafts_created =
-  magicResult?.clusters?.reduce((sum, c) => sum + (c.items?.length || 0), 0) || 0
+      magicResult?.clusters?.reduce((sum, c) => sum + (c.items?.length || 0), 0) || 0
 
-return {
-  success: true,
-  data: magicResult,
-  drafts_created
-}
+    return { success: true, data: magicResult, drafts_created }
   } catch (e: any) {
     console.error('[RUN FAQ MAGIC EXCEPTION]', e)
-    return {
-      success: false,
-      error: e.message || 'Failed to run FAQ magic'
-    }
+    return { success: false, error: e.message || 'Failed to run FAQ magic' }
   }
 }
 
@@ -281,10 +269,7 @@ export async function getTodayMagicSuggestions() {
       return { success: false, error: error.message }
     }
 
-    return {
-      success: true,
-      data: data?.payload as MagicResult | null
-    }
+    return { success: true, data: (data?.payload as MagicResult | null) ?? null }
   } catch (e) {
     console.error('[GET SUGGESTIONS EXCEPTION]', e)
     return { success: false, error: 'Failed to get suggestions' }
@@ -294,7 +279,7 @@ export async function getTodayMagicSuggestions() {
 export async function publishFaqDraft({
   draftId,
   question,
-  answer
+  answer,
 }: {
   draftId: string
   question: string
@@ -332,9 +317,7 @@ export async function publishFaqDraft({
         return { success: false, error: error.message }
       }
     } else {
-      const { error } = await supabase
-        .from('faq_items')
-        .insert({ question: q, answer: a })
+      const { error } = await supabase.from('faq_items').insert({ question: q, answer: a })
 
       if (error) {
         console.error('[FAQ INSERT ERROR]', error)
@@ -342,18 +325,15 @@ export async function publishFaqDraft({
       }
     }
 
-    // 2) удалить черновик из faq_drafts (чтобы "исчез")
-  const { error: delErr } = await supabase
-  .from('faq_drafts')
-  .delete()
-  .eq('id', draftId)
+    // 2) удалить черновик из faq_drafts
+    const { error: delErr } = await supabase.from('faq_drafts').delete().eq('id', draftId)
 
     if (delErr) {
       console.error('[DRAFT DELETE ERROR]', delErr)
-      // не фейлим publish — FAQ уже создан, но логируем
+      // не фейлим publish — FAQ уже создан
     }
 
-    // 3) опционально — флажок на реиндекс
+    // 3) флажок на реиндекс
     const { error: reindexError } = await supabase.rpc('mark_tenant_ai_needs_reindex')
     if (reindexError) console.error('[MARK REINDEX ERROR]', reindexError)
 
@@ -374,10 +354,7 @@ export async function deleteFaqDraft({ draftId }: { draftId: string }) {
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) return { success: false, error: 'Not authenticated' }
 
-    const { error } = await supabase
-      .from('faq_drafts')
-      .delete()
-      .eq('id', draftId)
+    const { error } = await supabase.from('faq_drafts').delete().eq('id', draftId)
 
     if (error) {
       console.error('[DELETE DRAFT ERROR]', error)
@@ -389,49 +366,5 @@ export async function deleteFaqDraft({ draftId }: { draftId: string }) {
   } catch (e: any) {
     console.error('[DELETE FAQ DRAFT EXCEPTION]', e)
     return { success: false, error: e.message || 'Failed to delete draft' }
-  }
-}
-
-// ---------------
-// Sync to faq_drafts (UI uses these)
-// ---------------
-const flatDrafts = (magicResult?.clusters || [])
-  .flatMap((c) => (c.items || []).map((it) => ({
-    question: (it.question || '').trim(),
-    answer_draft: (it.answer_draft || '').trim(),
-    source_hint: it.source_hint ?? null,
-    confidence: typeof it.confidence === 'number' ? it.confidence : 0,
-  })))
-  .filter((d) => d.question.length > 0)
-
-if (flatDrafts.length > 0) {
-  // If you have a UNIQUE constraint on faq_drafts.question, this will upsert perfectly.
-  // If not — Supabase will error. In that case use delete+insert strategy (ниже).
-  const { error: upsertErr } = await supabase
-    .from('faq_drafts')
-    .upsert(flatDrafts, { onConflict: 'question' })
-
-  if (upsertErr) {
-    console.error('[FAQ_DRAFTS UPSERT ERROR]', upsertErr)
-
-    // Fallback безопасный (без onConflict): delete matching questions then insert
-    // (работает даже если уникального индекса нет)
-    const questionsToReplace = flatDrafts.map((d) => d.question)
-
-    const { error: delErr } = await supabase
-      .from('faq_drafts')
-      .delete()
-      .in('question', questionsToReplace)
-
-    if (delErr) console.error('[FAQ_DRAFTS DELETE FALLBACK ERROR]', delErr)
-
-    const { error: insErr } = await supabase
-      .from('faq_drafts')
-      .insert(flatDrafts)
-
-    if (insErr) {
-      console.error('[FAQ_DRAFTS INSERT FALLBACK ERROR]', insErr)
-      return { success: false, error: 'Failed to sync drafts for UI' }
-    }
   }
 }
