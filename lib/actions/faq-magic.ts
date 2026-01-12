@@ -343,3 +343,47 @@ export async function deleteFaqDraft({ draftId }: { draftId: string }) {
     return { success: false, error: e.message || 'Failed to delete draft' }
   }
 }
+
+// ---------------
+// Sync to faq_drafts (UI uses these)
+// ---------------
+const flatDrafts = (magicResult?.clusters || [])
+  .flatMap((c) => (c.items || []).map((it) => ({
+    question: (it.question || '').trim(),
+    answer_draft: (it.answer_draft || '').trim(),
+    source_hint: it.source_hint ?? null,
+    confidence: typeof it.confidence === 'number' ? it.confidence : 0,
+  })))
+  .filter((d) => d.question.length > 0)
+
+if (flatDrafts.length > 0) {
+  // If you have a UNIQUE constraint on faq_drafts.question, this will upsert perfectly.
+  // If not — Supabase will error. In that case use delete+insert strategy (ниже).
+  const { error: upsertErr } = await supabase
+    .from('faq_drafts')
+    .upsert(flatDrafts, { onConflict: 'question' })
+
+  if (upsertErr) {
+    console.error('[FAQ_DRAFTS UPSERT ERROR]', upsertErr)
+
+    // Fallback безопасный (без onConflict): delete matching questions then insert
+    // (работает даже если уникального индекса нет)
+    const questionsToReplace = flatDrafts.map((d) => d.question)
+
+    const { error: delErr } = await supabase
+      .from('faq_drafts')
+      .delete()
+      .in('question', questionsToReplace)
+
+    if (delErr) console.error('[FAQ_DRAFTS DELETE FALLBACK ERROR]', delErr)
+
+    const { error: insErr } = await supabase
+      .from('faq_drafts')
+      .insert(flatDrafts)
+
+    if (insErr) {
+      console.error('[FAQ_DRAFTS INSERT FALLBACK ERROR]', insErr)
+      return { success: false, error: 'Failed to sync drafts for UI' }
+    }
+  }
+}
