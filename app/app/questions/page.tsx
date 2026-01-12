@@ -45,31 +45,21 @@ function QuestionsPageContent() {
   }, [hasManagerAccess, hasAccess, filter])
 
   async function loadData() {
-    setLoading(true)
-    setError('')
+  setLoading(true)
+  setError('')
 
-    const [recentResult, clustersResult, draftsResult] = await Promise.all([
-      getRecentQuestions(20),
-      getTopClusters(filter, 50),
-      getDraftsForClusters([]),
-    ])
+  const recentResult = await getRecentQuestions(20)
+  if (recentResult.success) setRecentQuestions(recentResult.data)
+  else setError(recentResult.error || 'Ошибка загрузки данных')
 
-    if (recentResult.success) {
-      setRecentQuestions(recentResult.data)
-    } else {
-      setError(recentResult.error || 'Ошибка загрузки данных')
-    }
+  const clustersResult = await getTopClusters(filter, 50)
+  if (clustersResult.success) setTopClusters(clustersResult.data)
 
-    if (clustersResult.success) {
-      setTopClusters(clustersResult.data)
-    }
+  const draftsResult = await getDraftsForClusters(clustersResult.success ? clustersResult.data : [])
+  if (draftsResult.success) setDraftsMap(draftsResult.data)
 
-    if (draftsResult.success) {
-      setDraftsMap(draftsResult.data)
-    }
-
-    setLoading(false)
-  }
+  setLoading(false)
+}
 
   const handlePublishDraft = async (question: string, answer: string) => {
     setPublishingDrafts(prev => new Set(prev).add(question))
