@@ -111,47 +111,43 @@ export async function getTopClusters(
   }
 }
 
-export async function getDraftsForClusters(clusters: { id: string }[]) {
+export async function getDraftsForClusters(clusterIds: string[]) {
   try {
     const supabase = await getSupabaseServerClient()
 
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) {
-      return { success: false, error: 'Not authenticated', data: {} as Record<string, any[]> }
+      return { success: false, error: 'Not authenticated', data: {} }
     }
 
-    const clusterIds = (clusters || []).map(c => c.id).filter(Boolean)
-    if (clusterIds.length === 0) {
-      return { success: true, data: {} as Record<string, any[]> }
+    if (!clusterIds || clusterIds.length === 0) {
+      return { success: true, data: {} }
     }
 
+    // Берём черновики ТОЛЬКО из faq_drafts (через view, если она есть)
     const { data, error } = await supabase
-      .from('faq_drafts')
-      .select('cluster_id, question, answer, source_hint, confidence, status')
+      .from('v_faq_drafts_ui') // <-- важно: view из твоей схемы
+      .select('id, cluster_id, question, answer_draft, source_hint, confidence')
       .in('cluster_id', clusterIds)
       .eq('status', 'draft')
       .order('created_at', { ascending: false })
 
     if (error) {
       console.error('[GET DRAFTS ERROR]', error)
-      return { success: false, error: error.message, data: {} as Record<string, any[]> }
+      return { success: false, error: error.message, data: {} }
     }
 
+    // Ключуем по cluster_id, чтобы в UI было draftsMap[cluster.id]
     const draftsMap: Record<string, any[]> = {}
     for (const row of data || []) {
-      const key = row.cluster_id as string
-      if (!draftsMap[key]) draftsMap[key] = []
-      draftsMap[key].push({
-        question: row.question,
-        answer_draft: row.answer, // алиас для UI
-        source_hint: row.source_hint ?? null,
-        confidence: row.confidence, // int 0..100
-      })
+      const k = row.cluster_id
+      if (!draftsMap[k]) draftsMap[k] = []
+      draftsMap[k].push(row)
     }
 
     return { success: true, data: draftsMap }
   } catch (e: any) {
     console.error('[GET DRAFTS EXCEPTION]', e)
-    return { success: false, error: 'Failed to get drafts', data: {} as Record<string, any[]> }
+    return { success: false, error: 'Failed to get drafts', data: {} }
   }
 }
