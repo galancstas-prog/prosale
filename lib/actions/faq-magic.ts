@@ -324,11 +324,10 @@ export async function deleteFaqDraft({ draftId }: { draftId: string }) {
 
     const q = question.trim()
 
-    const { error } = await supabase
-      .from('faq_drafts')
-      .delete()
-      .eq('question', q)
-      .eq('status', 'draft')
+   const { error } = await supabase
+  .from('faq_drafts')
+  .delete()
+  .eq('id', draftId)
 
     if (error) {
       console.error('[DELETE DRAFT ERROR]', error)
