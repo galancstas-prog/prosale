@@ -170,10 +170,10 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
 
   const handlePublishAll = async () => {
     const allDrafts = Object.entries(draftsMap)
-      .filter(([key]) => {
-        const cluster = topClusters.find(c => c.question.toLowerCase().trim() === key)
-        return cluster && (cluster.match_type === 'missing' || cluster.match_type === 'partial')
-      })
+  .filter(([clusterId]) => {
+    const cluster = topClusters.find(c => c.id === clusterId)
+    return cluster && (cluster.match_type === 'missing' || cluster.match_type === 'partial')
+  })
 
     for (const [key, drafts] of allDrafts) {
       if (drafts.length > 0) {
