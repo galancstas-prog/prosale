@@ -94,7 +94,7 @@ function QuestionsPageContent() {
     const result = await runFaqMagicForToday()
 
     if (result?.success) {
-      toast.success(`Магия выполнена — создано черновиков: ${result.drafts_created ?? 0}`)
+      toast.success('Магия выполнена — черновики обновлены')
 
       // ВАЖНО: не надеемся на router.refresh(), а реально перечитываем данные
       await loadData()
