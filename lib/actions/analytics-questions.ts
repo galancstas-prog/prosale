@@ -72,9 +72,7 @@ export async function getTopClusters(
       `)
       .order('score', { ascending: false })
 
-    if (matchTypeFilter && matchTypeFilter !== 'all') {
-      query = query.eq('faq_matches.match_type', matchTypeFilter)
-    }
+    
 
     const { data, error } = await query.limit(limit)
 
