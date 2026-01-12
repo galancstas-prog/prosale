@@ -414,7 +414,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs text-slate-500">
-                                    Уверенность: {draft.confidence}%
+                                    Уверенность: {Math.round(draft.confidence * 100)}%
                                   </span>
                                 </div>
                               </div>
