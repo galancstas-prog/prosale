@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 type MatchTypeFilter = 'all' | 'missing' | 'partial' | 'covered'
 
 interface DraftItem {
+  id: string
   question: string
   answer_draft: string
   source_hint: string | null
