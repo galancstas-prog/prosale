@@ -381,7 +381,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleDeleteDraft(draft.question)}
+                                    onClick={() => handleDeleteDraft(draft.id, draft.question)}
                                     disabled={isPublishing}
                                     className="gap-2"
                                   >
