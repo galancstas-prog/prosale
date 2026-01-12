@@ -191,10 +191,14 @@ JSON SCHEMA:
 
     revalidatePath('/app/questions')
 
-    return {
-      success: true,
-      data: magicResult
-    }
+    const drafts_created =
+  magicResult?.clusters?.reduce((sum, c) => sum + (c.items?.length || 0), 0) || 0
+
+return {
+  success: true,
+  data: magicResult,
+  drafts_created
+}
   } catch (e: any) {
     console.error('[RUN FAQ MAGIC EXCEPTION]', e)
     return {
