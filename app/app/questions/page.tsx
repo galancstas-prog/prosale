@@ -96,7 +96,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
     }
   }
 
-  const handleDeleteDraft = async (question: string) => {
+  const handleDeleteDraft = async (draftId: string, question: string) => {
     const result = await deleteFaqDraft({ question })
 
     if (result.success) {
