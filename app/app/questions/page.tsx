@@ -91,7 +91,8 @@ useEffect(() => {
     setMagicLoading(true)
 
     const result = await runFaqMagicForToday()
-
+console.log('[MAGIC RESULT]', result)
+    
     if (result?.success) {
       toast.success('Магия выполнена — черновики обновлены')
 
