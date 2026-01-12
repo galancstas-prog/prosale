@@ -356,7 +356,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
               ) : (
                 <div className="space-y-4">
                   {displayedClusters.map((cluster) => {
-                    const drafts = draftsMap[cluster.id] || []
+                    const drafts = draftsMap[cluster.question.toLowerCase().trim()] || []
                     const showDrafts = isAdmin && drafts.length > 0 && (cluster.match_type === 'missing' || cluster.match_type === 'partial')
                     const isCovered = cluster.match_type === 'covered'
 
