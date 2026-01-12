@@ -99,57 +99,47 @@ export async function getTopClusters(
   }
 }
 
-export async function getDraftsForClusters(clusterIds: string[]) {
+export async function getDraftsForClusters(clusters: { id: string }[]) {
   try {
     const supabase = await getSupabaseServerClient()
 
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) {
-      return { success: false, error: 'Not authenticated', data: {} }
+      return { success: false, error: 'Not authenticated', data: {} as Record<string, any[]> }
     }
 
-    const now = new Date()
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const clusterIds = (clusters || []).map(c => c.id).filter(Boolean)
+    if (clusterIds.length === 0) {
+      return { success: true, data: {} as Record<string, any[]> }
+    }
 
-    const { data: suggestion, error } = await supabase
-      .from('ai_faq_suggestions')
-      .select('*')
-      .gte('period_from', startOfDay.toISOString())
+    const { data, error } = await supabase
+      .from('faq_drafts')
+      .select('cluster_id, question, answer, source_hint, confidence, status')
+      .in('cluster_id', clusterIds)
+      .eq('status', 'draft')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
 
     if (error) {
       console.error('[GET DRAFTS ERROR]', error)
-      return { success: false, error: error.message, data: {} }
+      return { success: false, error: error.message, data: {} as Record<string, any[]> }
     }
 
-    if (!suggestion || !suggestion.payload) {
-      return { success: true, data: {} }
-    }
-
-    const payload = suggestion.payload as any
     const draftsMap: Record<string, any[]> = {}
-
-    if (payload.clusters && Array.isArray(payload.clusters)) {
-      for (const cluster of payload.clusters) {
-        if (cluster.items && Array.isArray(cluster.items)) {
-          for (const item of cluster.items) {
-            const key = item.question?.toLowerCase().trim()
-            if (key) {
-              if (!draftsMap[key]) {
-                draftsMap[key] = []
-              }
-              draftsMap[key].push(item)
-            }
-          }
-        }
-      }
+    for (const row of data || []) {
+      const key = row.cluster_id as string
+      if (!draftsMap[key]) draftsMap[key] = []
+      draftsMap[key].push({
+        question: row.question,
+        answer_draft: row.answer, // алиас для UI
+        source_hint: row.source_hint ?? null,
+        confidence: row.confidence, // int 0..100
+      })
     }
 
     return { success: true, data: draftsMap }
   } catch (e: any) {
     console.error('[GET DRAFTS EXCEPTION]', e)
-    return { success: false, error: 'Failed to get drafts', data: {} }
+    return { success: false, error: 'Failed to get drafts', data: {} as Record<string, any[]> }
   }
 }
