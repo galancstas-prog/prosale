@@ -291,11 +291,10 @@ export async function publishFaqDraft({
     }
 
     // 2) удалить черновик из faq_drafts (чтобы "исчез")
-    const { error: delErr } = await supabase
-      .from('faq_drafts')
-      .delete()
-      .eq('question', q)
-      .eq('status', 'draft')
+  const { error: delErr } = await supabase
+  .from('faq_drafts')
+  .delete()
+  .eq('id', draftId)
 
     if (delErr) {
       console.error('[DRAFT DELETE ERROR]', delErr)
