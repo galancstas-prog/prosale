@@ -133,7 +133,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
       if (drafts.length > 0) {
         const draft = drafts[0]
         const answer = editingDrafts[draft.question] || draft.answer_draft
-        await handlePublishDraft(draft.question, answer)
+        await handlePublishDraft(draft.id, draft.question, answer)
       }
     }
   }
