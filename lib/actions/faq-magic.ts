@@ -240,9 +240,11 @@ export async function getTodayMagicSuggestions() {
 }
 
 export async function publishFaqDraft({
+  draftId,
   question,
   answer
 }: {
+  draftId: string
   question: string
   answer: string
 }) {
