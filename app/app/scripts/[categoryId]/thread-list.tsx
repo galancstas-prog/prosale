@@ -124,8 +124,8 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
       <Dialog open={!!editingThread} onOpenChange={(open) => !open && setEditingThread(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Script Thread</DialogTitle>
-            <DialogDescription>Update the thread details</DialogDescription>
+            <DialogTitle>Редактировать чат скрипта</DialogTitle>
+            <DialogDescription>Обновить чат скрипта</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdate} className="space-y-4">
             {error && (
@@ -134,7 +134,7 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="edit-title">Thread Title</Label>
+              <Label htmlFor="edit-title">Название чата</Label>
               <Input
                 id="edit-title"
                 name="title"
@@ -144,7 +144,7 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-description">Описание</Label>
               <Textarea
                 id="edit-description"
                 name="description"
@@ -154,11 +154,11 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setEditingThread(null)} disabled={loading}>
-                Cancel
+                Отмена
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Save Changes
+                Сохранить
               </Button>
             </div>
           </form>
