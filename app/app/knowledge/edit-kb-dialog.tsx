@@ -65,15 +65,15 @@ export function EditKbDialog({ page }: EditKbDialogProps) {
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
           <Edit className="h-4 w-4 mr-2" />
-          Edit
+          Редактировать
         </Button>
       </DialogTrigger>
 
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Page</DialogTitle>
+          <DialogTitle>Редактировать</DialogTitle>
           <DialogDescription>
-            Update the page title and content
+            Обновить заголовок и содержимое страницы
           </DialogDescription>
         </DialogHeader>
 
@@ -85,7 +85,7 @@ export function EditKbDialog({ page }: EditKbDialogProps) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="edit-title">Title</Label>
+            <Label htmlFor="edit-title">Название</Label>
             <Input
               id="edit-title"
               name="title"
@@ -96,7 +96,7 @@ export function EditKbDialog({ page }: EditKbDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-content">Content</Label>
+            <Label htmlFor="edit-content">Содержание</Label>
             <Textarea
               id="edit-content"
               name="content"
@@ -114,12 +114,12 @@ export function EditKbDialog({ page }: EditKbDialogProps) {
               onClick={() => setOpen(false)}
               disabled={loading}
             >
-              Cancel
+              Отмена
             </Button>
 
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save Changes
+              Сохранить
             </Button>
           </div>
         </form>
