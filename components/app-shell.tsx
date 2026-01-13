@@ -68,8 +68,8 @@ function AppShellContent({ children, user }: AppShellProps) {
       : [
           ...(hasQuestionsAccess ? [{ name: 'Вопросы клиентов', href: '/app/questions', icon: HelpCircle }] : []),
           ...(isAdmin ? [
-            { name: 'Team', href: '/app/team', icon: Users },
-            { name: 'Billing', href: '/app/billing', icon: CreditCard },
+            { name: 'Команда', href: '/app/team', icon: Users },
+            { name: 'Тарифы', href: '/app/billing', icon: CreditCard },
           ] : []),
         ]),
   ]
