@@ -56,6 +56,8 @@ export async function canRunMagicToday() {
 
 export async function runFaqMagicForToday() {
   try {
+    console.log('[FAQ MAGIC] ============ SERVER ACTION INVOKED ============')
+
     if (!process.env.OPENAI_API_KEY) {
       return { success: false, error: 'OpenAI API key not configured' }
     }
@@ -66,6 +68,15 @@ export async function runFaqMagicForToday() {
     if (!userData.user) {
       return { success: false, error: 'Not authenticated' }
     }
+
+    await supabase.from('ai_faq_suggestions').insert({
+      title: '🔥 DIAGNOSTIC PING - MAGIC INVOKED',
+      period_from: new Date().toISOString(),
+      period_to: new Date().toISOString(),
+      payload: { diagnostic: true, timestamp: Date.now() }
+    })
+
+    console.log('[FAQ MAGIC] Diagnostic ping inserted into DB')
 
     const { error: lockError } = await supabase.rpc('lock_magic_today')
 
