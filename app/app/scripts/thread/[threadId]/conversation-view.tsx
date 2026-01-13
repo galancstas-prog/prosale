@@ -130,7 +130,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
       <div className={isAdmin ? 'lg:col-span-2' : ''}>
         <Card>
           <CardHeader>
-            <CardTitle>Conversation</CardTitle>
+            <CardTitle>Скрипт</CardTitle>
           </CardHeader>
           <CardContent>
             {error && (
@@ -170,7 +170,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                             onClick={() => handleSaveEdit(turn.id)}
                             disabled={loading}
                           >
-                            Save
+                            Сохранить
                           </Button>
                           <Button
                             size="sm"
@@ -254,7 +254,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Add Message</CardTitle>
+              <CardTitle>Добавить сообщение</CardTitle>
             </CardHeader>
             <CardContent>
               <form
@@ -263,19 +263,19 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                 className="space-y-4"
               >
                 <div className="space-y-2">
-                  <Label>Speaker</Label>
+                  <Label>Роль</Label>
                   <Select name="speaker" required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select speaker" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="agent">Manager</SelectItem>
-                      <SelectItem value="client">Client</SelectItem>
+                      <SelectItem value="agent">Менеджер</SelectItem>
+                      <SelectItem value="client">Клиент</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Message</Label>
+                  <Label>Сообщение</Label>
                   <Textarea
                     name="message"
                     placeholder="Enter the message..."
@@ -288,7 +288,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                   {loading && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
-                  Add Message
+                  Добавить сообщение
                 </Button>
               </form>
             </CardContent>
