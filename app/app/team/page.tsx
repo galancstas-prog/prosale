@@ -245,7 +245,7 @@ function TeamPageContent() {
               Access Denied
             </CardTitle>
             <CardDescription>
-              You do not have permission to access this page. Only administrators can manage team members.
+              У вас нет доступа к этой странице. Управлять членами команды могут только администраторы.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -256,8 +256,8 @@ function TeamPageContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Team Management</h1>
-        <p className="text-muted-foreground mt-2">Manage your team members and invitations</p>
+        <h1 className="text-3xl font-bold">Управление командой</h1>
+        <p className="text-muted-foreground mt-2">Управляйте членами вашей команды и приглашениями.</p>
       </div>
 
       {error && (
@@ -277,23 +277,23 @@ function TeamPageContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Seats
+                Пользователи
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
                 <div>
                   <div className="text-2xl font-bold">{overview.seats.used_users}</div>
-                  <div className="text-sm text-muted-foreground">Used</div>
+                  <div className="text-sm text-muted-foreground">Используются</div>
                 </div>
                 <div className="text-muted-foreground">/</div>
                 <div>
                   <div className="text-2xl font-bold">{overview.seats.max_users}</div>
-                  <div className="text-sm text-muted-foreground">Max</div>
+                  <div className="text-sm text-muted-foreground">Максимум</div>
                 </div>
                 <div className="ml-auto">
                   <div className="text-2xl font-bold text-green-600">{overview.seats.remaining_seats}</div>
-                  <div className="text-sm text-muted-foreground">Remaining</div>
+                  <div className="text-sm text-muted-foreground">Осталось</div>
                 </div>
               </div>
             </CardContent>
@@ -303,7 +303,7 @@ function TeamPageContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Team Members ({overview.members.length})
+                Участник команды ({overview.members.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -340,16 +340,16 @@ function TeamPageContent() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Mail className="h-5 w-5" />
-                  Active Invites ({overview.invites.length})
+                  Активные приглашения ({overview.invites.length})
                 </CardTitle>
                 <Button onClick={createInvite} disabled={loading}>
-                  Create Invite
+                  Создать приглашения
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {overview.invites.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">No active invites</div>
+                <div className="text-center text-muted-foreground py-8">Нет активных приглашений</div>
               ) : (
                 <div className="space-y-2">
                   {overview.invites.map((invite) => (
@@ -357,7 +357,7 @@ function TeamPageContent() {
                       <div>
                         <div className="font-mono font-medium">{invite.code}</div>
                         <div className="text-sm text-muted-foreground">
-                          Expires:{' '}
+                          Срок действия истекает:{' '}
                           {invite.expires_at ? new Date(invite.expires_at).toLocaleString() : 'No expiry'}
                         </div>
                       </div>
