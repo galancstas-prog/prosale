@@ -213,10 +213,10 @@ export function GlobalSearch() {
   }
 
   const moduleConfig = {
-    scripts: { label: 'Scripts', icon: MessageSquare, color: 'text-blue-600 dark:text-blue-400' },
-    training: { label: 'Training', icon: BookOpen, color: 'text-green-600 dark:text-green-400' },
+    scripts: { label: 'Скрипты', icon: MessageSquare, color: 'text-blue-600 dark:text-blue-400' },
+    training: { label: 'Обучение', icon: BookOpen, color: 'text-green-600 dark:text-green-400' },
     faq: { label: 'FAQ', icon: FileText, color: 'text-orange-600 dark:text-orange-400' },
-    kb: { label: 'Knowledge Base', icon: Database, color: 'text-purple-600 dark:text-purple-400' },
+    kb: { label: 'База знаний', icon: Database, color: 'text-purple-600 dark:text-purple-400' },
   }
 
   const allFiltersDisabled = !filters.scripts && !filters.training && !filters.faq && !filters.kb
