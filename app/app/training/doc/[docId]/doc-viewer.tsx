@@ -139,7 +139,7 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Your Progress</span>
+              <span>Ваш прогресс</span>
               <Badge className={statusConfig[status].color}>
                 <StatusIcon className="h-3 w-3 mr-1" />
                 {statusConfig[status].label}
@@ -151,12 +151,12 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
               <Button onClick={handleMarkCompleted} disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Check className="h-4 w-4 mr-2" />
-                Mark as Completed
+                Отметить как выполненное
               </Button>
             )}
             {status === 'completed' && (
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                You completed this training document. Great job!
+                Вы успешно завершили обучение по данному документу. Отличная работа!
               </p>
             )}
           </CardContent>
@@ -166,23 +166,23 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Training Content</CardTitle>
+            <CardTitle>Содержание обучения</CardTitle>
             {isAdmin && (
               <div className="flex gap-2">
                 {editing ? (
                   <>
                     <Button variant="outline" onClick={() => setEditing(false)} disabled={loading}>
-                      Cancel
+                      Отмена
                     </Button>
                     <Button onClick={handleSave} disabled={loading}>
                       {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       <Save className="h-4 w-4 mr-2" />
-                      Save
+                      Сохранить
                     </Button>
                   </>
                 ) : (
                   <Button onClick={() => setEditing(true)}>
-                    Edit Content
+                    Редактировать
                   </Button>
                 )}
               </div>
