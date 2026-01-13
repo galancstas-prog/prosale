@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useMembership } from '@/lib/auth/use-membership'
 import { useTenantPlan } from '@/lib/hooks/use-tenant-plan'
-import { getRecentQuestions, getTopClusters, getDraftsForClusters, RecentQuestion, TopCluster } from '@/lib/actions/analytics-questions'
+import { getRecentQuestions, getTopClusters, getDraftsForClusters, getAllDrafts, RecentQuestion, TopCluster, StandaloneDraft } from '@/lib/actions/analytics-questions'
 import { publishFaqDraft, deleteFaqDraft, runFaqMagicForToday } from '@/lib/actions/faq-magic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +32,7 @@ function QuestionsPageContent() {
   const [recentQuestions, setRecentQuestions] = useState<RecentQuestion[]>([])
   const [topClusters, setTopClusters] = useState<TopCluster[]>([])
   const [draftsMap, setDraftsMap] = useState<Record<string, DraftItem[]>>({})
+  const [standaloneDrafts, setStandaloneDrafts] = useState<StandaloneDraft[]>([])
   const [filter, setFilter] = useState<MatchTypeFilter>('all')
   const [error, setError] = useState('')
   const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({})
@@ -81,6 +82,9 @@ useEffect(() => {
   const clusterIds = clustersResult.success ? clustersResult.data.map(c => c.id) : []
   const draftsResult = await getDraftsForClusters(clusterIds)
   if (draftsResult.success) setDraftsMap(draftsResult.data)
+
+  const allDraftsResult = await getAllDrafts()
+  if (allDraftsResult.success) setStandaloneDrafts(allDraftsResult.data)
 
   setLoadingRecent(false)
   setLoadingClusters(false)
@@ -133,6 +137,8 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
   return next
 })
 
+      setStandaloneDrafts(prev => prev.filter(d => d.id !== draftId))
+
       setEditingDrafts(prev => {
         const next = { ...prev }
         delete next[question]
@@ -158,6 +164,8 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
   }
   return next
 })
+
+      setStandaloneDrafts(prev => prev.filter(d => d.id !== draftId))
 
       setEditingDrafts(prev => {
         const next = { ...prev }
@@ -215,7 +223,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
 
   const displayedRecent = recentQuestions.slice(0, recentDisplayLimit)
   const displayedClusters = topClusters.slice(0, clustersDisplayLimit)
-  const hasDrafts = Object.keys(draftsMap).length > 0
+  const hasDrafts = Object.keys(draftsMap).length > 0 || standaloneDrafts.length > 0
 
   return (
     <div className="space-y-6">
@@ -257,6 +265,101 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {isAdmin && standaloneDrafts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-blue-600" />
+              Черновики FAQ ({standaloneDrafts.length})
+            </CardTitle>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Результаты магии — редактируйте и публикуйте
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {standaloneDrafts.map((draft) => {
+                const isEditing = draft.id in editingDrafts
+                const isPublishing = publishingDrafts.has(draft.question)
+                const currentAnswer = isEditing ? editingDrafts[draft.id] : draft.answer
+
+                return (
+                  <div
+                    key={draft.id}
+                    className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border-2 border-blue-200 dark:border-blue-900"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">
+                          Уверенность: {draft.confidence}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
+                          Вопрос
+                        </label>
+                        <p className="text-sm font-medium">{draft.question}</p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
+                          Ответ
+                        </label>
+                        <Textarea
+                          value={currentAnswer}
+                          onChange={(e) => {
+                            setEditingDrafts(prev => ({
+                              ...prev,
+                              [draft.id]: e.target.value
+                            }))
+                          }}
+                          className="min-h-[100px] text-sm"
+                          disabled={isPublishing}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handlePublishDraft(draft.id, draft.question, currentAnswer)}
+                          disabled={isPublishing}
+                          className="gap-2"
+                        >
+                          {isPublishing ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Публикация...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="h-3 w-3" />
+                              Опубликовать
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteDraft(draft.id, draft.question)}
+                          disabled={isPublishing}
+                          className="gap-2"
+                        >
+                          <X className="h-3 w-3" />
+                          Удалить
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[30%_70%] gap-6">

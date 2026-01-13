@@ -31,6 +31,7 @@ export async function getRecentQuestions(limit: number = 20) {
     const { data, error } = await supabase
       .from('ai_search_logs')
       .select('id, query, source, found, created_at')
+      .is('processed_at', null)
       .order('created_at', { ascending: false })
       .limit(limit)
 
@@ -151,5 +152,40 @@ for (const row of data || []) {
   } catch (e: any) {
     console.error('[GET DRAFTS EXCEPTION]', e)
     return { success: false, error: 'Failed to get drafts', data: {} }
+  }
+}
+
+export interface StandaloneDraft {
+  id: string
+  question: string
+  answer: string
+  confidence: number
+  created_at: string
+}
+
+export async function getAllDrafts() {
+  try {
+    const supabase = await getSupabaseServerClient()
+
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData.user) {
+      return { success: false, error: 'Not authenticated', data: [] }
+    }
+
+    const { data, error } = await supabase
+      .from('faq_drafts')
+      .select('id, question, answer, confidence, created_at')
+      .eq('status', 'draft')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('[GET ALL DRAFTS ERROR]', error)
+      return { success: false, error: error.message, data: [] }
+    }
+
+    return { success: true, data: data as StandaloneDraft[] }
+  } catch (e: any) {
+    console.error('[GET ALL DRAFTS EXCEPTION]', e)
+    return { success: false, error: 'Failed to get all drafts', data: [] }
   }
 }

@@ -12,15 +12,21 @@ interface QuestionEntry {
   source: string
 }
 
+interface MagicItem {
+  canonical_question: string
+  merged_questions: string[]
+  source_question_ids: string[]
+  decision: 'create_draft' | 'skip_as_duplicate' | 'skip_as_already_answered'
+  answer_draft?: string
+  source_hint?: string | null
+  reason: string
+  confidence: number
+}
+
 interface MagicCluster {
   cluster_title: string
   reason: string
-  items: {
-    question: string
-    answer_draft: string
-    source_hint: string | null
-    confidence: number
-  }[]
+  items: MagicItem[]
 }
 
 interface MagicResult {
@@ -80,75 +86,134 @@ export async function runFaqMagicForToday() {
     }
 
     const tenantId = tm.tenant_id as string
+    const userId = userData.user.id
 
-    const { error: lockError } = await supabase.rpc('lock_magic_today')
+    const now = new Date()
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    if (lockError) {
-      if (lockError.message?.includes('MAGIC_ALREADY_USED_TODAY')) {
+    // 1) Создать run_id через INSERT в ai_magic_runs (проверка unique constraint tenant+day)
+    const { data: runData, error: runError } = await supabase
+      .from('ai_magic_runs')
+      .insert({
+        tenant_id: tenantId,
+        run_date: startOfDay.toISOString().split('T')[0],
+        created_by: userId,
+        status: 'started',
+        period_from: startOfDay.toISOString(),
+        period_to: now.toISOString(),
+      })
+      .select('id')
+      .maybeSingle()
+
+    if (runError) {
+      if (runError.message?.includes('duplicate') || runError.code === '23505') {
         return {
           success: false,
           error: 'Магия уже использовалась сегодня. Попробуйте завтра.',
         }
       }
-      console.error('[LOCK MAGIC ERROR]', lockError)
-      return { success: false, error: lockError.message }
+      console.error('[CREATE RUN ERROR]', runError)
+      return { success: false, error: 'Failed to start magic run' }
     }
 
-    const now = new Date()
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const runId = runData?.id as string
 
-    const { data: dashboardData, error: dashboardError } = await supabase.rpc(
-      'get_questions_dashboard',
-      {
-        from_ts: startOfDay.toISOString(),
-        to_ts: now.toISOString(),
-        source_filter: 'all',
-        only_not_found: false,
-        limit_count: 200,
-      }
-    )
+    // 2) Получить вопросы с id из ai_search_logs (не processed)
+    const { data: questionsData, error: questionsError } = await supabase
+      .from('ai_search_logs')
+      .select('id, query, found, created_at')
+      .eq('tenant_id', tenantId)
+      .gte('created_at', startOfDay.toISOString())
+      .lte('created_at', now.toISOString())
+      .is('processed_at', null)
+      .order('created_at', { ascending: false })
+      .limit(200)
 
-    if (dashboardError) {
-      console.error('[DASHBOARD ERROR]', dashboardError)
+    if (questionsError) {
+      console.error('[QUESTIONS ERROR]', questionsError)
       return { success: false, error: 'Failed to fetch questions' }
     }
 
-    const questions = (dashboardData || []) as QuestionEntry[]
-
-    if (questions.length === 0) {
-      return { success: false, error: 'Нет вопросов за сегодня для анализа' }
+    if (!questionsData || questionsData.length === 0) {
+      return { success: false, error: 'Нет новых вопросов за период для анализа' }
     }
 
+    // Подсчет повторов вопросов
+    const countMap: Record<string, { ids: string[]; found: boolean }> = {}
+    for (const q of questionsData) {
+      const key = q.query.toLowerCase().trim()
+      if (!countMap[key]) countMap[key] = { ids: [], found: q.found }
+      countMap[key].ids.push(q.id)
+    }
+
+    const questions = Object.entries(countMap).map(([query, data]) => ({
+      id: data.ids[0],
+      query,
+      found: data.found,
+      count: data.ids.length,
+      all_ids: data.ids,
+    }))
+
+    // Приоритизация
     const prioritized = [
       ...questions.filter(q => !q.found).slice(0, 100),
       ...questions.filter(q => q.found && q.count > 1).slice(0, 50),
       ...questions.filter(q => q.found && q.count === 1).slice(0, 50),
     ].slice(0, 200)
 
-    const questionsText = prioritized
-      .map(
-        (q, i) =>
-          `${i + 1}. "${q.query}" (повторов: ${q.count}, найдено: ${
-            q.found ? 'да' : 'нет'
-          })`
-      )
-      .join('\n')
+    // 3) Получить контекст знаний из faq_items (топ 40)
+    const { data: faqItems, error: faqError } = await supabase
+      .from('faq_items')
+      .select('question, answer')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .limit(40)
+
+    if (faqError) console.error('[FAQ CONTEXT ERROR]', faqError)
+
+    let knowledgeContext = ''
+    if (faqItems && faqItems.length > 0) {
+      const faqText = faqItems
+        .map((f, i) => {
+          const truncAnswer = (f.answer || '').slice(0, 400)
+          return `${i + 1}. Q: "${f.question}"\n   A: ${truncAnswer}${f.answer.length > 400 ? '...' : ''}`
+        })
+        .join('\n\n')
+      knowledgeContext = `\n\nKNOWLEDGE CONTEXT (existing FAQ):\n${faqText}`
+    }
+
+    // 4) Формируем JSON для OpenAI
+    const questionsJson = JSON.stringify(
+      prioritized.map(q => ({
+        id: q.id,
+        query: q.query,
+        found: q.found,
+        count: q.count,
+      })),
+      null,
+      2
+    )
 
     const systemPrompt = `Ты — эксперт по созданию FAQ для SalesPilot, CRM-платформы для отделов продаж.
 
 ЗАДАЧА:
-Проанализируй реальные вопросы клиентов и менеджеров и создай структурированные FAQ-черновики.
+Проанализируй реальные вопросы клиентов и создай структурированные FAQ-черновики с объединением дублей.
 
 ПРАВИЛА:
-1. Группируй похожие вопросы в кластеры (max 10 кластеров)
-2. В каждом кластере max 8 вопросов
-3. Для каждого вопроса создай черновой ответ:
+1. Объединяй похожие вопросы по смыслу (если требуют одинаковый ответ) в один canonical_question
+2. Нормализуй формулировку в корпоративный стиль (например: "сколько стоит?" → "Какова стоимость продукта?")
+3. Группируй в кластеры (max 10 кластеров, max 8 items в кластере)
+4. Для каждого элемента определи decision:
+   - "create_draft" — создать новый FAQ-черновик
+   - "skip_as_duplicate" — пропустить как дубль
+   - "skip_as_already_answered" — пропустить, уже покрыто базой знаний
+5. Для create_draft создай answer_draft:
    - Тон: дружелюбный, уверенный менеджер
    - Стиль: кратко, по делу, без воды
    - Если нет точных данных — используй placeholder X для цифр/дат/сумм
    - Пример: "Срок обработки — X рабочих дней" или "Стоимость от X ₸"
-4. НЕ придумывай конкретные цифры, цены, даты
-5. Ответ СТРОГО в JSON формате
+6. НЕ придумывай конкретные цифры, цены, даты
+7. Ответ СТРОГО в JSON формате
 
 JSON SCHEMA:
 {
@@ -158,24 +223,39 @@ JSON SCHEMA:
       "reason": "Почему эти вопросы сгруппированы",
       "items": [
         {
-          "question": "Вопрос клиента",
-          "answer_draft": "Черновой ответ менеджера",
-          "source_hint": "FAQ/KB/Training/Scripts или null",
+          "canonical_question": "Нормализованный вопрос в корпоративном стиле",
+          "merged_questions": ["исходная формулировка 1", "исходная формулировка 2"],
+          "source_question_ids": ["uuid1", "uuid2"],
+          "decision": "create_draft" | "skip_as_duplicate" | "skip_as_already_answered",
+          "answer_draft": "Черновой ответ (только для create_draft)",
+          "source_hint": "FAQ|KB|Training|Scripts или null",
+          "reason": "Почему принято это решение",
           "confidence": 0.0-1.0
         }
       ]
     }
   ]
-}`
+}
 
-    const userPrompt = `Вопросы клиентов за сегодня:\n\n${questionsText}\n\nВерни ТОЛЬКО JSON по указанной схеме, без дополнительного текста.`
+ВАЖНО:
+- merged_questions: список исходных формулировок, которые объединены
+- source_question_ids: список uuid из входных вопросов
+- answer_draft обязателен ТОЛЬКО для decision = create_draft
+- Используй Knowledge Context чтобы понять что уже покрыто`
+
+    const userPrompt = `Questions (with IDs):
+${questionsJson}${knowledgeContext}
+
+Верни ТОЛЬКО JSON по указанной схеме, без дополнительного текста.`
+
+    console.log('[FAQ MAGIC] Calling OpenAI with', prioritized.length, 'questions')
 
     const openaiResponse = await createChatCompletion(
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      { max_tokens: 1200, temperature: 0.2 }
+      { max_tokens: 3000, temperature: 0.2 }
     )
 
     let magicResult: MagicResult
@@ -191,11 +271,11 @@ JSON SCHEMA:
         throw new Error('Invalid response structure')
       }
     } catch (parseError) {
-      console.error('[OPENAI PARSE ERROR]', parseError, openaiResponse)
+      console.error('[OPENAI PARSE ERROR]', parseError, openaiResponse?.slice(0, 500))
       return { success: false, error: 'Не удалось обработать ответ OpenAI' }
     }
 
-    // 1) сохраняем историю магии
+    // 5) Сохранить ai_faq_suggestions
     const { error: insertError } = await supabase.from('ai_faq_suggestions').insert({
       tenant_id: tenantId,
       period_from: startOfDay.toISOString(),
@@ -209,42 +289,20 @@ JSON SCHEMA:
       return { success: false, error: 'Failed to save magic results' }
     }
 
-    // 2) SYNC MAGIC RESULT -> faq_drafts (UI uses v_faq_drafts_ui)
-    const rawDrafts = (magicResult?.clusters || [])
-      .flatMap(c =>
-        (c.items || []).map(it => ({
-          question: (it.question || '').trim(),
-          answer: (it.answer_draft || '').trim(),
-          confidence: Math.max(
-            0,
-            Math.min(100, Math.round((typeof it.confidence === 'number' ? it.confidence : 0) * 100))
-          ),
-        }))
-      )
-      .filter(d => d.question.length > 0 && d.answer.length > 0)
-
+    // 6) Синк в faq_drafts (ТОЛЬКО decision = create_draft, БЕЗ cluster_id)
     const draftsToInsert: any[] = []
-    for (const d of rawDrafts) {
-      const centroid = d.question.toLowerCase().trim()
-
-      const { data: cl, error: clErr } = await supabase
-        .from('faq_clusters')
-        .select('id')
-        .ilike('centroid', centroid)
-        .limit(1)
-        .maybeSingle()
-
-      if (clErr) console.error('[CLUSTER MATCH ERROR]', clErr)
-
-      if (cl?.id) {
-        draftsToInsert.push({
-          tenant_id: tenantId,
-          cluster_id: cl.id,
-          status: 'draft',
-          question: d.question,
-          answer: d.answer,
-          confidence: d.confidence,
-        })
+    for (const cluster of magicResult.clusters || []) {
+      for (const item of cluster.items || []) {
+        if (item.decision === 'create_draft' && item.canonical_question && item.answer_draft) {
+          draftsToInsert.push({
+            tenant_id: tenantId,
+            cluster_id: null,
+            status: 'draft',
+            question: item.canonical_question.trim(),
+            answer: item.answer_draft.trim(),
+            confidence: Math.max(0, Math.min(100, Math.round(item.confidence * 100))),
+          })
+        }
       }
     }
 
@@ -256,10 +314,26 @@ JSON SCHEMA:
       }
     }
 
+    // 7) Пометить processed (ТОЛЬКО found=false за период)
+    const { error: processedError } = await supabase
+      .from('ai_search_logs')
+      .update({
+        processed_at: now.toISOString(),
+        processed_run_id: runId,
+      })
+      .eq('tenant_id', tenantId)
+      .gte('created_at', startOfDay.toISOString())
+      .lte('created_at', now.toISOString())
+      .eq('found', false)
+      .is('processed_at', null)
+
+    if (processedError) {
+      console.error('[MARK PROCESSED ERROR]', processedError)
+    }
+
     revalidatePath('/app/questions')
 
-    const drafts_created =
-      magicResult?.clusters?.reduce((sum, c) => sum + (c.items?.length || 0), 0) || 0
+    const drafts_created = draftsToInsert.length
 
     return { success: true, data: magicResult, drafts_created }
   } catch (e: any) {
