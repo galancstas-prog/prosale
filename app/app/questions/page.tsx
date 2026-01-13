@@ -585,7 +585,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                               {cluster.question}
                             </p>
                             <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                              <span className="font-medium">Score: {cluster.score}</span>
+                              <span className="font-medium">Релевантность: {cluster.score}</span>
                               <span>•</span>
                               <span>Повторов: {cluster.total_asks}</span>
                             </div>
