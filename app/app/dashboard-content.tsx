@@ -168,7 +168,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                Переиндексировать AI
+                Обучить AI
               </Button>
             </div>
           )}
@@ -228,9 +228,9 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
 
         <Card className="p-6">
           <div className="space-y-2 mb-4">
-            <h2 className="text-xl font-semibold">Global Search</h2>
+            <h2 className="text-xl font-semibold">Глобальный поиск</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Search across all modules: Scripts, Training, FAQ, and Knowledge Base
+              Поиск по всем модулям
             </p>
           </div>
           <GlobalSearch />
@@ -241,7 +241,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
             <div className="space-y-2 mb-4">
               <h2 className="text-xl font-semibold">Не нашли ответ?</h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Симуляция вопроса клиента для аналитики и Auto-FAQ
+                Добавьте ненайденный вопрос для аналитики 
               </p>
             </div>
 
