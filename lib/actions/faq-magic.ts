@@ -56,8 +56,6 @@ export async function canRunMagicToday() {
 
 export async function runFaqMagicForToday() {
   try {
-    console.log('[FAQ MAGIC] ============ SERVER ACTION INVOKED ============')
-
     if (!process.env.OPENAI_API_KEY) {
       return { success: false, error: 'OpenAI API key not configured' }
     }
@@ -69,14 +67,19 @@ export async function runFaqMagicForToday() {
       return { success: false, error: 'Not authenticated' }
     }
 
-    await supabase.from('ai_faq_suggestions').insert({
-      title: '🔥 DIAGNOSTIC PING - MAGIC INVOKED',
-      period_from: new Date().toISOString(),
-      period_to: new Date().toISOString(),
-      payload: { diagnostic: true, timestamp: Date.now() }
-    })
+    const { data: tm, error: tmErr } = await supabase
+      .from('tenant_members')
+      .select('tenant_id')
+      .eq('user_id', userData.user.id)
+      .limit(1)
+      .maybeSingle()
 
-    console.log('[FAQ MAGIC] Diagnostic ping inserted into DB')
+    if (tmErr || !tm?.tenant_id) {
+      console.error('[TENANT RESOLVE ERROR]', tmErr)
+      return { success: false, error: 'Tenant not resolved' }
+    }
+
+    const tenantId = tm.tenant_id as string
 
     const { error: lockError } = await supabase.rpc('lock_magic_today')
 
@@ -194,6 +197,7 @@ JSON SCHEMA:
 
     // 1) сохраняем историю магии
     const { error: insertError } = await supabase.from('ai_faq_suggestions').insert({
+      tenant_id: tenantId,
       period_from: startOfDay.toISOString(),
       period_to: now.toISOString(),
       title: `FAQ Magic (${now.toLocaleDateString('ru-RU')})`,
@@ -205,41 +209,50 @@ JSON SCHEMA:
       return { success: false, error: 'Failed to save magic results' }
     }
 
-    // 2) SYNC MAGIC RESULT -> faq_drafts (UI + publish/delete живут тут)
-    const flatDrafts = (magicResult?.clusters || [])
+    // 2) SYNC MAGIC RESULT -> faq_drafts (UI uses v_faq_drafts_ui)
+    const rawDrafts = (magicResult?.clusters || [])
       .flatMap(c =>
         (c.items || []).map(it => ({
           question: (it.question || '').trim(),
-          answer_draft: (it.answer_draft || '').trim(),
-          source_hint: it.source_hint ?? null,
-          confidence: typeof it.confidence === 'number' ? it.confidence : 0,
+          answer: (it.answer_draft || '').trim(),
+          confidence: Math.max(
+            0,
+            Math.min(100, Math.round((typeof it.confidence === 'number' ? it.confidence : 0) * 100))
+          ),
         }))
       )
-      .filter(d => d.question.length > 0)
+      .filter(d => d.question.length > 0 && d.answer.length > 0)
 
-    if (flatDrafts.length > 0) {
-      const { error: upsertErr } = await supabase
-        .from('faq_drafts')
-        .upsert(flatDrafts, { onConflict: 'question' })
+    const draftsToInsert: any[] = []
+    for (const d of rawDrafts) {
+      const centroid = d.question.toLowerCase().trim()
 
-      if (upsertErr) {
-        console.error('[FAQ_DRAFTS UPSERT ERROR]', upsertErr)
+      const { data: cl, error: clErr } = await supabase
+        .from('faq_clusters')
+        .select('id')
+        .ilike('centroid', centroid)
+        .limit(1)
+        .maybeSingle()
 
-        const questionsToReplace = flatDrafts.map(d => d.question)
+      if (clErr) console.error('[CLUSTER MATCH ERROR]', clErr)
 
-        const { error: delErr } = await supabase
-          .from('faq_drafts')
-          .delete()
-          .in('question', questionsToReplace)
+      if (cl?.id) {
+        draftsToInsert.push({
+          tenant_id: tenantId,
+          cluster_id: cl.id,
+          status: 'draft',
+          question: d.question,
+          answer: d.answer,
+          confidence: d.confidence,
+        })
+      }
+    }
 
-        if (delErr) console.error('[FAQ_DRAFTS DELETE FALLBACK ERROR]', delErr)
+    if (draftsToInsert.length > 0) {
+      const { error: draftsErr } = await supabase.from('faq_drafts').insert(draftsToInsert)
 
-        const { error: insErr } = await supabase.from('faq_drafts').insert(flatDrafts)
-
-        if (insErr) {
-          console.error('[FAQ_DRAFTS INSERT FALLBACK ERROR]', insErr)
-          return { success: false, error: 'Failed to sync drafts for UI' }
-        }
+      if (draftsErr) {
+        console.error('[FAQ_DRAFTS INSERT ERROR]', draftsErr)
       }
     }
 
