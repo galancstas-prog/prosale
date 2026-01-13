@@ -364,7 +364,7 @@ export async function deleteFaqDraft({ draftId }: { draftId: string }) {
 
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user) return { success: false, error: 'Not authenticated' }
-
+    
     const { error } = await supabase.from('faq_drafts').delete().eq('id', draftId)
 
     if (error) {
