@@ -124,8 +124,8 @@ export function CategoryList({ categories, isAdmin }: CategoryListProps) {
       <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Category</DialogTitle>
-            <DialogDescription>Update the category details</DialogDescription>
+            <DialogTitle>Редактивроать категорию</DialogTitle>
+            <DialogDescription>Обновить сведения о категории</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdate} className="space-y-4">
             {error && (
@@ -134,7 +134,7 @@ export function CategoryList({ categories, isAdmin }: CategoryListProps) {
               </Alert>
             )}
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Category Name</Label>
+              <Label htmlFor="edit-name">Название категории</Label>
               <Input
                 id="edit-name"
                 name="name"
@@ -144,7 +144,7 @@ export function CategoryList({ categories, isAdmin }: CategoryListProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-description">Описание</Label>
               <Textarea
                 id="edit-description"
                 name="description"
@@ -154,11 +154,11 @@ export function CategoryList({ categories, isAdmin }: CategoryListProps) {
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setEditingCategory(null)} disabled={loading}>
-                Cancel
+                Отмена
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Save Changes
+                Сохранить настройки
               </Button>
             </div>
           </form>
