@@ -546,10 +546,10 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                 </div>
                 <Tabs value={filter} onValueChange={(v) => setFilter(v as MatchTypeFilter)}>
                   <TabsList>
-                    <TabsTrigger value="all">Все</TabsTrigger>
-                    <TabsTrigger value="missing">Missing</TabsTrigger>
-                    <TabsTrigger value="partial">Partial</TabsTrigger>
-                    <TabsTrigger value="covered">Covered</TabsTrigger>
+               <TabsTrigger value="all">Все</TabsTrigger>
+<TabsTrigger value="missing">Без ответа</TabsTrigger>
+<TabsTrigger value="partial">Частично решено</TabsTrigger>
+<TabsTrigger value="covered">Решено</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
