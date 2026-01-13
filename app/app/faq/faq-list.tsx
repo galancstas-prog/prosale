@@ -2,16 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/empty-state'
-import { Copy, Trash2, MessageCircle, Loader2, Check } from 'lucide-react'
+import { Copy, Trash2, MessageCircle, Loader2, Check, ChevronDown, Plus } from 'lucide-react'
 import { deleteFaqItem } from '@/lib/actions/faq-items'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -36,14 +30,26 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
   const router = useRouter()
   const { toast } = useToast()
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [accordionValue, setAccordionValue] = useState<string | undefined>(undefined)
+  const [openItems, setOpenItems] = useState<Set<string>>(new Set())
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
     if (openItemId) {
-      setAccordionValue(openItemId)
+      setOpenItems(prev => new Set(prev).add(openItemId))
     }
   }, [openItemId])
+
+  const toggleItem = (itemId: string) => {
+    setOpenItems(prev => {
+      const next = new Set(prev)
+      if (next.has(itemId)) {
+        next.delete(itemId)
+      } else {
+        next.add(itemId)
+      }
+      return next
+    })
+  }
 
   const handleCopy = async (itemId: string, answer: string) => {
     try {
@@ -93,92 +99,127 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
 
   if (items.length === 0) {
     return (
-      <Card className="p-12">
-        <EmptyState
-          icon={MessageCircle}
-          title="No FAQ items yet"
-          description={
-            isAdmin
-              ? "Create your first FAQ item to help managers find answers quickly"
-              : "No FAQ items available at this time"
-          }
-        />
-      </Card>
+      <div className="flex flex-col items-center justify-center py-20 px-4">
+        <div className="rounded-full bg-slate-100 dark:bg-slate-800 p-6 mb-6">
+          <MessageCircle className="h-12 w-12 text-slate-400" />
+        </div>
+        <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
+          Пока нет FAQ
+        </h3>
+        <p className="text-slate-600 dark:text-slate-400 text-center mb-6 max-w-md">
+          {isAdmin
+            ? "Добавьте первый вопрос, чтобы помочь менеджерам быстро находить ответы"
+            : "FAQ пока не добавлены"}
+        </p>
+      </div>
     )
   }
 
   return (
-    <Card className="p-6">
-      <Accordion type="single" collapsible className="w-full" value={accordionValue} onValueChange={setAccordionValue}>
-        {items.map((item) => (
-          <AccordionItem
+    <div className="space-y-3">
+      {items.map((item) => {
+        const isOpen = openItems.has(item.id)
+        const isHighlighted = highlightId === item.id
+
+        return (
+          <Card
             key={item.id}
-            value={item.id}
             id={`faq-item-${item.id}`}
             className={cn(
-              'transition-colors',
-              highlightId === item.id && 'bg-yellow-50 dark:bg-yellow-900/20 rounded-lg px-2'
+              'rounded-xl border transition-all duration-200',
+              isHighlighted
+                ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-800 shadow-sm'
+                : 'hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600'
             )}
           >
-            <div className="flex items-center gap-2">
-              <AccordionTrigger className="flex-1 text-left hover:no-underline">
-                {searchQuery && highlightId === item.id ? (
-                  <span
-                    className="font-medium"
-                    dangerouslySetInnerHTML={{ __html: highlightText(item.question, searchQuery) }}
-                  />
-                ) : (
-                  <span className="font-medium">{item.question}</span>
-                )}
-              </AccordionTrigger>
-              {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDelete(item.id)}
-                  disabled={deleting === item.id}
-                  className="shrink-0"
+            <div className="p-5">
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() => toggleItem(item.id)}
+                  className={cn(
+                    'flex-1 text-left group cursor-pointer',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-lg'
+                  )}
                 >
-                  {deleting === item.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-red-600" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  )}
-                </Button>
-              )}
-            </div>
-            <AccordionContent>
-              <div className="pt-2 pb-4">
-                <div className="flex items-start gap-4">
-                  {searchQuery && highlightId === item.id ? (
-                    <p
-                      className="flex-1 text-slate-600 dark:text-slate-400 whitespace-pre-wrap"
-                      dangerouslySetInnerHTML={{ __html: highlightText(item.answer, searchQuery) }}
-                    />
-                  ) : (
-                    <p className="flex-1 text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
-                      {item.answer}
-                    </p>
-                  )}
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      'mt-0.5 transition-transform duration-200',
+                      isOpen && 'rotate-180'
+                    )}>
+                      <ChevronDown className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
+                    </div>
+                    <div className="flex-1">
+                      {searchQuery && isHighlighted ? (
+                        <h3
+                          className="text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-slate-700 dark:group-hover:text-slate-200"
+                          dangerouslySetInnerHTML={{ __html: highlightText(item.question, searchQuery) }}
+                        />
+                      ) : (
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-slate-700 dark:group-hover:text-slate-200">
+                          {item.question}
+                        </h3>
+                      )}
+                    </div>
+                  </div>
+                </button>
+
+                {isAdmin && (
                   <Button
                     size="sm"
-                    variant="outline"
-                    onClick={() => handleCopy(item.id, item.answer)}
-                    className="shrink-0"
+                    variant="ghost"
+                    onClick={() => handleDelete(item.id)}
+                    disabled={deleting === item.id}
+                    className="shrink-0 h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    {copiedId === item.id ? (
-                      <Check className="h-4 w-4 mr-2 text-green-600" />
+                    {deleting === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                     ) : (
-                      <Copy className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-4 w-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" />
                     )}
-                    {copiedId === item.id ? 'Copied' : 'Copy'}
                   </Button>
-                </div>
+                )}
               </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </Card>
+
+              {isOpen && (
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
+                    <div className="flex items-start gap-4">
+                      {searchQuery && isHighlighted ? (
+                        <p
+                          className="flex-1 text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: highlightText(item.answer, searchQuery) }}
+                        />
+                      ) : (
+                        <p className="flex-1 text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">
+                          {item.answer}
+                        </p>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopy(item.id, item.answer)}
+                        className="shrink-0 h-8 gap-2 transition-colors"
+                      >
+                        {copiedId === item.id ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-green-600" />
+                            <span className="text-xs">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            <span className="text-xs">Copy</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        )
+      })}
+    </div>
   )
 }

@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react'
 import { useMembership } from '@/lib/auth/use-membership'
 import { useTenantPlan } from '@/lib/hooks/use-tenant-plan'
 import { getRecentQuestions, getTopClusters, getDraftsForClusters, getAllDrafts, RecentQuestion, TopCluster, StandaloneDraft } from '@/lib/actions/analytics-questions'
-import { publishFaqDraft, deleteFaqDraft, runFaqMagicForToday } from '@/lib/actions/faq-magic'
+import { publishFaqDraft, deleteFaqDraft, runFaqMagicForToday, canRunMagicToday } from '@/lib/actions/faq-magic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, CheckCircle2, AlertCircle, Clock, Sparkles, X, Check, Wand2 } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle, Clock, Sparkles, X, Check, Wand2, Lock } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
@@ -37,9 +37,13 @@ function QuestionsPageContent() {
   const [error, setError] = useState('')
   const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({})
   const [publishingDrafts, setPublishingDrafts] = useState<Set<string>>(new Set())
+  const [deletingDrafts, setDeletingDrafts] = useState<Set<string>>(new Set())
   const [magicLoading, setMagicLoading] = useState(false)
   const [recentDisplayLimit, setRecentDisplayLimit] = useState(5)
   const [clustersDisplayLimit, setClustersDisplayLimit] = useState(5)
+  const [magicAllowed, setMagicAllowed] = useState(true)
+  const [magicNextAllowed, setMagicNextAllowed] = useState<string | null>(null)
+  const [checkingMagic, setCheckingMagic] = useState(true)
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
   const hasManagerAccess = membership?.role === 'MANAGER' || isAdmin
@@ -57,6 +61,27 @@ useEffect(() => {
   setClustersDisplayLimit(5)
   loadData()
 }, [hasManagerAccess, hasAccess, filter])
+
+  useEffect(() => {
+    async function checkMagicAvailability() {
+      if (!isAdmin || !hasAccess) {
+        setCheckingMagic(false)
+        return
+      }
+
+      setCheckingMagic(true)
+      const result = await canRunMagicToday()
+
+      if (result.success) {
+        setMagicAllowed(result.allowed || false)
+        setMagicNextAllowed(result.next_allowed_at || null)
+      }
+
+      setCheckingMagic(false)
+    }
+
+    checkMagicAvailability()
+  }, [isAdmin, hasAccess])
 
   async function loadRecentQuestions() {
     setLoadingRecent(true)
@@ -150,29 +175,41 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
   }
 
   const handleDeleteDraft = async (draftId: string, question: string) => {
+    setDeletingDrafts(prev => new Set(prev).add(draftId))
+
+    const originalDraft = standaloneDrafts.find(d => d.id === draftId)
+
+    setDraftsMap(prev => {
+      const next = { ...prev }
+      for (const k of Object.keys(next)) {
+        next[k] = (next[k] || []).filter(d => d.question !== question)
+        if (next[k].length === 0) delete next[k]
+      }
+      return next
+    })
+
+    setStandaloneDrafts(prev => prev.filter(d => d.id !== draftId))
+
+    setEditingDrafts(prev => {
+      const next = { ...prev }
+      delete next[question]
+      return next
+    })
+
     const result = await deleteFaqDraft({ draftId })
+
+    setDeletingDrafts(prev => {
+      const next = new Set(prev)
+      next.delete(draftId)
+      return next
+    })
 
     if (result.success) {
       toast.success('Черновик удалён')
-
-      setDraftsMap(prev => {
-  const next = { ...prev }
-  // удалить draft внутри всех ключей (без угадываний)
-  for (const k of Object.keys(next)) {
-    next[k] = (next[k] || []).filter(d => d.question !== question)
-    if (next[k].length === 0) delete next[k]
-  }
-  return next
-})
-
-      setStandaloneDrafts(prev => prev.filter(d => d.id !== draftId))
-
-      setEditingDrafts(prev => {
-        const next = { ...prev }
-        delete next[question]
-        return next
-      })
     } else {
+      if (originalDraft) {
+        setStandaloneDrafts(prev => [...prev, originalDraft])
+      }
       toast.error(result.error || 'Не удалось удалить')
     }
   }
@@ -237,19 +274,52 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
 
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <Button onClick={handleRunMagic} disabled={magicLoading} variant="outline" className="gap-2">
-              {magicLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Магия...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="h-4 w-4" />
-                  Магия
-                </>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                onClick={handleRunMagic}
+                disabled={magicLoading || checkingMagic || !magicAllowed}
+                variant="outline"
+                className="gap-2"
+              >
+                {checkingMagic ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Проверяем доступ...
+                  </>
+                ) : magicLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Магия...
+                  </>
+                ) : !magicAllowed ? (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    Магия
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-4 w-4" />
+                    Магия
+                  </>
+                )}
+              </Button>
+              {magicLoading && (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Пожалуйста, подождите — происходит анализ ваших вопросов
+                </span>
               )}
-            </Button>
+              {!magicAllowed && magicNextAllowed && !checkingMagic && (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Доступно: {new Date(magicNextAllowed).toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+              )}
+            </div>
           )}
 
           {hasDrafts && isAdmin && (
@@ -283,6 +353,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
               {standaloneDrafts.map((draft) => {
                 const isEditing = draft.id in editingDrafts
                 const isPublishing = publishingDrafts.has(draft.question)
+                const isDeleting = deletingDrafts.has(draft.id)
                 const currentAnswer = isEditing ? editingDrafts[draft.id] : draft.answer
 
                 return (
@@ -319,7 +390,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                             }))
                           }}
                           className="min-h-[100px] text-sm"
-                          disabled={isPublishing}
+                          disabled={isPublishing || isDeleting}
                         />
                       </div>
 
@@ -327,7 +398,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                         <Button
                           size="sm"
                           onClick={() => handlePublishDraft(draft.id, draft.question, currentAnswer)}
-                          disabled={isPublishing}
+                          disabled={isPublishing || isDeleting}
                           className="gap-2"
                         >
                           {isPublishing ? (
@@ -346,11 +417,20 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                           size="sm"
                           variant="outline"
                           onClick={() => handleDeleteDraft(draft.id, draft.question)}
-                          disabled={isPublishing}
+                          disabled={isPublishing || isDeleting}
                           className="gap-2"
                         >
-                          <X className="h-3 w-3" />
-                          Удалить
+                          {isDeleting ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Удаление...
+                            </>
+                          ) : (
+                            <>
+                              <X className="h-3 w-3" />
+                              Удалить
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>
