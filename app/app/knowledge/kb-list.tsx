@@ -81,7 +81,7 @@ export function KbList({ pages, isAdmin }: KbListProps) {
               <Link href={`/app/knowledge/${page.id}`} className="flex-1">
                 <Button size="sm" variant="default" className="w-full">
                   <Eye className="h-4 w-4 mr-2" />
-                  View
+                  Смотреть
                 </Button>
               </Link>
 
