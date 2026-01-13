@@ -38,6 +38,7 @@ function QuestionsPageContent() {
   const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({})
   const [publishingDrafts, setPublishingDrafts] = useState<Set<string>>(new Set())
   const [deletingDrafts, setDeletingDrafts] = useState<Set<string>>(new Set())
+  const [publishingAll, setPublishingAll] = useState(false)
   const [magicLoading, setMagicLoading] = useState(false)
   const [recentDisplayLimit, setRecentDisplayLimit] = useState(5)
   const [clustersDisplayLimit, setClustersDisplayLimit] = useState(5)
@@ -215,19 +216,35 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
   }
 
   const handlePublishAll = async () => {
-    const allDrafts = Object.entries(draftsMap)
-  .filter(([clusterId]) => {
-    const cluster = topClusters.find(c => c.id === clusterId)
-    return cluster && (cluster.match_type === 'missing' || cluster.match_type === 'partial')
-  })
+    if (standaloneDrafts.length === 0) return
 
-    for (const [key, drafts] of allDrafts) {
-      if (drafts.length > 0) {
-        const draft = drafts[0]
-        const answer = editingDrafts[draft.question] || draft.answer_draft
-        await handlePublishDraft(draft.id, draft.question, answer)
+    setPublishingAll(true)
+
+    for (const draft of standaloneDrafts) {
+      const answer = editingDrafts[draft.id] || draft.answer
+
+      setStandaloneDrafts(prev => prev.filter(d => d.id !== draft.id))
+
+      setEditingDrafts(prev => {
+        const next = { ...prev }
+        delete next[draft.id]
+        return next
+      })
+
+      const result = await publishFaqDraft({
+        draftId: draft.id,
+        question: draft.question,
+        answer
+      })
+
+      if (!result.success) {
+        setStandaloneDrafts(prev => [...prev, draft])
+        toast.error(`Не удалось опубликовать "${draft.question}": ${result.error || 'Ошибка'}`)
       }
     }
+
+    setPublishingAll(false)
+    toast.success('Все черновики опубликованы')
   }
 
   if (isLoading) {
@@ -323,9 +340,18 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
           )}
 
           {hasDrafts && isAdmin && (
-            <Button onClick={handlePublishAll} className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              Опубликовать все
+            <Button onClick={handlePublishAll} disabled={publishingAll} className="gap-2">
+              {publishingAll ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Публикую...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Опубликовать все
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -390,7 +416,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                             }))
                           }}
                           className="min-h-[100px] text-sm"
-                          disabled={isPublishing || isDeleting}
+                          disabled={isPublishing || isDeleting || publishingAll}
                         />
                       </div>
 
@@ -398,7 +424,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                         <Button
                           size="sm"
                           onClick={() => handlePublishDraft(draft.id, draft.question, currentAnswer)}
-                          disabled={isPublishing || isDeleting}
+                          disabled={isPublishing || isDeleting || publishingAll}
                           className="gap-2"
                         >
                           {isPublishing ? (
@@ -417,7 +443,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                           size="sm"
                           variant="outline"
                           onClick={() => handleDeleteDraft(draft.id, draft.question)}
-                          disabled={isPublishing || isDeleting}
+                          disabled={isPublishing || isDeleting || publishingAll}
                           className="gap-2"
                         >
                           {isDeleting ? (
