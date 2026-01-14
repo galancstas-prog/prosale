@@ -432,7 +432,7 @@ export default function Landing() {
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Готовые FAQ</p>
                   {[
                     { q: 'Как протестировать платформу?', a: 'Вы можете попробовать наше демо, которое предоставляет полный доступ на 3 дня.' },
-                    { q: 'Сколько стоит ваша система?', a: 'Тарифы начинаются от 2.490₽, мы можем подобрать удобный план для вашей команды.' },
+                    { q: 'Сколько стоит ваша система?', a: 'Тарифы начинаются от 2.490 тенге, мы можем подобрать удобный план для вашей команды.' },
                     { q: 'У меня нет времени наполнить систему, что делать?', a: 'Мы оказываем помощь в создании базы знаний, соберем систему практически без вашего участия.' }
                   ].map((item, i) => (
                     <Card key={i} className="border border-emerald-200 bg-emerald-50 shadow-sm hover:shadow-md transition-all duration-200" style={{ animation: `slideIn 0.3s ease-out ${i * 0.15 + 0.5}s both` }}>
@@ -447,25 +447,40 @@ export default function Landing() {
             </div>
 
             {/* Screenshots */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
-                <CardContent className="p-0">
-                  <div className="bg-slate-100 h-[220px] flex items-center justify-center text-slate-400 text-sm">
-                    [magic_before_placeholder.png]
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-2 border-[#4F46E5] rounded-2xl overflow-hidden bg-white shadow-lg">
-                <CardContent className="p-0">
-                  <div className="bg-slate-100 h-[220px] flex items-center justify-center text-slate-400 text-sm">
-                    <div className="text-center">
-                      <Badge className="mb-2 bg-[#4F46E5]">Результат</Badge>
-                      <p>[magic_after_placeholder.png]</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+<div className="grid md:grid-cols-2 gap-6">
+  {/* BEFORE */}
+  <Card className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+    <CardContent className="p-0">
+      <div className="relative w-full aspect-[16/9] bg-slate-100">
+        <Image
+          src="/magic_before_placeholder.png"
+          alt="До использования SalesPilot"
+          fill
+          className="object-contain"
+          priority
+        />
+      </div>
+    </CardContent>
+  </Card>
+
+  {/* AFTER */}
+  <Card className="border-2 border-[#4F46E5] rounded-2xl overflow-hidden bg-white shadow-lg">
+    <CardContent className="p-0">
+      <div className="relative w-full aspect-[16/9] bg-slate-100">
+        <Image
+          src="/magic_after_placeholder.png"
+          alt="После использования SalesPilot"
+          fill
+          className="object-contain"
+          priority
+        />
+        <div className="absolute top-4 left-4">
+          <Badge className="bg-[#4F46E5]">Результат</Badge>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</div>
 
             <style jsx>{`
               @keyframes slideIn {
@@ -511,49 +526,49 @@ export default function Landing() {
             </div>
 
             <div className="space-y-8">
-              {[
-                {
-                  icon: MessageSquare,
-                  title: 'Scripts',
-                  subtitle: 'Сценарии реальных диалогов',
-                  items: ['Логика «вопрос → ответ → шаг»', 'Готовые формулировки', 'Один стандарт для команды'],
-                  placeholder: 'scripts_placeholder.png'
-                },
-                {
-                  icon: FileText,
-                  title: 'FAQ',
-                  subtitle: 'Ответы для возражений',
-                  items: ['Короткие формулировки', 'Шаблоны с переменными', 'Автопополнение через Magic'],
-                  placeholder: 'faq_placeholder.png'
-                },
-                {
-                  icon: Database,
-                  title: 'Knowledge Base',
-                  subtitle: 'Единый источник правды',
-                  items: ['Условия и цифры', 'Без противоречий', 'Основа для AI-ответов'],
-                  placeholder: 'kb_placeholder.png'
-                },
-                {
-                  icon: BookOpen,
-                  title: 'Training',
-                  subtitle: 'Обучение без воды',
-                  items: ['Короткие модули', 'Примеры диалогов', 'Быстрый онбординг'],
-                  placeholder: 'training_placeholder.png'
-                },
-                {
-                  icon: Search,
-                  title: 'Global Search',
-                  subtitle: 'Быстрый поиск без AI',
-                  items: ['По всей базе', 'Подсветка совпадений', 'Работает всегда'],
-                  placeholder: 'search_placeholder.png'
-                },
-                {
-                  icon: Brain,
-                  title: 'AI Search',
-                  subtitle: 'Готовый ответ, а не ссылки',
-                  items: ['Понимает смысл', 'Собирает из базы', 'Показывает источники'],
-                  placeholder: 'ai_search_placeholder.png'
-                }
+  {[
+    {
+      icon: MessageSquare,
+      title: 'Scripts',
+      subtitle: 'Сценарии реальных диалогов',
+      items: ['Логика «вопрос → ответ → шаг»', 'Готовые формулировки', 'Один стандарт для команды'],
+      placeholder: 'scripts_placeholder.png',
+    },
+    {
+      icon: FileText,
+      title: 'FAQ',
+      subtitle: 'Ответы для возражений',
+      items: ['Короткие формулировки', 'Шаблоны с переменными', 'Автопополнение через Magic'],
+      placeholder: 'faq_placeholder.png',
+    },
+    {
+      icon: Database,
+      title: 'Knowledge Base',
+      subtitle: 'Единый источник правды',
+      items: ['Условия и цифры', 'Без противоречий', 'Основа для AI-ответов'],
+      placeholder: 'kb_placeholder.png',
+    },
+    {
+      icon: BookOpen,
+      title: 'Training',
+      subtitle: 'Обучение без воды',
+      items: ['Короткие модули', 'Примеры диалогов', 'Быстрый онбординг'],
+      placeholder: 'training_placeholder.png',
+    },
+    {
+      icon: Search,
+      title: 'Global Search',
+      subtitle: 'Быстрый поиск без AI',
+      items: ['По всей базе', 'Подсветка совпадений', 'Работает всегда'],
+      placeholder: 'search_placeholder.png',
+    },
+    {
+      icon: Brain,
+      title: 'AI Search',
+      subtitle: 'Готовый ответ, а не ссылки',
+      items: ['Понимает смысл', 'Собирает из базы', 'Показывает источники'],
+      placeholder: 'ai_search_placeholder.png',
+    }
               ].map((feature, i) => (
                 <Card key={i} className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
                   <CardContent className="p-0">
