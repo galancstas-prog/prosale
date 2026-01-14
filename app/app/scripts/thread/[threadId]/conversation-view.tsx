@@ -142,11 +142,11 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
             {turns.length === 0 ? (
               <EmptyState
                 icon={MessageSquare}
-                title="No messages yet"
+                title="Нет новых сообщений"
                 description={
                   isAdmin
-                    ? 'Add the first message to start the conversation'
-                    : 'No messages in this conversation yet'
+                    ? 'Добавьте новое сообщение для начала диалога'
+                    : 'В этой переписке пока нет сообщений'
                 }
               />
             ) : (
@@ -181,7 +181,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                             }}
                             disabled={loading}
                           >
-                            Cancel
+                            Отмена
                           </Button>
                         </div>
                       </div>
@@ -190,7 +190,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                         {shouldHighlight && turn.id === highlightTurnId && searchQuery ? (
                           <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800">
                             <div className={`text-sm font-medium mb-2 ${turn.speaker === 'agent' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`}>
-                              {turn.speaker === 'agent' ? 'Manager' : 'Client'}
+                              {turn.speaker === 'agent' ? 'Менеджер' : 'Клиент'}
                             </div>
                             <div
                               className="text-sm whitespace-pre-wrap"
@@ -266,7 +266,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                   <Label>Роль</Label>
                   <Select name="speaker" required>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select speaker" />
+                      <SelectValue placeholder="Выберите роль" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="agent">Менеджер</SelectItem>
@@ -278,7 +278,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                   <Label>Сообщение</Label>
                   <Textarea
                     name="message"
-                    placeholder="Enter the message..."
+                    placeholder="Напишите сообщение..."
                     required
                     disabled={loading}
                     className="min-h-[150px]"
