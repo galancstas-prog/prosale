@@ -185,16 +185,16 @@ function RegisterPageContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="inviteCode">Invite Code (optional)</Label>
+              <Label htmlFor="inviteCode">Код приглашения (optional)</Label>
               <Input
                 id="inviteCode"
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                placeholder="Enter invite code if you have one"
+                placeholder="Введите код приглашения, если он у вас есть"
               />
               <p className="text-xs text-muted-foreground">
-                Leave empty to create a new workspace as admin
+                Оставьте поле пустым, чтобы создать новое рабочее пространство в качестве администратора.
               </p>
             </div>
 
