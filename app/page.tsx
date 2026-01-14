@@ -825,7 +825,7 @@ export default function Landing() {
                 <TabsList className="bg-slate-100">
                   <TabsTrigger value="KZT">₸ KZT</TabsTrigger>
                   <TabsTrigger value="RUB">₽ RUB</TabsTrigger>
-                  <TabsTrigger value="BYN">Br BYN</TabsTrigger>
+                  <TabsTrigger value="BYN">$ USD</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
