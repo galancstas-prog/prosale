@@ -55,8 +55,8 @@ export function EditKbDialog({ page }: EditKbDialogProps) {
     router.refresh()
 
     toast({
-      title: 'Success',
-      description: 'Page updated successfully',
+      title: 'Успешно',
+      description: 'Страница обновлена',
     })
   }
 
