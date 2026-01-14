@@ -251,7 +251,7 @@ export default function Landing() {
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-12">
               <h2
-                className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-5xl lg:text-[60px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Это не CRM.<br />
