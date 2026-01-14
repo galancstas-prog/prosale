@@ -10,22 +10,20 @@ import { WHATSAPP_URL } from '@/lib/constants'
 import { useState } from 'react'
 
 export default function Landing() {
-  const [currency, setCurrency] = useState<'KZT' | 'RUB' | 'BYN'>('KZT')
+  const [currency, setCurrency] = useState<'KZT' | 'RUB' | 'USD'>('KZT')
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
+    if (element) element.scrollIntoView({ behavior: 'smooth' })
   }
 
   const pricing = {
     KZT: { mini: '2 490', pro: '5 490', team: '11 490', individual: '79 900' },
     RUB: { mini: '499', pro: '1 099', team: '2 299', individual: '29 990' },
     USD: { mini: '5', pro: '11', team: '23', individual: '159' }
-  }
+  } as const
 
-  const currencySymbol = { KZT: '₸', RUB: '₽', USD: '$' }
+  const currencySymbol = { KZT: '₸', RUB: '₽', USD: '$' } as const
 
   return (
     <div className="min-h-screen bg-white">
@@ -807,67 +805,72 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Pricing */}
-        <section id="pricing" className="py-16 md:py-24">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-12">
-              <h2
-                className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
-                style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
+       {/* Pricing */}
+<section id="pricing" className="py-16 md:py-24">
+  <div className="container mx-auto px-4 max-w-6xl">
+    <div className="text-center mb-12">
+      <h2
+        className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
+        style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
+      >
+        Выберите тариф под размер команды
+      </h2>
+      <p className="text-lg md:text-xl text-slate-600 mb-8">
+        Все тарифы включают демо на 3 дня.
+      </p>
+
+      {/* KZT по умолчанию, но в центре */}
+      <Tabs
+        value={currency}
+        className="w-fit mx-auto"
+        onValueChange={(v) => setCurrency(v as 'KZT' | 'RUB' | 'USD')}
+      >
+        <TabsList className="bg-slate-100">
+          <TabsTrigger value="RUB">₽ RUB</TabsTrigger>
+          <TabsTrigger value="KZT">₸ KZT</TabsTrigger>
+          <TabsTrigger value="USD">$ USD</TabsTrigger>
+        </TabsList>
+      </Tabs>
+    </div>
+
+    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {[
+        { name: 'Mini', price: pricing[currency].mini, users: '1-3', desc: 'Для малых команд' },
+        { name: 'Pro', price: pricing[currency].pro, users: '4-10', desc: 'Для растущих команд', popular: true },
+        { name: 'Team', price: pricing[currency].team, users: '11-30', desc: 'Для больших отделов' },
+        { name: 'Individual', price: pricing[currency].individual, users: '1', desc: 'Один менеджер' }
+      ].map((plan, i) => (
+        <Card
+          key={i}
+          className={`border rounded-2xl relative ${plan.popular ? 'border-[#4F46E5] shadow-lg' : 'border-slate-200'}`}
+        >
+          {plan.popular && (
+            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#4F46E5]">
+              Популярный
+            </Badge>
+          )}
+          <CardContent className="p-8">
+            <h3 className="text-xl font-semibold mb-2 text-slate-900">{plan.name}</h3>
+            <p className="text-sm text-slate-600 mb-4">{plan.desc}</p>
+            <div className="mb-6">
+              <span className="text-4xl font-bold text-slate-900">{plan.price}</span>
+              <span className="text-slate-600 ml-2">{currencySymbol[currency]}/мес</span>
+            </div>
+            <p className="text-sm text-slate-600 mb-6">Пользователей: {plan.users}</p>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="block">
+              <Button
+                className={`w-full rounded-xl ${plan.popular ? 'bg-[#4F46E5] hover:bg-[#4338CA]' : ''}`}
+                variant={plan.popular ? 'default' : 'outline'}
               >
-                Выберите тариф под размер команды
-              </h2>
-              <p className="text-lg md:text-xl text-slate-600 mb-8">
-                Все тарифы включают демо на 3 дня.
-              </p>
-
-              <Tabs defaultValue="RUB" className="w-fit mx-auto" onValueChange={(v) => setCurrency(v as any)}>
-                <TabsList className="bg-slate-100">
-                  <TabsTrigger value="KZT">₸ KZT</TabsTrigger>
-                  <TabsTrigger value="RUB">₽ RUB</TabsTrigger>
-                  <TabsTrigger value="BYN">$ USD</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                { name: 'Mini', price: pricing[currency].mini, users: '1-3', desc: 'Для малых команд' },
-                { name: 'Pro', price: pricing[currency].pro, users: '4-10', desc: 'Для растущих команд', popular: true },
-                { name: 'Team', price: pricing[currency].team, users: '11-30', desc: 'Для больших отделов' },
-                { name: 'Individual', price: pricing[currency].individual, users: '1', desc: 'Один менеджер' }
-              ].map((plan, i) => (
-                <Card
-                  key={i}
-                  className={`border rounded-2xl relative ${plan.popular ? 'border-[#4F46E5] shadow-lg' : 'border-slate-200'}`}
-                >
-                  {plan.popular && (
-                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#4F46E5]">
-                      Популярный
-                    </Badge>
-                  )}
-                  <CardContent className="p-8">
-                    <h3 className="text-xl font-semibold mb-2 text-slate-900">{plan.name}</h3>
-                    <p className="text-sm text-slate-600 mb-4">{plan.desc}</p>
-                    <div className="mb-6">
-                      <span className="text-4xl font-bold text-slate-900">{plan.price}</span>
-                      <span className="text-slate-600 ml-2">{currencySymbol[currency]}/мес</span>
-                    </div>
-                    <p className="text-sm text-slate-600 mb-6">Пользователей: {plan.users}</p>
-                    <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="block">
-                      <Button
-                        className={`w-full rounded-xl ${plan.popular ? 'bg-[#4F46E5] hover:bg-[#4338CA]' : ''}`}
-                        variant={plan.popular ? 'default' : 'outline'}
-                      >
-                        Выбрать тариф
-                      </Button>
-                    </a>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
+                Выбрать тариф
+              </Button>
+            </a>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  </div>
+</section>
 
         {/* Final CTA */}
         <section className="py-16 md:py-24 bg-slate-50">
