@@ -350,12 +350,12 @@ export default function Landing() {
 
             <Card className="border border-slate-200 rounded-2xl overflow-hidden">
               <CardContent className="p-0">
-               <div className="relative h-[400px] w-full bg-slate-100">
+               <div className="relative w-full aspect-[16/9] bg-slate-100">
   <Image
     src="/dashboard_placeholder.png"
     alt="Dashboard preview"
     fill
-    className="object-cover"
+    className="object-contain"
     priority
   />
 </div>
