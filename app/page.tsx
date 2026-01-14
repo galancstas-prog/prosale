@@ -30,7 +30,7 @@ export default function Landing() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
+  <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
           <div className="text-xl font-bold" style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}>
             SalesPilot
           </div>
@@ -574,39 +574,28 @@ export default function Landing() {
       <CardContent className="p-0">
         <div className={`grid md:grid-cols-2 gap-0 ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
           <div className={`p-8 md:p-10 flex flex-col justify-center ${i % 2 === 1 ? 'md:order-2' : ''}`}>
-            <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center mb-6">
-              <feature.icon className="h-6 w-6 text-[#4F46E5]" />
-            </div>
-            <h3 className="text-2xl font-bold mb-2 text-slate-900">{feature.title}</h3>
-            <p className="text-slate-600 mb-6">{feature.subtitle}</p>
-            <ul className="space-y-3">
-              {feature.items.map((item, j) => (
-                <li key={j} className="flex items-start gap-2 text-slate-700">
-                  <Check className="h-5 w-5 text-[#4F46E5] mt-0.5 flex-shrink-0" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+            {/* ... */}
           </div>
 
-          {/* 👇 ВОТ ТУТ ЕДИНСТВЕННАЯ ПРАВКА */}
-          <div
-  className={`bg-slate-100 h-[250px] md:h-auto flex items-center justify-center ${i % 2 === 1 ? 'md:order-1' : ''}`}
->
-  <Image
-    src={`/${feature.placeholder}`}
-    alt={feature.title}
-    width={600}
-    height={400}
-    className="object-contain max-h-full"
-    priority={i === 0}
-  />
-</div>
+          <div className={`bg-slate-100 h-[250px] md:h-auto flex items-center justify-center ${i % 2 === 1 ? 'md:order-1' : ''}`}>
+            <Image
+              src={`/${feature.placeholder}`}
+              alt={feature.title}
+              width={600}
+              height={400}
+              className="object-contain max-h-full"
+              priority={i === 0}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>
   ))}
 </div>
+
+          </div>
+        </section>
+
         {/* CTA after Features */}
         <section className="py-8 bg-slate-50">
           <div className="container mx-auto px-4 max-w-6xl text-center">
