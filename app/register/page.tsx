@@ -185,7 +185,7 @@ function RegisterPageContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="inviteCode">Код приглашения (optional)</Label>
+              <Label htmlFor="inviteCode">Код приглашения (необязательно)</Label>
               <Input
                 id="inviteCode"
                 type="text"
