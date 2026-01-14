@@ -591,17 +591,17 @@ export default function Landing() {
 
           {/* 👇 ВОТ ТУТ ЕДИНСТВЕННАЯ ПРАВКА */}
           <div
-            className={`bg-slate-100 h-[250px] md:h-auto flex items-center justify-center ${
-              i % 2 === 1 ? 'md:order-1' : ''
-            }`}
-          >
-            <img
-              src={`/${feature.placeholder}`}
-              alt={feature.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          </div>
+  className={`bg-slate-100 h-[250px] md:h-auto flex items-center justify-center ${i % 2 === 1 ? 'md:order-1' : ''}`}
+>
+  <Image
+    src={`/${feature.placeholder}`}
+    alt={feature.title}
+    width={600}
+    height={400}
+    className="object-contain max-h-full"
+    priority={i === 0}
+  />
+</div>
         </div>
       </CardContent>
     </Card>
