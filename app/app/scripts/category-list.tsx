@@ -51,29 +51,33 @@ export function CategoryList({ categories, isAdmin }: CategoryListProps) {
     }
   }
 
-  const handleDelete = async (categoryId: string, categoryName: string) => {
-    if (!confirm(`Are you sure you want to delete "${categoryName}"? All subcategories and scripts will be deleted.`)) return
-
-    setLoading(true)
-    await deleteCategory(categoryId)
-    setLoading(false)
-    router.refresh()
-  }
-
-  if (categories.length === 0) {
-    return (
-      <EmptyState
-        icon={FolderOpen}
-        title="No categories yet"
-        description={
-          isAdmin
-            ? "Create your first category to start organizing scripts"
-            : "No script categories available yet"
-        }
-      />
+  cconst handleDelete = async (categoryId: string, categoryName: string) => {
+  if (
+    !confirm(
+      `Вы уверены, что хотите удалить категорию «${categoryName}»? Все подкатегории и скрипты будут удалены.`
     )
-  }
+  )
+    return
 
+  setLoading(true)
+  await deleteCategory(categoryId)
+  setLoading(false)
+  router.refresh()
+}
+
+if (categories.length === 0) {
+  return (
+    <EmptyState
+      icon={FolderOpen}
+      title="Категорий пока нет"
+      description={
+        isAdmin
+          ? "Создайте первую категорию, чтобы начать структурировать скрипты"
+          : "Категории скриптов пока недоступны"
+      }
+    />
+  )
+}
   return (
     <>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
