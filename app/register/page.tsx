@@ -130,7 +130,7 @@ function RegisterPageContent() {
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">Имя</Label>
                 <Input
                   id="firstName"
                   type="text"
@@ -140,7 +140,7 @@ function RegisterPageContent() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">Фамилия</Label>
                 <Input
                   id="lastName"
                   type="text"
