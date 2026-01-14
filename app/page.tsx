@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowRight, Check, Sparkles, Search, Database, MessageSquare, BookOpen, FileText, Brain, Zap } from 'lucide-react'
+import { ArrowRight, Check, Sparkles, Search, Database, MessageSquare, BookOpen, FileText, Brain, Zap, Users, Building2, TrendingUp, Headphones, ArrowDown, Clock, Target } from 'lucide-react'
 import { WHATSAPP_URL } from '@/lib/constants'
 import { useState } from 'react'
 
@@ -117,17 +117,81 @@ export default function Landing() {
                 <p className="text-sm text-slate-500">
                   Без карты • Полный доступ • PRO-тариф
                 </p>
+
+                <div className="pt-4 border-t border-slate-200">
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Используется отделами продаж, где скорость ответа важнее «идеального скрипта».
+                  </p>
+                </div>
               </div>
 
+              {/* AI Cards Composition */}
               <div className="relative h-[400px] lg:h-[500px] hidden lg:flex items-center justify-center">
+                {/* Background gradient blob */}
                 <div
-                  className="absolute inset-0 rounded-[40px] opacity-[0.15]"
+                  className="absolute inset-0 rounded-[40px] opacity-[0.18]"
                   style={{
                     background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 55%, #06B6D4 100%)',
-                    filter: 'blur(60px)',
+                    filter: 'blur(80px)',
                     animation: 'float 10s ease-in-out infinite'
                   }}
                 />
+
+                {/* AI Cards Stack */}
+                <div className="relative w-full max-w-md space-y-4 px-4">
+                  {/* Card 1 - Question */}
+                  <Card
+                    className="border border-slate-200 shadow-lg bg-white"
+                    style={{
+                      transform: 'rotate(-2deg) translateX(-10px)',
+                      transition: 'transform 0.2s'
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="text-xs font-semibold text-slate-500 mb-2">Вопрос клиента</div>
+                      <p className="text-sm text-slate-700">— Почему у вас дороже?</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 2 - Answer (main) */}
+                  <Card
+                    className="border-2 border-[#4F46E5] shadow-xl bg-white relative z-10"
+                    style={{
+                      transform: 'scale(1.05)',
+                      transition: 'transform 0.2s'
+                    }}
+                  >
+                    <CardContent className="p-5">
+                      <div className="text-xs font-semibold text-[#4F46E5] mb-3">Ответ SalesPilot</div>
+                      <div className="space-y-2 mb-3">
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          — Цена выше из-за расширенной гарантии и SLA.
+                        </p>
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          — Вот как это объяснить клиенту…
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        Источник: FAQ → Цена
+                      </Badge>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 3 - Usage */}
+                  <Card
+                    className="border border-slate-200 shadow-lg bg-white"
+                    style={{
+                      transform: 'rotate(2deg) translateX(10px)',
+                      transition: 'transform 0.2s'
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="text-xs font-semibold text-slate-500 mb-2">Использовано</div>
+                      <p className="text-sm text-slate-700">Использовано в 12 диалогах</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
                 <style jsx>{`
                   @keyframes float {
                     0%, 100% { transform: translate(0, 0) rotate(0deg); }
@@ -143,22 +207,108 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* Marquee Strip */}
+        <section className="border-y bg-slate-50 overflow-hidden">
+          <div className="py-3">
+            <div className="marquee-content flex items-center gap-8 whitespace-nowrap text-sm text-slate-600">
+              <span>Без CRM</span>
+              <span className="text-slate-300">•</span>
+              <span>Без перестройки процессов</span>
+              <span className="text-slate-300">•</span>
+              <span>Работает поверх текущих инструментов</span>
+              <span className="text-slate-300">•</span>
+              <span>Ничего лишнего</span>
+              <span className="text-slate-300">•</span>
+              <span>Никаких лимитов на поиск</span>
+              <span className="text-slate-300">•</span>
+              <span>Без CRM</span>
+              <span className="text-slate-300">•</span>
+              <span>Без перестройки процессов</span>
+              <span className="text-slate-300">•</span>
+              <span>Работает поверх текущих инструментов</span>
+              <span className="text-slate-300">•</span>
+              <span>Ничего лишнего</span>
+              <span className="text-slate-300">•</span>
+              <span>Никаких лимитов на поиск</span>
+            </div>
+          </div>
+          <style jsx>{`
+            .marquee-content {
+              animation: marquee 30s linear infinite;
+            }
+            @keyframes marquee {
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .marquee-content { animation: none; }
+            }
+          `}</style>
+        </section>
+
         {/* What is it + How it works */}
         <section id="product" className="py-20 md:py-32 bg-slate-50">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2
-                className="text-4xl md:text-[44px] font-semibold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Это не CRM.<br />
                 Это Sales OS: знания → ответы → сделки.
               </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                Вы собираете знания один раз.
-                SalesPilot даёт менеджеру готовую формулировку
-                в момент, когда клиент ещё на связи.
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-3">
+                SalesPilot — это слой знаний и ответов, который подключается к вашему отделу продаж и начинает работать сразу.
               </p>
+            </div>
+
+            {/* Sales OS Diagram */}
+            <div className="mb-16 max-w-4xl mx-auto">
+              <div className="flex flex-col items-center gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
+                  <Card className="border border-slate-200 bg-white">
+                    <CardContent className="p-4 text-center">
+                      <MessageSquare className="h-5 w-5 text-[#4F46E5] mx-auto mb-2" />
+                      <p className="text-xs font-medium text-slate-700">Скрипты</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border border-slate-200 bg-white">
+                    <CardContent className="p-4 text-center">
+                      <FileText className="h-5 w-5 text-[#4F46E5] mx-auto mb-2" />
+                      <p className="text-xs font-medium text-slate-700">FAQ</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border border-slate-200 bg-white">
+                    <CardContent className="p-4 text-center">
+                      <BookOpen className="h-5 w-5 text-[#4F46E5] mx-auto mb-2" />
+                      <p className="text-xs font-medium text-slate-700">Обучение</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border border-slate-200 bg-white">
+                    <CardContent className="p-4 text-center">
+                      <Database className="h-5 w-5 text-[#4F46E5] mx-auto mb-2" />
+                      <p className="text-xs font-medium text-slate-700">База знаний</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <ArrowDown className="h-6 w-6 text-[#4F46E5]" />
+
+                <Card className="border-2 border-[#4F46E5] bg-white w-full md:w-auto">
+                  <CardContent className="p-6 text-center">
+                    <Brain className="h-8 w-8 text-[#4F46E5] mx-auto mb-2" />
+                    <p className="font-bold text-slate-900">SalesPilot</p>
+                  </CardContent>
+                </Card>
+
+                <ArrowDown className="h-6 w-6 text-[#4F46E5]" />
+
+                <Card className="border border-slate-200 bg-white w-full md:w-auto">
+                  <CardContent className="p-4 text-center">
+                    <p className="text-sm font-medium text-slate-700">Готовый ответ менеджеру</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8 mb-12">
@@ -210,8 +360,17 @@ export default function Landing() {
         </section>
 
         {/* Magic Section */}
-        <section className="py-20 md:py-32">
-          <div className="container mx-auto px-4 max-w-6xl">
+        <section className="py-20 md:py-32 relative overflow-hidden">
+          {/* Gradient background */}
+          <div
+            className="absolute inset-0 opacity-[0.08]"
+            style={{
+              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 55%, #06B6D4 100%)',
+              filter: 'blur(100px)'
+            }}
+          />
+
+          <div className="container mx-auto px-4 max-w-6xl relative z-10">
             <div className="text-center mb-16">
               <Badge
                 className="mb-6 px-4 py-2 text-base font-medium rounded-full border-0"
@@ -224,23 +383,21 @@ export default function Landing() {
                 Magic
               </Badge>
               <h2
-                className="text-4xl md:text-[44px] font-semibold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Система, которая обучается от ваших клиентов
               </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-6">
-                Менеджеры фиксируют реальные вопросы.
-                SalesPilot находит повторяющиеся темы
-                и создаёт черновики FAQ.
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-4">
+                Вы не придумываете, что добавить в базу. Клиенты делают это за вас — своими вопросами.
               </p>
-              <Badge variant="outline" className="px-4 py-2 text-sm border-slate-300">
+              <Badge variant="outline" className="px-4 py-2 text-sm border-slate-300 bg-white">
                 Magic создаёт черновики. Публикует только админ.
               </Badge>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8 mb-12">
-              <Card className="border border-slate-200 rounded-2xl">
+              <Card className="border border-slate-200 rounded-2xl bg-white">
                 <CardContent className="p-8">
                   <div className="text-[#4F46E5] font-bold text-lg mb-3">Шаг 1</div>
                   <h3 className="font-semibold mb-2 text-slate-900">Менеджеры фиксируют</h3>
@@ -250,7 +407,7 @@ export default function Landing() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-slate-200 rounded-2xl">
+              <Card className="border border-slate-200 rounded-2xl bg-white">
                 <CardContent className="p-8">
                   <div className="text-[#4F46E5] font-bold text-lg mb-3">Шаг 2</div>
                   <h3 className="font-semibold mb-2 text-slate-900">Админ запускает Magic</h3>
@@ -260,7 +417,7 @@ export default function Landing() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-slate-200 rounded-2xl">
+              <Card className="border border-slate-200 rounded-2xl bg-white">
                 <CardContent className="p-8">
                   <div className="text-[#4F46E5] font-bold text-lg mb-3">Шаг 3</div>
                   <h3 className="font-semibold mb-2 text-slate-900">Система создаёт FAQ</h3>
@@ -271,15 +428,23 @@ export default function Landing() {
               </Card>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="grid md:grid-cols-2 gap-6 items-center">
+              <Card className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
                 <CardContent className="p-0">
                   <div className="bg-slate-100 h-[250px] flex items-center justify-center text-slate-400">
                     [magic_before_placeholder.png]
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border border-slate-200 rounded-2xl overflow-hidden">
+
+              <div className="hidden md:flex justify-center">
+                <div className="text-center">
+                  <ArrowRight className="h-8 w-8 text-[#4F46E5] mx-auto mb-2" />
+                  <Badge className="bg-[#4F46E5]">AI clustering</Badge>
+                </div>
+              </div>
+
+              <Card className="border border-slate-200 rounded-2xl overflow-hidden bg-white md:col-start-2">
                 <CardContent className="p-0">
                   <div className="bg-slate-100 h-[250px] flex items-center justify-center text-slate-400">
                     [magic_after_placeholder.png]
@@ -291,11 +456,11 @@ export default function Landing() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 md:py-32 bg-slate-50">
+        <section id="features" className="py-20 md:py-32 bg-slate-50 relative">
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-16">
               <h2
-                className="text-4xl md:text-[44px] font-semibold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Функции, которые ускоряют ответы.<br />
@@ -303,60 +468,73 @@ export default function Landing() {
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-12">
               {[
                 {
                   icon: MessageSquare,
                   title: 'Scripts',
-                  desc: 'Сценарии реальных диалогов',
-                  items: ['Логика «вопрос → ответ → шаг»', 'Готовые формулировки', 'Один стандарт для команды']
+                  subtitle: 'Сценарии реальных диалогов',
+                  items: ['Логика «вопрос → ответ → шаг»', 'Готовые формулировки', 'Один стандарт для команды'],
+                  placeholder: 'scripts_placeholder.png'
                 },
                 {
                   icon: FileText,
                   title: 'FAQ',
-                  desc: 'Ответы для возражений',
-                  items: ['Короткие формулировки', 'Шаблоны с переменными', 'Автопополнение через Magic']
+                  subtitle: 'Ответы для возражений',
+                  items: ['Короткие формулировки', 'Шаблоны с переменными', 'Автопополнение через Magic'],
+                  placeholder: 'faq_placeholder.png'
                 },
                 {
                   icon: Database,
                   title: 'Knowledge Base',
-                  desc: 'Единый источник правды',
-                  items: ['Условия и цифры', 'Без противоречий', 'Основа для AI-ответов']
+                  subtitle: 'Единый источник правды',
+                  items: ['Условия и цифры', 'Без противоречий', 'Основа для AI-ответов'],
+                  placeholder: 'kb_placeholder.png'
                 },
                 {
                   icon: BookOpen,
                   title: 'Training',
-                  desc: 'Обучение без воды',
-                  items: ['Короткие модули', 'Примеры диалогов', 'Быстрый онбординг']
+                  subtitle: 'Обучение без воды',
+                  items: ['Короткие модули', 'Примеры диалогов', 'Быстрый онбординг'],
+                  placeholder: 'training_placeholder.png'
                 },
                 {
                   icon: Search,
                   title: 'Global Search',
-                  desc: 'Быстрый поиск без AI',
-                  items: ['По всей базе', 'Подсветка совпадений', 'Работает всегда']
+                  subtitle: 'Быстрый поиск без AI',
+                  items: ['По всей базе', 'Подсветка совпадений', 'Работает всегда'],
+                  placeholder: 'search_placeholder.png'
                 },
                 {
                   icon: Brain,
                   title: 'AI Search',
-                  desc: 'Готовый ответ, а не ссылки',
-                  items: ['Понимает смысл', 'Собирает из базы', 'Показывает источники']
+                  subtitle: 'Готовый ответ, а не ссылки',
+                  items: ['Понимает смысл', 'Собирает из базы', 'Показывает источники'],
+                  placeholder: 'ai_search_placeholder.png'
                 }
               ].map((feature, i) => (
-                <Card key={i} className="border border-slate-200 rounded-2xl hover:shadow-md transition-all duration-200">
-                  <CardContent className="p-8">
-                    <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center mb-6">
-                      <feature.icon className="h-6 w-6 text-[#4F46E5]" />
+                <Card key={i} className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                  <CardContent className="p-0">
+                    <div className="grid md:grid-cols-2 gap-0">
+                      <div className="p-8 md:p-10 flex flex-col justify-center">
+                        <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center mb-6">
+                          <feature.icon className="h-6 w-6 text-[#4F46E5]" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2 text-slate-900">{feature.title}</h3>
+                        <p className="text-slate-600 mb-6">{feature.subtitle}</p>
+                        <ul className="space-y-3">
+                          {feature.items.map((item, j) => (
+                            <li key={j} className="flex items-start gap-2 text-slate-700">
+                              <Check className="h-5 w-5 text-[#4F46E5] mt-0.5 flex-shrink-0" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-slate-100 h-[250px] md:h-auto flex items-center justify-center text-slate-400">
+                        [{feature.placeholder}]
+                      </div>
                     </div>
-                    <h3 className="text-xl font-semibold mb-2 text-slate-900">{feature.title}</h3>
-                    <p className="text-slate-600 mb-4">{feature.desc}</p>
-                    <ul className="space-y-2">
-                      {feature.items.map((item, j) => (
-                        <li key={j} className="flex items-start gap-2 text-sm text-slate-600">
-                          <span className="text-[#4F46E5] mt-1">•</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
                   </CardContent>
                 </Card>
               ))}
@@ -369,7 +547,7 @@ export default function Landing() {
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-16">
               <h2
-                className="text-4xl md:text-[44px] font-semibold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Для тех, кто строит систему продаж
@@ -378,22 +556,58 @@ export default function Landing() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
               {[
-                { role: 'CEO / Собственник', desc: 'Когда рост не должен зависеть от одного человека.' },
-                { role: 'РОП', desc: 'Когда команда должна отвечать одинаково сильно.' },
-                { role: 'Маркетолог', desc: 'Когда лиды нельзя терять из-за медленных ответов.' },
-                { role: 'Аутсорс-команды', desc: 'Когда знания должны оставаться в системе.' }
+                {
+                  icon: Building2,
+                  role: 'CEO / Собственник',
+                  situation: 'Когда рост не должен зависеть от одного человека.',
+                  benefit: 'SalesPilot масштабирует знания команды.',
+                  points: ['Быстрый онбординг', 'Контроль качества', 'Рост без хаоса']
+                },
+                {
+                  icon: Users,
+                  role: 'РОП',
+                  situation: 'Когда команда спрашивает одно и то же.',
+                  benefit: 'SalesPilot отвечает вместо вас.',
+                  points: ['Меньше вопросов', 'Единый стандарт', 'Фокус на результат']
+                },
+                {
+                  icon: TrendingUp,
+                  role: 'Маркетолог',
+                  situation: 'Когда лиды теряются из-за медленных ответов.',
+                  benefit: 'SalesPilot ускоряет обработку.',
+                  points: ['Выше конверсия', 'Меньше слива', 'Данные для аналитики']
+                },
+                {
+                  icon: Headphones,
+                  role: 'Аутсорс-команды',
+                  situation: 'Когда знания должны оставаться в системе.',
+                  benefit: 'SalesPilot сохраняет экспертизу.',
+                  points: ['Независимость', 'Контроль качества', 'Быстрая замена']
+                }
               ].map((item, i) => (
                 <Card key={i} className="border border-slate-200 rounded-2xl">
                   <CardContent className="p-8">
-                    <h3 className="font-semibold text-lg mb-3 text-slate-900">{item.role}</h3>
-                    <p className="text-slate-600 leading-relaxed">{item.desc}</p>
+                    <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center mb-6">
+                      <item.icon className="h-6 w-6 text-[#4F46E5]" />
+                    </div>
+                    <h3 className="font-bold text-lg mb-3 text-slate-900">{item.role}</h3>
+                    <p className="text-sm text-slate-600 mb-2">{item.situation}</p>
+                    <p className="text-sm font-medium text-slate-900 mb-4">{item.benefit}</p>
+                    <ul className="space-y-2">
+                      {item.points.map((point, j) => (
+                        <li key={j} className="text-xs text-slate-600 flex items-center gap-2">
+                          <span className="w-1 h-1 rounded-full bg-[#4F46E5]" />
+                          {point}
+                        </li>
+                      ))}
+                    </ul>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
             <div className="text-center">
-              <p className="text-lg text-slate-700 leading-relaxed max-w-3xl mx-auto">
+              <p className="text-lg text-slate-900 font-medium leading-relaxed max-w-3xl mx-auto">
                 Если продажи держатся на героизме —<br />
                 SalesPilot покажет, где вы теряете скорость.
               </p>
@@ -404,17 +618,51 @@ export default function Landing() {
         {/* Before/After Case */}
         <section className="py-20 md:py-32 bg-slate-50">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2
-                className="text-4xl md:text-[44px] font-semibold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Один бизнес. Два подхода.
               </h2>
+              <p className="text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                Отдел из 8 менеджеров. Знания — в чатах, Google Docs и головах.
+                После внедрения SalesPilot всё изменилось за 5 дней.
+              </p>
             </div>
 
+            {/* Timeline */}
+            <Card className="border border-slate-200 rounded-2xl mb-12 bg-white">
+              <CardContent className="p-8">
+                <h3 className="font-semibold text-lg mb-6 text-slate-900 text-center">Внедрение за 5 дней</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <div className="w-10 h-10 rounded-full bg-[#4F46E5]/10 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-[#4F46E5] font-bold">1</span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-900 mb-1">День 1-2</p>
+                    <p className="text-xs text-slate-600">Загрузили FAQ и скрипты</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 rounded-full bg-[#4F46E5]/10 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-[#4F46E5] font-bold">2</span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-900 mb-1">День 3</p>
+                    <p className="text-xs text-slate-600">Команда начала пользоваться</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 rounded-full bg-[#4F46E5]/10 flex items-center justify-center mx-auto mb-3">
+                      <span className="text-[#4F46E5] font-bold">3</span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-900 mb-1">День 5</p>
+                    <p className="text-xs text-slate-600">Magic дала 15 новых FAQ</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid md:grid-cols-2 gap-8 mb-12">
-              <Card className="border border-slate-200 rounded-2xl">
+              <Card className="border border-slate-200 rounded-2xl bg-white">
                 <CardContent className="p-8">
                   <Badge variant="outline" className="mb-6 border-red-200 text-red-700">До</Badge>
                   <ul className="space-y-4">
@@ -455,28 +703,34 @@ export default function Landing() {
               </Card>
             </div>
 
-            <Card className="border border-slate-200 rounded-2xl">
-              <CardContent className="p-8">
-                <h3 className="font-semibold text-lg mb-4 text-slate-900">Типичные результаты:</h3>
-                <ul className="space-y-2 mb-4">
-                  <li className="flex items-center gap-2 text-slate-700">
-                    <Check className="h-5 w-5 text-[#4F46E5]" />
-                    <span>Онбординг быстрее</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-700">
-                    <Check className="h-5 w-5 text-[#4F46E5]" />
-                    <span>Меньше вопросов к РОПу</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-slate-700">
-                    <Check className="h-5 w-5 text-[#4F46E5]" />
-                    <span>Конверсия стабильнее</span>
-                  </li>
-                </ul>
-                <p className="text-sm text-slate-500">
-                  Результаты зависят от ниши и дисциплины команды.
-                </p>
-              </CardContent>
-            </Card>
+            {/* Results */}
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <Card className="border border-slate-200 rounded-2xl bg-white text-center">
+                <CardContent className="p-8">
+                  <Clock className="h-8 w-8 text-[#4F46E5] mx-auto mb-3" />
+                  <div className="text-3xl font-bold text-slate-900 mb-2">−15 мин</div>
+                  <p className="text-sm text-slate-600">Скорость ответа</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-slate-200 rounded-2xl bg-white text-center">
+                <CardContent className="p-8">
+                  <Target className="h-8 w-8 text-[#4F46E5] mx-auto mb-3" />
+                  <div className="text-3xl font-bold text-slate-900 mb-2">до 40%</div>
+                  <p className="text-sm text-slate-600">Конверсия</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-slate-200 rounded-2xl bg-white text-center">
+                <CardContent className="p-8">
+                  <Users className="h-8 w-8 text-[#4F46E5] mx-auto mb-3" />
+                  <div className="text-3xl font-bold text-slate-900 mb-2">до 2 дней</div>
+                  <p className="text-sm text-slate-600">Онбординг</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <p className="text-sm text-slate-500 text-center">
+              Результаты зависят от ниши и дисциплины команды. Цифры примерные, основаны на отзывах клиентов.
+            </p>
           </div>
         </section>
 
@@ -485,7 +739,7 @@ export default function Landing() {
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-16">
               <h2
-                className="text-4xl md:text-[44px] font-semibold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Выберите тариф под размер команды
@@ -546,7 +800,7 @@ export default function Landing() {
         <section className="py-20 md:py-32 bg-slate-50">
           <div className="container mx-auto px-4 max-w-4xl text-center">
             <h2
-              className="text-4xl md:text-[44px] font-semibold mb-6 text-slate-900 leading-tight"
+              className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
               style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
             >
               Готовы ускорить ответы менеджеров?
