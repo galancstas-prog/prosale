@@ -19,21 +19,32 @@ export async function getKbPages() {
   return { data, error: null }
 }
 
-export async function getKbPageById(pageId: string) {
+export async function createKbPage(formData: FormData) {
   const supabase = await getSupabaseServerClient()
+
+  const title = (formData.get('title') as string)?.trim()
+  const content = (formData.get('content_richtext') as string)?.trim()
+
+  if (!title || !content) {
+    return { error: 'Title and content are required' }
+  }
 
   const { data, error } = await supabase
     .from('kb_pages')
+    .insert({
+      title,
+      content_richtext: content,
+    })
     .select('*')
-    .eq('id', pageId)
     .single()
 
   if (error) {
-    console.error('[getKbPageById] Database error:', error)
-    return { error: error.message, data: null }
+    console.error('[createKbPage] Database error:', error)
+    return { error: error.message }
   }
 
-  return { data, error: null }
+  safeRevalidatePath('/app/knowledge')
+  return { data }
 }
 
 export async function updateKbPage(pageId: string, formData: FormData) {
