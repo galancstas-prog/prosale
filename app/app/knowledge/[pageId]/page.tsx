@@ -44,10 +44,10 @@ export default function KnowledgePageView({ params }: { params: { pageId: string
         </Link>
         <div className="text-center py-12">
           <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Page not found
+            Страница не найдена
           </h2>
           <p className="text-slate-600 dark:text-slate-400 mt-2">
-            The page you are looking for does not exist.
+            Страница, которую вы ищете, не существует.
           </p>
         </div>
       </div>
@@ -71,7 +71,7 @@ export default function KnowledgePageView({ params }: { params: { pageId: string
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{page.title}</h1>
             <p className="text-sm text-slate-500 mt-2">
-              Created {new Date(page.created_at).toLocaleDateString()}
+              Создано {new Date(page.created_at).toLocaleDateString()}
             </p>
           </div>
           {isAdmin && (
