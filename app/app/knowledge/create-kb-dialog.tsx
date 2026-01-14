@@ -43,7 +43,7 @@ export function CreateKbDialog() {
         const msg =
           typeof result.error === 'string'
             ? result.error
-            : result.error?.message || 'Failed to create knowledge base page'
+            : result.error?.message || 'Не удалось создать страницу базы знаний'
         setError(msg)
         setLoading(false)
         return
@@ -55,14 +55,14 @@ export function CreateKbDialog() {
       router.refresh()
 
       toast({
-        title: 'Success',
-        description: 'Knowledge base page created successfully',
+        title: 'Готово',
+        description: 'Неожиданная ошибка при создании страницы базы знаний',
       })
     } catch (err: any) {
       const msg =
         err?.message ||
         err?.toString?.() ||
-        'Unexpected error while creating knowledge base page'
+        'Неожиданная ошибка при создании страницы базы знаний'
       setError(msg)
       setLoading(false)
     }
