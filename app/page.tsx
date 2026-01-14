@@ -574,7 +574,6 @@ export default function Landing() {
       <CardContent className="p-0">
         <div className={`grid md:grid-cols-2 gap-0 ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
           <div className={`p-8 md:p-10 flex flex-col justify-center ${i % 2 === 1 ? 'md:order-2' : ''}`}>
-            {/* ... */}
           </div>
 
           <div className={`bg-slate-100 h-[250px] md:h-auto flex items-center justify-center ${i % 2 === 1 ? 'md:order-1' : ''}`}>
