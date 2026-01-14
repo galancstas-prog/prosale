@@ -868,10 +868,10 @@ export default function Landing() {
 
     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
       {[
-        { name: 'Mini', price: pricing[currency].mini, users: '1-3', desc: 'Для малых команд' },
-        { name: 'Pro', price: pricing[currency].pro, users: '4-10', desc: 'Для растущих команд', popular: true },
-        { name: 'Team', price: pricing[currency].team, users: '11-30', desc: 'Для больших отделов' },
-        { name: 'Individual', price: pricing[currency].individual, users: '1', desc: 'Один менеджер' }
+        { name: 'Mini', price: pricing[currency].mini, users: '1-2', desc: 'Для малых команд' },
+        { name: 'Pro', price: pricing[currency].pro, users: '3-5', desc: 'Для растущих команд', popular: true },
+        { name: 'Team', price: pricing[currency].team, users: '6-12', desc: 'Для сформированных отделов' },
+        { name: 'Individual', price: pricing[currency].individual, users: '>13', desc: 'Для больших команд' }
       ].map((plan, i) => (
         <Card
           key={i}
