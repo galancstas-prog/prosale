@@ -163,7 +163,7 @@ function AppShellContent({ children, user }: AppShellProps) {
               )}
             </div>
 
-            <LocaleSwitcher />
+            {/* <LocaleSwitcher /> */}
           </header>
 
           <main className="flex-1 overflow-y-auto">
