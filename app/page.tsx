@@ -65,19 +65,19 @@ export default function Landing() {
 
       <main>
         {/* Hero Section */}
-        <section className="relative overflow-hidden pt-20 pb-24 md:pt-32 md:pb-40">
+        <section className="relative overflow-hidden pt-16 pb-20 md:pt-28 md:pb-32">
           <div className="container mx-auto px-4 max-w-7xl">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-8">
                 <h1
-                  className="text-5xl md:text-6xl lg:text-[64px] font-bold leading-[1.05] text-slate-900"
+                  className="text-5xl md:text-7xl lg:text-[72px] font-bold leading-[1.05] text-slate-900"
                   style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
                 >
                   SalesPilot<br />
                   <span className="text-slate-700">Единый источник ответов для отдела продаж</span>
                 </h1>
 
-                <p className="text-lg md:text-xl text-slate-600 leading-relaxed max-w-xl">
+                <p className="text-xl md:text-2xl text-slate-600 leading-relaxed max-w-xl">
                   Скрипты, FAQ, база знаний и обучение — в одной системе.
                   Менеджер получает точный ответ за секунды прямо в момент диалога.
                 </p>
@@ -99,7 +99,7 @@ export default function Landing() {
 
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Link href="/register">
-                    <Button size="lg" className="bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-200 rounded-xl text-base px-8 w-full sm:w-auto">
+                    <Button size="lg" className="bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-200 rounded-xl text-lg px-10 py-6 w-full sm:w-auto">
                       Запустить демо на 3 дня
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
@@ -107,7 +107,7 @@ export default function Landing() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="rounded-xl text-base px-8 w-full sm:w-auto"
+                    className="rounded-xl text-lg px-10 py-6 w-full sm:w-auto"
                     onClick={() => scrollToSection('features')}
                   >
                     Посмотреть функции
@@ -247,23 +247,23 @@ export default function Landing() {
         </section>
 
         {/* What is it + How it works */}
-        <section id="product" className="py-20 md:py-32 bg-slate-50">
+        <section id="product" className="py-16 md:py-24 bg-slate-50">
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-12">
               <h2
-                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Это не CRM.<br />
                 Это Sales OS: знания → ответы → сделки.
               </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-3">
+              <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed mb-3">
                 SalesPilot — это слой знаний и ответов, который подключается к вашему отделу продаж и начинает работать сразу.
               </p>
             </div>
 
             {/* Sales OS Diagram */}
-            <div className="mb-16 max-w-4xl mx-auto">
+            <div className="mb-10 max-w-4xl mx-auto">
               <div className="flex flex-col items-center gap-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
                   <Card className="border border-slate-200 bg-white">
@@ -360,7 +360,7 @@ export default function Landing() {
         </section>
 
         {/* Magic Section */}
-        <section className="py-20 md:py-32 relative overflow-hidden">
+        <section className="py-16 md:py-24 relative overflow-hidden">
           {/* Gradient background */}
           <div
             className="absolute inset-0 opacity-[0.08]"
@@ -371,7 +371,7 @@ export default function Landing() {
           />
 
           <div className="container mx-auto px-4 max-w-6xl relative z-10">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <Badge
                 className="mb-6 px-4 py-2 text-base font-medium rounded-full border-0"
                 style={{
@@ -383,12 +383,12 @@ export default function Landing() {
                 Magic
               </Badge>
               <h2
-                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Система, которая обучается от ваших клиентов
               </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-4">
+              <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed mb-4">
                 Вы не придумываете, что добавить в базу. Клиенты делают это за вас — своими вопросами.
               </p>
               <Badge variant="outline" className="px-4 py-2 text-sm border-slate-300 bg-white">
@@ -396,71 +396,108 @@ export default function Landing() {
               </Badge>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 mb-12">
-              <Card className="border border-slate-200 rounded-2xl bg-white">
-                <CardContent className="p-8">
-                  <div className="text-[#4F46E5] font-bold text-lg mb-3">Шаг 1</div>
-                  <h3 className="font-semibold mb-2 text-slate-900">Менеджеры фиксируют</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed">
-                    Реальные вопросы клиентов попадают в систему
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Magic Flow Visualization */}
+            <div className="mb-12 relative">
+              <div className="grid md:grid-cols-3 gap-6 items-center">
+                {/* Input: Questions */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Вопросы от клиентов</p>
+                  {['Через какой банк рассрочка?', 'Есть ли доставка в мой регион?', 'На какой платформе обучение?', 'Сколько стоит?', 'Какие цвета есть?', 'Сколько спикеров?', 'Во сколько начало?', 'Как попасть?'].map((q, i) => (
+                    <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-slate-700 shadow-sm hover:shadow-md transition-all duration-200" style={{ animation: `slideIn 0.3s ease-out ${i * 0.1}s both` }}>
+                      {q}
+                    </div>
+                  ))}
+                </div>
 
-              <Card className="border border-slate-200 rounded-2xl bg-white">
-                <CardContent className="p-8">
-                  <div className="text-[#4F46E5] font-bold text-lg mb-3">Шаг 2</div>
-                  <h3 className="font-semibold mb-2 text-slate-900">Админ запускает Magic</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed">
-                    Одна кнопка для анализа всех вопросов
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Center: Magic */}
+                <div className="flex items-center justify-center">
+                  <Card className="border-2 border-[#4F46E5] rounded-2xl bg-white shadow-xl relative">
+                    <CardContent className="p-8 text-center">
+                      <div className="absolute -top-3 -left-3 w-6 h-6 bg-[#4F46E5] rounded-full animate-ping opacity-75" />
+                      <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-[#7C3AED] rounded-full animate-ping opacity-75" style={{ animationDelay: '0.5s' }} />
+                      <Brain className="h-12 w-12 text-[#4F46E5] mx-auto mb-3" />
+                      <h3 className="font-bold text-xl text-slate-900 mb-2">Magic</h3>
+                      <Badge className="bg-[#4F46E5] text-xs">AI clustering</Badge>
+                    </CardContent>
+                  </Card>
+                </div>
 
-              <Card className="border border-slate-200 rounded-2xl bg-white">
-                <CardContent className="p-8">
-                  <div className="text-[#4F46E5] font-bold text-lg mb-3">Шаг 3</div>
-                  <h3 className="font-semibold mb-2 text-slate-900">Система создаёт FAQ</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed">
-                    Группирует вопросы и предлагает черновики
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Output: FAQ */}
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Готовые FAQ</p>
+                  {[
+                    { q: 'Как протестировать платформу?', a: 'Вы можете попробовать наше демо, которое предоставляет полный доступ на 3 дня.' },
+                    { q: 'Сколько стоит ваша система?', a: 'Тарифы начинаются от 2.490₽, мы можем подобрать удобный план для вашей команды.' },
+                    { q: 'У меня нет времени наполнить систему, что делать?', a: 'Мы оказываем помощь в создании базы знаний, соберем систему практически без вашего участия.' }
+                  ].map((item, i) => (
+                    <Card key={i} className="border border-emerald-200 bg-emerald-50 shadow-sm hover:shadow-md transition-all duration-200" style={{ animation: `slideIn 0.3s ease-out ${i * 0.15 + 0.5}s both` }}>
+                      <CardContent className="p-4">
+                        <p className="text-xs font-semibold text-slate-900 mb-2">{item.q}</p>
+                        <p className="text-xs text-slate-600 leading-relaxed">{item.a}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6 items-center">
+            {/* Screenshots */}
+            <div className="grid md:grid-cols-2 gap-6">
               <Card className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
                 <CardContent className="p-0">
-                  <div className="bg-slate-100 h-[250px] flex items-center justify-center text-slate-400">
+                  <div className="bg-slate-100 h-[220px] flex items-center justify-center text-slate-400 text-sm">
                     [magic_before_placeholder.png]
                   </div>
                 </CardContent>
               </Card>
-
-              <div className="hidden md:flex justify-center">
-                <div className="text-center">
-                  <ArrowRight className="h-8 w-8 text-[#4F46E5] mx-auto mb-2" />
-                  <Badge className="bg-[#4F46E5]">AI clustering</Badge>
-                </div>
-              </div>
-
-              <Card className="border border-slate-200 rounded-2xl overflow-hidden bg-white md:col-start-2">
+              <Card className="border-2 border-[#4F46E5] rounded-2xl overflow-hidden bg-white shadow-lg">
                 <CardContent className="p-0">
-                  <div className="bg-slate-100 h-[250px] flex items-center justify-center text-slate-400">
-                    [magic_after_placeholder.png]
+                  <div className="bg-slate-100 h-[220px] flex items-center justify-center text-slate-400 text-sm">
+                    <div className="text-center">
+                      <Badge className="mb-2 bg-[#4F46E5]">Результат</Badge>
+                      <p>[magic_after_placeholder.png]</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+            <style jsx>{`
+              @keyframes slideIn {
+                from {
+                  opacity: 0;
+                  transform: translateX(-20px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateX(0);
+                }
+              }
+              @media (prefers-reduced-motion: reduce) {
+                * { animation: none !important; }
+              }
+            `}</style>
+          </div>
+        </section>
+
+        {/* CTA after Magic */}
+        <section className="py-8 bg-white">
+          <div className="container mx-auto px-4 max-w-6xl text-center">
+            <Link href="/register">
+              <Button size="lg" className="bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-200 rounded-xl text-lg px-10 py-6">
+                Получить демо
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-20 md:py-32 bg-slate-50 relative">
+        <section id="features" className="py-16 md:py-24 bg-slate-50 relative">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2
-                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Функции, которые ускоряют ответы.<br />
@@ -468,7 +505,7 @@ export default function Landing() {
               </h2>
             </div>
 
-            <div className="space-y-12">
+            <div className="space-y-8">
               {[
                 {
                   icon: MessageSquare,
@@ -515,8 +552,8 @@ export default function Landing() {
               ].map((feature, i) => (
                 <Card key={i} className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
                   <CardContent className="p-0">
-                    <div className="grid md:grid-cols-2 gap-0">
-                      <div className="p-8 md:p-10 flex flex-col justify-center">
+                    <div className={`grid md:grid-cols-2 gap-0 ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
+                      <div className={`p-8 md:p-10 flex flex-col justify-center ${i % 2 === 1 ? 'md:order-2' : ''}`}>
                         <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center mb-6">
                           <feature.icon className="h-6 w-6 text-[#4F46E5]" />
                         </div>
@@ -531,7 +568,7 @@ export default function Landing() {
                           ))}
                         </ul>
                       </div>
-                      <div className="bg-slate-100 h-[250px] md:h-auto flex items-center justify-center text-slate-400">
+                      <div className={`bg-slate-100 h-[250px] md:h-auto flex items-center justify-center text-slate-400 ${i % 2 === 1 ? 'md:order-1' : ''}`}>
                         [{feature.placeholder}]
                       </div>
                     </div>
@@ -542,12 +579,24 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* CTA after Features */}
+        <section className="py-8 bg-slate-50">
+          <div className="container mx-auto px-4 max-w-6xl text-center">
+            <Link href="/register">
+              <Button size="lg" className="bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-200 rounded-xl text-lg px-10 py-6">
+                Получить демо
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </section>
+
         {/* Who is it for */}
-        <section className="py-20 md:py-32">
+        <section className="py-16 md:py-24">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2
-                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Для тех, кто строит систему продаж
@@ -615,17 +664,29 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* CTA after Who is it for */}
+        <section className="py-8 bg-white">
+          <div className="container mx-auto px-4 max-w-6xl text-center">
+            <Link href="/register">
+              <Button size="lg" className="bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-200 rounded-xl text-lg px-10 py-6">
+                Получить демо
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </section>
+
         {/* Before/After Case */}
-        <section className="py-20 md:py-32 bg-slate-50">
+        <section className="py-16 md:py-24 bg-slate-50">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-12">
+            <div className="text-center mb-10">
               <h2
-                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Один бизнес. Два подхода.
               </h2>
-              <p className="text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
                 Отдел из 8 менеджеров. Знания — в чатах, Google Docs и головах.
                 После внедрения SalesPilot всё изменилось за 5 дней.
               </p>
@@ -734,17 +795,29 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* CTA after Before/After */}
+        <section className="py-8 bg-slate-50">
+          <div className="container mx-auto px-4 max-w-6xl text-center">
+            <Link href="/register">
+              <Button size="lg" className="bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-200 rounded-xl text-lg px-10 py-6">
+                Получить демо
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </section>
+
         {/* Pricing */}
-        <section id="pricing" className="py-20 md:py-32">
+        <section id="pricing" className="py-16 md:py-24">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2
-                className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
+                className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
                 style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
               >
                 Выберите тариф под размер команды
               </h2>
-              <p className="text-lg text-slate-600 mb-8">
+              <p className="text-lg md:text-xl text-slate-600 mb-8">
                 Все тарифы включают демо на 3 дня.
               </p>
 
@@ -797,30 +870,30 @@ export default function Landing() {
         </section>
 
         {/* Final CTA */}
-        <section className="py-20 md:py-32 bg-slate-50">
+        <section className="py-16 md:py-24 bg-slate-50">
           <div className="container mx-auto px-4 max-w-4xl text-center">
             <h2
-              className="text-4xl md:text-[44px] font-bold mb-6 text-slate-900 leading-tight"
+              className="text-4xl md:text-5xl lg:text-[52px] font-bold mb-6 text-slate-900 leading-tight"
               style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
             >
               Готовы ускорить ответы менеджеров?
             </h2>
-            <p className="text-lg text-slate-600 mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-600 mb-10 leading-relaxed">
               Попробуйте SalesPilot в реальной работе.<br />
               Демо на 3 дня. Без карты.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/register">
-                <Button size="lg" className="bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-200 rounded-xl text-base px-8 w-full sm:w-auto">
+                <Button size="lg" className="bg-[#4F46E5] hover:bg-[#4338CA] transition-all duration-200 rounded-xl text-lg px-10 py-6 w-full sm:w-auto">
                   Запустить демо
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/register">
-                <Button size="lg" variant="outline" className="rounded-xl text-base px-8 w-full sm:w-auto">
+              <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="block">
+                <Button size="lg" variant="outline" className="rounded-xl text-lg px-10 py-6 w-full sm:w-auto">
                   Запросить показ (15 минут)
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </section>
