@@ -20,12 +20,12 @@ export default function Landing() {
   }
 
   const pricing = {
-    KZT: { mini: '19 900', pro: '49 900', team: '99 900', individual: '9 900' },
-    RUB: { mini: '2 990', pro: '7 990', team: '14 990', individual: '1 490' },
-    BYN: { mini: '99', pro: '249', team: '499', individual: '49' }
+    KZT: { mini: '2 490', pro: '5 490', team: '11 490', individual: '79 900' },
+    RUB: { mini: '499', pro: '1 099', team: '2 299', individual: '29 990' },
+    USD: { mini: '5', pro: '11', team: '23', individual: '159' }
   }
 
-  const currencySymbol = { KZT: '₸', RUB: '₽', BYN: 'Br' }
+  const currencySymbol = { KZT: '₸', RUB: '₽', USD: '$' }
 
   return (
     <div className="min-h-screen bg-white">
@@ -70,7 +70,7 @@ export default function Landing() {
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-8">
                 <h1
-                  className="text-5xl md:text-7xl lg:text-[72px] font-bold leading-[1.05] text-slate-900"
+                  className="text-5xl md:text-7xl lg:text-[68px] font-bold leading-[1.05] text-slate-900"
                   style={{ fontFamily: 'SF Pro Display, system-ui, sans-serif' }}
                 >
                   SalesPilot<br />
