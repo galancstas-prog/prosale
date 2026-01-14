@@ -94,7 +94,7 @@ export async function globalSearch(query: string) {
         module: 'scripts',
         id: turn.id,
         title: thread.title,
-        breadcrumb: `Scripts / ${category.name} / ${thread.title}`,
+        breadcrumb: `Скрипты / ${category.name} / ${thread.title}`,
         snippet,
         meta: {
           threadId: turn.thread_id,
@@ -138,7 +138,7 @@ if (trainingDocs) {
       module: 'training',
       id: doc.id,
       title: doc.title,
-      breadcrumb: `Training / ${doc.title}`,
+      breadcrumb: `Обучение / ${doc.title}`,
       snippet,
       meta: {
         docId: doc.id,
@@ -148,11 +148,11 @@ if (trainingDocs) {
 }
 
   const { data: kbPages } = await supabase
-    .from('kb_pages')
-    .select('id, title, content_richtext')
-    .ilike('content_richtext', searchPattern)
-    .order('created_at', { ascending: false })
-    .limit(50)
+  .from('kb_pages')
+  .select('id, title, content_richtext')
+  .or(`title.ilike.${searchPattern},content_richtext.ilike.${searchPattern}`)
+  .order('created_at', { ascending: false })
+  .limit(50)
 
   if (kbPages) {
     kbPages.forEach((page) => {
@@ -168,7 +168,7 @@ if (trainingDocs) {
         module: 'kb',
         id: page.id,
         title: page.title,
-        breadcrumb: `Knowledge Base / ${page.title}`,
+        breadcrumb: `База знаний / ${page.title}`,
         snippet,
         meta: {
           pageId: page.id,
