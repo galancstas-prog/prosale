@@ -54,7 +54,7 @@ export default function TrainingDocPage({ params }: { params: { docId: string } 
       <TrainingDocViewer
         doc={doc}
         progress={progress}
-        isAdmin={true}
+        isAdmin={false}
         searchQuery={searchQuery}
       />
     </div>
