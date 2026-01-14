@@ -51,7 +51,7 @@ export function CategoryList({ categories, isAdmin }: CategoryListProps) {
     }
   }
 
-  cconst handleDelete = async (categoryId: string, categoryName: string) => {
+  const handleDelete = async (categoryId: string, categoryName: string) => {
   if (
     !confirm(
       `Вы уверены, что хотите удалить категорию «${categoryName}»? Все подкатегории и скрипты будут удалены.`
