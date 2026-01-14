@@ -36,30 +36,31 @@ export async function getKbPageById(pageId: string) {
   return { data, error: null }
 }
 
-export async function createKbPage(formData: FormData) {
+export async function updateKbPage(pageId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
   const title = (formData.get('title') as string)?.trim()
-  const content = (formData.get('content') as string)?.trim()
+  const content = (formData.get('content') as string)?.trim() // ← ВОТ ТУТ
 
-  if (!title) return { error: 'Title is required' }
-  if (!content) return { error: 'Content is required' }
+  if (!title || !content) return { error: 'Title and content are required' }
 
   const { data, error } = await supabase
     .from('kb_pages')
-    .insert({
+    .update({
       title,
       content_richtext: content,
     })
+    .eq('id', pageId)
     .select('*')
     .single()
 
   if (error) {
-    console.error('[createKbPage] Database error:', error)
-    return { error: `Database error: ${error.message}` }
+    console.error('[updateKbPage] Database error:', error)
+    return { error: error.message }
   }
 
   safeRevalidatePath('/app/knowledge')
+  safeRevalidatePath(`/app/knowledge/${pageId}`)
   return { data }
 }
 
@@ -153,3 +154,4 @@ export async function searchKbPages(query: string) {
 
   return { data: results, error: null }
 }
+
