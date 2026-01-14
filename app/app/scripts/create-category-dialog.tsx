@@ -40,56 +40,67 @@ export function CreateCategoryDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          {t('scripts.newCategory')}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('scripts.createCategory')}</DialogTitle>
-          <DialogDescription>
-            {t('scripts.createCategoryDesc')}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="name">{t('scripts.categoryName')}</Label>
-            <Input
-              id="name"
-              name="name"
-              placeholder={t('scripts.categoryNamePlaceholder')}
-              required
-              disabled={loading}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">{t('scripts.categoryDesc')}</Label>
-            <Textarea
-              id="description"
-              name="description"
-              placeholder={t('scripts.categoryDescPlaceholder')}
-              disabled={loading}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {t('common.create')}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
+  <Dialog open={open} onOpenChange={setOpen}>
+    <DialogTrigger asChild>
+      <Button>
+        <Plus className="h-4 w-4 mr-2" />
+        Новая категория
+      </Button>
+    </DialogTrigger>
+
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Создать категорию</DialogTitle>
+        <DialogDescription>
+          Добавьте название и описание категории
+        </DialogDescription>
+      </DialogHeader>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-2">
+          <Label htmlFor="name">Название</Label>
+          <Input
+            id="name"
+            name="name"
+            placeholder="Например: Возражения"
+            required
+            disabled={loading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description">Описание</Label>
+          <Textarea
+            id="description"
+            name="description"
+            placeholder="Коротко: для чего эта категория"
+            disabled={loading}
+          />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={loading}
+          >
+            Отмена
+          </Button>
+
+          <Button type="submit" disabled={loading}>
+            {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Создать
+          </Button>
+        </div>
+      </form>
+    </DialogContent>
+  </Dialog>
+)
 }
