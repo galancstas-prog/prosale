@@ -349,9 +349,15 @@ export default function Landing() {
 
             <Card className="border border-slate-200 rounded-2xl overflow-hidden">
               <CardContent className="p-0">
-                <div className="bg-slate-100 h-[400px] flex items-center justify-center text-slate-400">
-                  [dashboard_placeholder.png]
-                </div>
+               <div className="relative h-[400px] w-full bg-slate-100">
+  <Image
+    src="/dashboard_placeholder.png"
+    alt="Dashboard preview"
+    fill
+    className="object-cover"
+    priority
+  />
+</div>
               </CardContent>
             </Card>
           </div>
