@@ -65,7 +65,8 @@ export function GlobalSearch() {
     timeoutRef.current = setTimeout(async () => {
       const result = await globalSearch(query)
       setResults(result.data || [])
-      setIsOpen((result.data || []).length > 0)
+      // ✅ FIX: открываем дропдаун независимо от количества результатов
+      setIsOpen(true)
     }, 400)
 
     return () => {
@@ -254,34 +255,114 @@ export function GlobalSearch() {
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && mode === 'ai' && isAiEnabled) {
-                handleAiSearch()
-              }
-            }}
-            placeholder={mode === 'ai' ? 'Задайте вопрос (мин. 4 символа)' : t('common.search')}
-            className="pl-10 pr-10 h-12 text-base"
-            disabled={mode === 'ai' && !isAiEnabled}
-          />
-          {query && (
-            <button
-              onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            >
-              <X className="h-5 w-5" />
-            </button>
+      {/* ✅ FIX 1: оборачиваем весь блок поиска в relative и ВСТРАИВАЕМ dropdown внутрь */}
+      <div className="relative">
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && mode === 'ai' && isAiEnabled) {
+                  handleAiSearch()
+                }
+              }}
+              placeholder={mode === 'ai' ? 'Задайте вопрос (мин. 4 символа)' : t('common.search')}
+              className="pl-10 pr-10 h-12 text-base"
+              disabled={mode === 'ai' && !isAiEnabled}
+            />
+            {query && (
+              <button
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          {mode === 'ai' && isAiEnabled && (
+            <Button onClick={handleAiSearch} disabled={loading || query.length < 4} size="lg">
+              {loading ? 'Поиск...' : 'Найти'}
+            </Button>
           )}
         </div>
-        {mode === 'ai' && isAiEnabled && (
-          <Button onClick={handleAiSearch} disabled={loading || query.length < 4} size="lg">
-            {loading ? 'Поиск...' : 'Найти'}
-          </Button>
+
+        {/* ✅ FIX 1: dropdown теперь привязан к инпуту */}
+        {mode === 'search' && isOpen && query.length >= 2 && (
+          <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 bg-white dark:bg-slate-900 border rounded-lg shadow-lg overflow-hidden">
+            <div className="sticky top-0 bg-slate-50 dark:bg-slate-800 border-b p-4 space-y-3">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Фильтр по модулям
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(moduleConfig).map(([key, config]) => {
+                  const Icon = config.icon
+                  return (
+                    <div key={key} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Icon className={`h-4 w-4 ${config.color}`} />
+                        <span className="text-sm font-medium">{config.label}</span>
+                      </div>
+                      <Switch
+                        checked={filters[key as keyof ModuleFilter]}
+                        onCheckedChange={() => toggleFilter(key as keyof ModuleFilter)}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto">
+              {allFiltersDisabled ? (
+                <div className="p-8 text-center text-slate-500">
+                  Включите хотя бы один модуль.
+                </div>
+              ) : filteredResults.length === 0 ? (
+                <div className="p-8 text-center text-slate-500">
+                  Ничего не найдено.
+                </div>
+              ) : (
+                <>
+                  {Object.entries(groupedResults).map(([module, moduleResults]) => {
+                    if (moduleResults.length === 0) return null
+                    const config = moduleConfig[module as keyof typeof moduleConfig]
+                    const Icon = config.icon
+
+                    return (
+                      <div key={module}>
+                        <div className="sticky top-0 bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b">
+                          <div className="flex items-center gap-2">
+                            <Icon className={`h-4 w-4 ${config.color}`} />
+                            <span className="font-semibold text-sm">{config.label}</span>
+                            <span className="text-xs text-slate-500">({moduleResults.length})</span>
+                          </div>
+                        </div>
+
+                        {moduleResults.map((result) => (
+                          <button
+                            key={`${result.module}-${result.id}`}
+                            onClick={() => handleResultClick(result)}
+                            className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-b-0"
+                          >
+                            <div className="font-medium text-sm mb-1 text-slate-700 dark:text-slate-300">
+                              {result.breadcrumb}
+                            </div>
+                            <div
+                              className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2"
+                              dangerouslySetInnerHTML={{ __html: highlightText(result.snippet, query) }}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -380,29 +461,125 @@ export function GlobalSearch() {
         </Card>
       )}
 
-      {mode === 'search' && isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-900 border rounded-lg shadow-lg overflow-hidden">
-          <div className="sticky top-0 bg-slate-50 dark:bg-slate-800 border-b p-4 space-y-3">
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Filter by Module</div>
-            <div className="grid grid-cols-2 gap-3">
-              {Object.entries(moduleConfig).map(([key, config]) => {
-                const Icon = config.icon
-                return (
-                  <div key={key} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Icon className={`h-4 w-4 ${config.color}`} />
-                      <span className="text-sm font-medium">{config.label}</span>
-                    </div>
-                    <Switch
-                      checked={filters[key as keyof ModuleFilter]}
-                      onCheckedChange={() => toggleFilter(key as keyof ModuleFilter)}
-                    />
-                  </div>
-                )
-              })}
+      {/* ===========================
+          🔇 НИЖЕ — ТВОИ ДУБЛИ/СТАРЫЕ БЛОКИ.
+          Я ИХ НЕ УДАЛЯЮ (как ты просил),
+          но выключаю, чтобы они НЕ ломали UI.
+         =========================== */}
+      {false && (
+        <>
+          {/* Дублирующий блок, который ты вставил второй раз (relative + Input + dropdown) */}
+          <div className="relative">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && mode === 'ai' && isAiEnabled) {
+                      handleAiSearch()
+                    }
+                  }}
+                  placeholder={mode === 'ai' ? 'Задайте вопрос (мин. 4 символа)' : t('common.search')}
+                  className="pl-10 pr-10 h-12 text-base"
+                  disabled={mode === 'ai' && !isAiEnabled}
+                />
+                {query && (
+                  <button
+                    onClick={handleClear}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+
+              {mode === 'ai' && isAiEnabled && (
+                <Button onClick={handleAiSearch} disabled={loading || query.length < 4} size="lg">
+                  {loading ? 'Поиск...' : 'Найти'}
+                </Button>
+              )}
             </div>
+
+            {mode === 'search' && isOpen && query.length >= 2 && (
+              <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 bg-white dark:bg-slate-900 border rounded-lg shadow-lg overflow-hidden">
+                <div className="sticky top-0 bg-slate-50 dark:bg-slate-800 border-b p-4 space-y-3">
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                    Фильтр по модулям
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(moduleConfig).map(([key, config]) => {
+                      const Icon = config.icon
+                      return (
+                        <div key={key} className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Icon className={`h-4 w-4 ${config.color}`} />
+                            <span className="text-sm font-medium">{config.label}</span>
+                          </div>
+                          <Switch
+                            checked={filters[key as keyof ModuleFilter]}
+                            onCheckedChange={() => toggleFilter(key as keyof ModuleFilter)}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="max-h-96 overflow-y-auto">
+                  {allFiltersDisabled ? (
+                    <div className="p-8 text-center text-slate-500">
+                      Включите хотя бы один модуль.
+                    </div>
+                  ) : filteredResults.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500">
+                      Ничего не найдено.
+                    </div>
+                  ) : (
+                    <>
+                      {Object.entries(groupedResults).map(([module, moduleResults]) => {
+                        if (moduleResults.length === 0) return null
+                        const config = moduleConfig[module as keyof typeof moduleConfig]
+                        const Icon = config.icon
+
+                        return (
+                          <div key={module}>
+                            <div className="sticky top-0 bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b">
+                              <div className="flex items-center gap-2">
+                                <Icon className={`h-4 w-4 ${config.color}`} />
+                                <span className="font-semibold text-sm">{config.label}</span>
+                                <span className="text-xs text-slate-500">({moduleResults.length})</span>
+                              </div>
+                            </div>
+
+                            {moduleResults.map((result) => (
+                              <button
+                                key={`${result.module}-${result.id}`}
+                                onClick={() => handleResultClick(result)}
+                                className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b last:border-b-0"
+                              >
+                                <div className="font-medium text-sm mb-1 text-slate-700 dark:text-slate-300">
+                                  {result.breadcrumb}
+                                </div>
+                                <div
+                                  className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2"
+                                  dangerouslySetInnerHTML={{ __html: highlightText(result.snippet, query) }}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        )
+                      })}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Старый хвостовой блок результатов — оставлен, но выключен */}
           <div className="max-h-96 overflow-y-auto">
             {allFiltersDisabled ? (
               <div className="p-8 text-center text-slate-500">
@@ -445,7 +622,7 @@ export function GlobalSearch() {
               </>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   )
