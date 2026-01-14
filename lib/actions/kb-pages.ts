@@ -40,34 +40,6 @@ export async function updateKbPage(pageId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
   const title = (formData.get('title') as string)?.trim()
-  const content = (formData.get('content') as string)?.trim() // ← ВОТ ТУТ
-
-  if (!title || !content) return { error: 'Title and content are required' }
-
-  const { data, error } = await supabase
-    .from('kb_pages')
-    .update({
-      title,
-      content_richtext: content,
-    })
-    .eq('id', pageId)
-    .select('*')
-    .single()
-
-  if (error) {
-    console.error('[updateKbPage] Database error:', error)
-    return { error: error.message }
-  }
-
-  safeRevalidatePath('/app/knowledge')
-  safeRevalidatePath(`/app/knowledge/${pageId}`)
-  return { data }
-}
-
-export async function updateKbPage(pageId: string, formData: FormData) {
-  const supabase = await getSupabaseServerClient()
-
-  const title = (formData.get('title') as string)?.trim()
   const content = (formData.get('content_richtext') as string)?.trim()
 
   if (!title || !content) return { error: 'Title and content are required' }
