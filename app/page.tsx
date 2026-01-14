@@ -10,7 +10,7 @@ import { WHATSAPP_URL } from '@/lib/constants'
 import { useState } from 'react'
 
 export default function Landing() {
-  const [currency, setCurrency] = useState<'KZT' | 'RUB' | 'BYN'>('RUB')
+  const [currency, setCurrency] = useState<'KZT' | 'RUB' | 'BYN'>('KZT')
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id)
