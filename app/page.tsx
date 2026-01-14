@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowRight, Check, Sparkles, Search, Database, MessageSquare, BookOpen, FileText, Brain, Zap, Users, Building2, TrendingUp, Headphones, ArrowDown, Clock, Target } from 'lucide-react'
 import { WHATSAPP_URL } from '@/lib/constants'
 import { useState } from 'react'
+import Image from 'next/image'
 
 export default function Landing() {
   const [currency, setCurrency] = useState<'KZT' | 'RUB' | 'USD'>('KZT')
