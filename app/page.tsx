@@ -529,7 +529,7 @@ export default function Landing() {
   {[
     {
       icon: MessageSquare,
-      title: 'Scripts',
+      title: 'Скрпиты',
       subtitle: 'Сценарии реальных диалогов',
       items: ['Логика «вопрос → ответ → шаг»', 'Готовые формулировки', 'Один стандарт для команды'],
       placeholder: 'scripts_placeholder.png',
@@ -543,28 +543,28 @@ export default function Landing() {
     },
     {
       icon: Database,
-      title: 'Knowledge Base',
+      title: 'База знаний',
       subtitle: 'Единый источник правды',
       items: ['Условия и цифры', 'Без противоречий', 'Основа для AI-ответов'],
       placeholder: 'kb_placeholder.png',
     },
     {
       icon: BookOpen,
-      title: 'Training',
+      title: 'Обучение',
       subtitle: 'Обучение без воды',
       items: ['Короткие модули', 'Примеры диалогов', 'Быстрый онбординг'],
       placeholder: 'training_placeholder.png',
     },
     {
       icon: Search,
-      title: 'Global Search',
+      title: 'Глобальный поиск',
       subtitle: 'Быстрый поиск без AI',
       items: ['По всей базе', 'Подсветка совпадений', 'Работает всегда'],
       placeholder: 'search_placeholder.png',
     },
     {
       icon: Brain,
-      title: 'AI Search',
+      title: 'AI Поиск',
       subtitle: 'Готовый ответ, а не ссылки',
       items: ['Понимает смысл', 'Собирает из базы', 'Показывает источники'],
       placeholder: 'ai_search_placeholder.png',
@@ -870,8 +870,8 @@ export default function Landing() {
       {[
         { name: 'Mini', price: pricing[currency].mini, users: '1-2', desc: 'Для малых команд' },
         { name: 'Pro', price: pricing[currency].pro, users: '3-5', desc: 'Для растущих команд', popular: true },
-        { name: 'Team', price: pricing[currency].team, users: '6-12', desc: 'Для сформированных отделов' },
-        { name: 'Individual', price: pricing[currency].individual, users: '>13', desc: 'Для больших команд' }
+        { name: 'Team', price: pricing[currency].team, users: '6-12', desc: 'Для больших команд' },
+        { name: 'Individual', price: pricing[currency].individual, users: '>13', desc: 'Индивидуальный формат' }
       ].map((plan, i) => (
         <Card
           key={i}
