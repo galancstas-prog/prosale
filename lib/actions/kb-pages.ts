@@ -47,6 +47,23 @@ export async function createKbPage(formData: FormData) {
   return { data }
 }
 
+export async function getKbPageById(pageId: string) {
+  const supabase = await getSupabaseServerClient()
+
+  const { data, error } = await supabase
+    .from('kb_pages')
+    .select('*')
+    .eq('id', pageId)
+    .single()
+
+  if (error) {
+    console.error('[getKbPageById] Database error:', error)
+    return { error: error.message, data: null }
+  }
+
+  return { data, error: null }
+}
+
 export async function updateKbPage(pageId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
