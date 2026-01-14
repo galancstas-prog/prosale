@@ -525,7 +525,7 @@ export default function Landing() {
               </h2>
             </div>
 
-            <div className="space-y-8">
+<div className="space-y-8">
   {[
     {
       icon: MessageSquare,
@@ -568,37 +568,45 @@ export default function Landing() {
       subtitle: 'Готовый ответ, а не ссылки',
       items: ['Понимает смысл', 'Собирает из базы', 'Показывает источники'],
       placeholder: 'ai_search_placeholder.png',
-    }
-              ].map((feature, i) => (
-                <Card key={i} className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
-                  <CardContent className="p-0">
-                    <div className={`grid md:grid-cols-2 gap-0 ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
-                      <div className={`p-8 md:p-10 flex flex-col justify-center ${i % 2 === 1 ? 'md:order-2' : ''}`}>
-                        <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center mb-6">
-                          <feature.icon className="h-6 w-6 text-[#4F46E5]" />
-                        </div>
-                        <h3 className="text-2xl font-bold mb-2 text-slate-900">{feature.title}</h3>
-                        <p className="text-slate-600 mb-6">{feature.subtitle}</p>
-                        <ul className="space-y-3">
-                          {feature.items.map((item, j) => (
-                            <li key={j} className="flex items-start gap-2 text-slate-700">
-                              <Check className="h-5 w-5 text-[#4F46E5] mt-0.5 flex-shrink-0" />
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className={`bg-slate-100 h-[250px] md:h-auto flex items-center justify-center text-slate-400 ${i % 2 === 1 ? 'md:order-1' : ''}`}>
-                        [{feature.placeholder}]
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+    },
+  ].map((feature, i) => (
+    <Card key={i} className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+      <CardContent className="p-0">
+        <div className={`grid md:grid-cols-2 gap-0 ${i % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
+          <div className={`p-8 md:p-10 flex flex-col justify-center ${i % 2 === 1 ? 'md:order-2' : ''}`}>
+            <div className="w-12 h-12 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center mb-6">
+              <feature.icon className="h-6 w-6 text-[#4F46E5]" />
             </div>
+            <h3 className="text-2xl font-bold mb-2 text-slate-900">{feature.title}</h3>
+            <p className="text-slate-600 mb-6">{feature.subtitle}</p>
+            <ul className="space-y-3">
+              {feature.items.map((item, j) => (
+                <li key={j} className="flex items-start gap-2 text-slate-700">
+                  <Check className="h-5 w-5 text-[#4F46E5] mt-0.5 flex-shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </section>
 
+          {/* 👇 ВОТ ТУТ ЕДИНСТВЕННАЯ ПРАВКА */}
+          <div
+            className={`bg-slate-100 h-[250px] md:h-auto flex items-center justify-center ${
+              i % 2 === 1 ? 'md:order-1' : ''
+            }`}
+          >
+            <img
+              src={`/${feature.placeholder}`}
+              alt={feature.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  ))}
+</div>
         {/* CTA after Features */}
         <section className="py-8 bg-slate-50">
           <div className="container mx-auto px-4 max-w-6xl text-center">
