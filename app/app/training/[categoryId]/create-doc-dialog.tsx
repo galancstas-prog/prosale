@@ -47,7 +47,7 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
         const msg =
           typeof result.error === 'string'
             ? result.error
-            : result.error?.message || 'Failed to create training document'
+            : result.error?.message || 'Не удалось создать документ'
         setError(msg)
         return
       }
@@ -61,7 +61,7 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
       const msg =
         err?.message ||
         err?.toString?.() ||
-        'Unexpected error while creating training document'
+        'Непредвиденная ошибка при создании документа'
       setError(msg)
     } finally {
       setLoading(false)
