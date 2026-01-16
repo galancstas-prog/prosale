@@ -419,6 +419,26 @@ export async function reindexAllContent() {
       }
     }
 
+    // ------------------------- FINISH: set tenant AI status -------------------------
+    const { data: tenantRow, error: tenantErr } = await supabase
+      .from('tenants')
+      .select('id')
+      .single()
+
+    if (!tenantErr && tenantRow?.id) {
+      const { error: updErr } = await supabase
+        .from('tenants')
+        .update({
+          ai_status: 'ready',
+          ai_last_indexed_at: new Date().toISOString(),
+        })
+        .eq('id', tenantRow.id)
+
+      if (updErr) {
+        console.error('[reindexAllContent] tenants update error:', updErr)
+      }
+    }
+    
     return { success: true }
   } catch (error: any) {
     console.error('Reindex error:', error)
