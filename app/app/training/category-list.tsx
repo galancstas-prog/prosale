@@ -54,7 +54,7 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
   }
 
   const handleDelete = async (categoryId: string, categoryName: string) => {
-    if (!confirm(`Are you sure you want to delete "${categoryName}"? All training documents will be deleted.`)) return
+    if (!confirm(`Вы уверены, что хотите удалить "${categoryName}"? Все учебные материалы будут удалены.`)) return
 
     setLoading(true)
     await deleteTrainingCategory(categoryId)
@@ -66,11 +66,11 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
     return (
       <EmptyState
         icon={BookOpen}
-        title="No training categories yet"
+        title="Категории обучения пока отсутствуют"
         description={
           isAdmin
-            ? "Create your first category to start organizing training materials"
-            : "No training categories available yet"
+            ? "Создайте свою первую категорию, чтобы начать организовывать учебные материалы"
+            : "Категории обучения пока недоступны"
         }
       />
     )
