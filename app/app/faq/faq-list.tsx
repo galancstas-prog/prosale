@@ -58,15 +58,15 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
       setTimeout(() => setCopiedId(null), 1500)
     } catch (err) {
       toast({
-        title: 'Failed to copy',
-        description: 'Could not copy to clipboard',
+        title: 'Не удалось скопировать',
+        description: 'Не удалось скопировать в буфер обмена',
         variant: 'destructive',
       })
     }
   }
 
   const handleDelete = async (itemId: string) => {
-    if (!confirm('Are you sure you want to delete this FAQ item?')) {
+    if (!confirm('Вы уверены, что хотите удалить этот пункт в разделе часто задаваемых вопросов??')) {
       return
     }
 
@@ -76,8 +76,8 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
     router.refresh()
 
     toast({
-      title: 'Deleted',
-      description: 'FAQ item has been removed',
+      title: 'Удалено',
+      description: 'Раздел часто задаваемых вопросов удален.',
     })
   }
 
