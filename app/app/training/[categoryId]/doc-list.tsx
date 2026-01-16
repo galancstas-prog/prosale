@@ -24,7 +24,7 @@ export function TrainingDocList({ docs, isAdmin }: DocListProps) {
   const [loading, setLoading] = useState(false)
 
   const handleDelete = async (docId: string, docTitle: string) => {
-    if (!confirm(`Are you sure you want to delete "${docTitle}"?`)) return
+    if (!confirm(`Вы уверены, что хотите удалить "${docTitle}"?`)) return
 
     setLoading(true)
     await deleteTrainingDoc(docId)
@@ -36,11 +36,11 @@ export function TrainingDocList({ docs, isAdmin }: DocListProps) {
     return (
       <EmptyState
         icon={FileText}
-        title="No training documents yet"
+        title="Учебных материалов пока нет"
         description={
           isAdmin
-            ? "Create your first training document to get started"
-            : "No training documents available yet"
+            ? "Создайте свой первый учебный документ, чтобы начать работу"
+            : "Учебные материалы пока недоступны"
         }
       />
     )
