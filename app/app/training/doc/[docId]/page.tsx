@@ -32,7 +32,7 @@ export default function TrainingDocPage({ params }: { params: { docId: string } 
   }, [params.docId])
 
   if (error) {
-    return <div>Document not found</div>
+    return <div>Документ не найден</div>
   }
 
   if (!doc) {
@@ -45,7 +45,7 @@ export default function TrainingDocPage({ params }: { params: { docId: string } 
         <Link href={`/app/training/${doc.category_id}`}>
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Category
+            Вернуться к категории
           </Button>
         </Link>
         <h1 className="text-3xl font-bold tracking-tight">{doc.title}</h1>
