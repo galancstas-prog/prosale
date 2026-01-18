@@ -22,8 +22,15 @@ export async function getKbPages() {
 export async function createKbPage(formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
-  const title = (formData.get('title') as string)?.trim()
-  const content = (formData.get('content_richtext') as string)?.trim()
+  const title = String(formData.get('title') ?? '').trim()
+  const content = String(
+    formData.get('content_richtext') ??
+      formData.get('content') ?? // fallback на старое имя
+      ''
+  ).trim()
+
+  // временная отладка (если надо) — потом убери
+  // console.log('[createKbPage] keys:', Array.from(formData.keys()))
 
   if (!title || !content) {
     return { error: 'Title and content are required' }
@@ -67,8 +74,12 @@ export async function getKbPageById(pageId: string) {
 export async function updateKbPage(pageId: string, formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
-  const title = (formData.get('title') as string)?.trim()
-  const content = (formData.get('content_richtext') as string)?.trim()
+  const title = String(formData.get('title') ?? '').trim()
+  const content = String(
+    formData.get('content_richtext') ??
+      formData.get('content') ?? // fallback
+      ''
+  ).trim()
 
   if (!title || !content) return { error: 'Title and content are required' }
 
@@ -123,7 +134,7 @@ export async function searchKbPages(query: string) {
     searchPattern = `%${phrase}%`
   } else {
     const words = normalizedQuery.split(/\s+/).filter((w) => w.length > 0)
-    searchPattern = words.map(w => `%${w}%`).join('')
+    searchPattern = words.map((w) => `%${w}%`).join('')
   }
 
   const { data, error } = await supabase
@@ -136,22 +147,35 @@ export async function searchKbPages(query: string) {
   if (error) return { error: error.message, data: [] }
 
   const results = (data || []).map((page) => {
-    const normalizedContent = page.content_richtext.toLowerCase().replace(/ё/gi, 'е')
+    const contentText = page.content_richtext ?? ''
+    const normalizedContent = contentText.toLowerCase().replace(/ё/gi, 'е')
     const searchTerms = normalizedQuery.toLowerCase()
 
     const matchIndex = normalizedContent.indexOf(searchTerms)
+
+    if (matchIndex === -1) {
+      return {
+        id: page.id,
+        title: page.title,
+        content: contentText,
+        snippet: contentText.slice(0, 120) + (contentText.length > 120 ? '...' : ''),
+      }
+    }
+
     const start = Math.max(0, matchIndex - 30)
-    const end = Math.min(page.content_richtext.length, matchIndex + searchTerms.length + 30)
-    const snippet = (start > 0 ? '...' : '') + page.content_richtext.substring(start, end) + (end < page.content_richtext.length ? '...' : '')
+    const end = Math.min(contentText.length, matchIndex + searchTerms.length + 30)
+    const snippet =
+      (start > 0 ? '...' : '') +
+      contentText.substring(start, end) +
+      (end < contentText.length ? '...' : '')
 
     return {
       id: page.id,
       title: page.title,
-      content: page.content_richtext,
+      content: contentText,
       snippet,
     }
   })
 
   return { data: results, error: null }
 }
-
