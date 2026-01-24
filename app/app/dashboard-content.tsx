@@ -104,22 +104,55 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
   }
 
   const handleReindex = async () => {
-    setReindexError('')
-    setReindexSuccess(false)
-    setReindexLoading(true)
+  setReindexError('')
+  setReindexSuccess(false)
+  setReindexLoading(true)
 
+  try {
+    // 1) пробуем запустить переиндексацию
     const result = await reindexAllContent()
 
-    if (result.success) {
+    // 2) если Netlify вернул 504/HTML или запрос оборвался —
+    // result может быть undefined → НЕ ПАДАЕМ
+    if (result?.success) {
       setReindexSuccess(true)
       setTimeout(() => setReindexSuccess(false), 5000)
-      await loadAiStatus() // <<< важно: обновить статус после индексации
-    } else {
+    } else if (result && result.success === false) {
       setReindexError(result.error || 'Ошибка переиндексации')
+    } else {
+      // result undefined / странный ответ → скорее всего 504 таймаут,
+      // но индексация могла реально завершиться в БД
+      setReindexError('Запрос переиндексации превысил таймаут. Проверяю статус…')
     }
 
+    // 3) в любом случае — обновляем статус сразу
+    await loadAiStatus()
+
+    // 4) и ещё подпуливаем статус короткое время,
+    // чтобы UI сам “догнал” ready без ручного refresh
+    const startedAt = Date.now()
+    const maxMs = 30_000 // 30 сек
+    while (Date.now() - startedAt < maxMs) {
+      await new Promise((r) => setTimeout(r, 1500))
+      await loadAiStatus()
+
+      // если уже ready/empty — выходим
+      // (aiStatus обновится через setState внутри loadAiStatus)
+      // лёгкий хак: после loadAiStatus() даём React применить state
+      await new Promise((r) => setTimeout(r, 0))
+      if (aiStatus === 'ready' || aiStatus === 'empty') break
+    }
+  } catch (e: any) {
+    console.error('[REINDEX UI ERROR]', e)
+    setReindexError(e?.message || 'Ошибка переиндексации')
+    // даже на ошибке — всё равно проверим статус в БД
+    try {
+      await loadAiStatus()
+    } catch {}
+  } finally {
     setReindexLoading(false)
   }
+}
 
   const getAiStatusConfig = () => {
     switch (aiStatus) {
