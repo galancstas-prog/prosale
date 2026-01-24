@@ -60,7 +60,7 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
   const title = (formData.get('title') as string)?.trim()
   const content = (formData.get('content') as string)?.trim() || ''
 
-  if (!title) return { error: 'Title is required' }
+  if (!title) return { error: 'Заголовок обязателен' }
   if (!categoryId) return { error: 'Category is required' }
   if (!content) return { error: 'Content is required' }
 
@@ -78,7 +78,7 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
 
   if (error) {
     console.error('[createTrainingDoc] Database error:', error)
-    return { error: `Database error: ${error.message}` }
+    return { error: `Ошибка базы данных: ${error.message}` }
   }
 
   safeRevalidatePath(`/app/training/${categoryId}`)
@@ -90,7 +90,7 @@ export async function updateTrainingDoc(docId: string, content_richtext: string)
   const supabase = await getSupabaseServerClient()
 
   const content = (content_richtext || '').trim()
-  if (!content) return { error: 'Content cannot be empty' }
+  if (!content) return { error: 'Содержание не может быть пустым' }
 
   const { data, error } = await supabase
     .from('training_docs')
@@ -139,10 +139,10 @@ export async function uploadTrainingImage(formData: FormData) {
   const supabase = await getSupabaseServerClient()
 
   const file = formData.get('file') as File | null
-  if (!file) return { error: 'No file provided' }
+  if (!file) return { error: 'Файл не предоставлен' }
 
-  if (!file.type.startsWith('image/')) return { error: 'Only images allowed' }
-  if (file.size > 5 * 1024 * 1024) return { error: 'Max file size is 5MB' }
+  if (!file.type.startsWith('image/')) return { error: 'Допускаются только изображения' }
+  if (file.size > 5 * 1024 * 1024) return { error: 'Максимальный размер файла 5МБ' }
 
   // 1) достаем текущего юзера
   const {
@@ -150,7 +150,7 @@ export async function uploadTrainingImage(formData: FormData) {
     error: userErr,
   } = await supabase.auth.getUser()
 
-  if (userErr || !user) return { error: 'Not authenticated' }
+  if (userErr || !user) return { error: 'Не аутентифицирован' }
 
   // 2) достаем tenant_id (вариант: из tenant_members)
   const { data: tm, error: tmErr } = await supabase
@@ -161,14 +161,14 @@ export async function uploadTrainingImage(formData: FormData) {
     .single()
 
   if (tmErr || !tm?.tenant_id) {
-    return { error: 'Tenant not found for user' }
+    return { error: 'Тенант не найден для пользователя' }
   }
 
   // (опционально) жестко ограничим upload только админам на уровне кода
   // даже если UI скрыт — это лишняя страховка
   const role = String(tm.role || '').toUpperCase()
 if (!['ADMIN', 'OWNER'].includes(role)) {
-  return { error: 'Only ADMIN can upload images' }
+  return { error: 'Только ADMIN может загружать изображения' }
 }
 
   const tenantId = tm.tenant_id as string
@@ -201,7 +201,7 @@ if (!['ADMIN', 'OWNER'].includes(role)) {
 
   if (signErr || !signed?.signedUrl) {
     console.error('[uploadTrainingImage] Signed URL error:', signErr)
-    return { error: signErr?.message ?? 'Failed to create signed URL' }
+    return { error: signErr?.message ?? 'Не удалось создать подписанный URL' }
   }
 
   // Можно вернуть и path на будущее (чтобы позже уметь обновлять url)

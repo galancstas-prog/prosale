@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'ProSale - Sales Training Platform',
-  description: 'Professional sales training and knowledge management platform',
+  description: 'Профессиональная платформа обучения продажам и управления знаниями',
   openGraph: {
     images: [
       {
@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <body className={inter.className}>{children}</body>
     </html>
   );

@@ -39,7 +39,7 @@ export async function markDocInProgress(docId: string) {
 
   if (error) {
     console.error('[markDocInProgress]', error)
-    return { error: error.message || 'Failed to update progress' }
+    return { error: error.message || 'Не удалось обновить прогресс' }
   }
 
   safeRevalidatePath(`/app/training/doc/${docId}`)
@@ -64,13 +64,13 @@ export async function markDocCompleted(docId: string) {
     const { error } = await supabase.from('training_progress').update(patch).eq('id', existing.id)
     if (error) {
       console.error('[markDocCompleted:update]', error)
-      return { error: error.message || 'Failed to update progress' }
+      return { error: error.message || 'Не удалось обновить прогресс' }
     }
   } else {
     const { error } = await supabase.from('training_progress').insert({ doc_id: docId, ...patch })
     if (error) {
       console.error('[markDocCompleted:insert]', error)
-      return { error: error.message || 'Failed to update progress' }
+      return { error: error.message || 'Не удалось обновить прогресс' }
     }
   }
 

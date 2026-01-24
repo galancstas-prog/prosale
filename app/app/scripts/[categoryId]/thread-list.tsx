@@ -52,7 +52,7 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
   }
 
   const handleDelete = async (threadId: string, threadTitle: string) => {
-    if (!confirm(`Are you sure you want to delete "${threadTitle}"? All messages will be deleted.`)) return
+    if (!confirm(`Вы уверены, что хотите удалить "${threadTitle}"? Все сообщения будут удалены.`)) return
 
     setLoading(true)
     await deleteThread(threadId)

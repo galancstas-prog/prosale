@@ -119,7 +119,7 @@ function TeamPageContent() {
       setOverview(normalized)
     } catch (e: any) {
       console.error('[TEAM OVERVIEW ERROR]', e)
-      const msg = e?.message ?? 'Failed to fetch team overview'
+      const msg = e?.message ?? 'Не удалось загрузить команду'
       setError(msg)
       toast({ title: 'Error', description: msg, variant: 'destructive' })
     } finally {
@@ -147,16 +147,16 @@ function TeamPageContent() {
 
       const code = extractInviteCode(data)
       toast({
-        title: 'Invite created',
-        description: code ? `Invite code: ${code}` : 'Invite created',
+        title: 'Приглашение создано',
+        description: code ? `Код приглашения: ${code}` : 'Приглашение создано',
       })
 
       await fetchOverview()
     } catch (e: any) {
       console.error('[CREATE INVITE ERROR]', e)
       toast({
-        title: 'Error',
-        description: e?.message ?? 'Failed to create invite',
+        title: 'Ошибка',
+        description: e?.message ?? 'Не удалось создать приглашение',
         variant: 'destructive',
       })
     } finally {
@@ -175,13 +175,13 @@ function TeamPageContent() {
 
       if (error) throw new Error(error.message)
 
-      toast({ title: 'Invite deleted' })
+      toast({ title: 'Приглашение удалено' })
       await fetchOverview()
     } catch (e: any) {
       console.error('[DELETE INVITE ERROR]', e)
       toast({
-        title: 'Error',
-        description: e?.message ?? 'Failed to delete invite',
+        title: 'Ошибка',
+        description: e?.message ?? 'Не удалось удалить приглашение',
         variant: 'destructive',
       })
     } finally {
@@ -190,7 +190,7 @@ function TeamPageContent() {
   }
 
   const removeMember = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) return
+    if (!confirm('Вы уверены, что хотите удалить этого члена команды?')) return
 
     try {
       setLoading(true)
@@ -202,13 +202,13 @@ function TeamPageContent() {
 
       if (error) throw new Error(error.message)
 
-      toast({ title: 'Member removed' })
+      toast({ title: 'Член команды удален' })
       await fetchOverview()
     } catch (e: any) {
       console.error('[REMOVE MEMBER ERROR]', e)
       toast({
-        title: 'Error',
-        description: e?.message ?? 'Failed to remove member',
+        title: 'Ошибка',
+        description: e?.message ?? 'Не удалось удалить члена команды',
         variant: 'destructive',
       })
     } finally {
@@ -219,7 +219,7 @@ function TeamPageContent() {
   if (membershipLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">Загрузка...</div>
       </div>
     )
   }
@@ -229,7 +229,7 @@ function TeamPageContent() {
       <div className="flex min-h-screen items-center justify-center">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Failed to load membership information</AlertDescription>
+          <AlertDescription>Не удалось загрузить информацию о членстве</AlertDescription>
         </Alert>
       </div>
     )
@@ -242,7 +242,7 @@ function TeamPageContent() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-red-500" />
-              Access Denied
+              Доступ запрещен
             </CardTitle>
             <CardDescription>
               У вас нет доступа к этой странице. Управлять членами команды могут только администраторы.

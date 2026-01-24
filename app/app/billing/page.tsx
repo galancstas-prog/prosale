@@ -21,7 +21,7 @@ export default function BillingPage() {
   }, [membership, membershipLoading, router])
 
   if (membershipLoading || planLoading) {
-    return <div>Loading...</div>
+    return <div>Загрузка...</div>
   }
 
   if (membership?.role !== 'ADMIN') {

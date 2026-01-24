@@ -36,7 +36,7 @@ function RegisterPageContent() {
           router.push('/app')
         }
       } catch (e: any) {
-        setError(e?.message ?? 'Failed to initialize Supabase client')
+        setError(e?.message ?? 'Не удалось инициализировать клиент Supabase')
       }
     }
 
@@ -50,7 +50,7 @@ function RegisterPageContent() {
     setLoading(true)
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError('Пароли не совпадают')
       setLoading(false)
       return
     }
