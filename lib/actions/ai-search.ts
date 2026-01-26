@@ -121,7 +121,8 @@ ${answerLangInstruction}
 "Похоже, в нашей базе знаний пока нет точной информации по этому вопросу. Уточните, пожалуйста, [1 короткое уточнение], и я помогу."`
 }
 
-// ------------------------- embeddings helpers (retry + concurrency) -------------------------const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+// ------------------------- embeddings helpers (retry + concurrency) -------------------------
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
 async function createEmbeddingWithRetry(text: string, attempts = 6): Promise<number[]> {
   let lastErr: any = null
