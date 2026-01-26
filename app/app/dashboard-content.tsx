@@ -62,16 +62,44 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     loadUserName()
   }, [])
 
-  const loadAiStatus = async (): Promise<'ready' | 'indexing' | 'needs_reindex' | 'empty' | undefined> => {
+  const loadAiStatus = async (retryCount = 0): Promise<'ready' | 'indexing' | 'needs_reindex' | 'empty' | undefined> => {
     if (!isAdmin) return undefined
     setAiStatusLoading(true)
     try {
       const supabase = getSupabaseClient()
-      const { data, error } = await supabase.rpc('get_ai_status')
-      if (!error && data) {
-        const status = (data.status as any) || 'empty'
-        setAiStatus(status)
-        return status
+      
+      // Создаем контроллер для отмены запроса по таймауту
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 секунд timeout
+      
+      try {
+        const { data, error } = await supabase.rpc('get_ai_status')
+        clearTimeout(timeoutId)
+        
+        if (!error && data) {
+          const status = (data.status as any) || 'empty'
+          setAiStatus(status)
+          return status
+        }
+        
+        // Если ошибка 504 или timeout и есть попытки retry
+        if (error && retryCount < 2) {
+          console.warn(`[AI STATUS] Retry attempt ${retryCount + 1}/2 after error:`, error)
+          await new Promise(resolve => setTimeout(resolve, 2000)) // Ждем 2 секунды
+          return loadAiStatus(retryCount + 1)
+        }
+        
+        if (error) {
+          console.error('[AI STATUS ERROR]', error)
+        }
+      } catch (abortError) {
+        clearTimeout(timeoutId)
+        if (retryCount < 2) {
+          console.warn(`[AI STATUS] Timeout, retry attempt ${retryCount + 1}/2`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          return loadAiStatus(retryCount + 1)
+        }
+        console.error('[AI STATUS TIMEOUT]', abortError)
       }
     } catch (e) {
       console.error('[AI STATUS ERROR]', e)
