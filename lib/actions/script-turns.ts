@@ -55,6 +55,23 @@ export async function createTurn(threadId: string, formData: FormData) {
 
   if (error) return { error: error.message }
 
+  // FIX #3: Update ai_status after creating new content
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[createTurn] AI status update error:', statusError)
+    }
+  }
+
   return { data }
 }
 
@@ -74,6 +91,23 @@ export async function updateTurn(turnId: string, message: string) {
 
   if (error) return { error: error.message }
 
+  // FIX #3: Update ai_status after content update
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[updateTurn] AI status update error:', statusError)
+    }
+  }
+
   return { success: true }
 }
 
@@ -84,6 +118,34 @@ export async function deleteTurn(turnId: string, threadId?: string) {
 
   const { error } = await supabase.from('script_turns').delete().eq('id', turnId)
   if (error) return { error: error.message }
+
+  // FIX #1: Delete related ai_chunks
+  const { error: chunksError } = await supabase
+    .from('ai_chunks')
+    .delete()
+    .eq('module', 'scripts')
+    .eq('entity_id', turnId)
+
+  if (chunksError) {
+    console.error('[deleteTurn] AI chunks delete error:', chunksError)
+  }
+
+  // FIX #1: Update tenants ai_status to needs_reindex
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[deleteTurn] AI status update error:', statusError)
+    }
+  }
 
   return { success: true }
 }

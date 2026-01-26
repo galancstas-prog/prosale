@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getThreadsByCategory } from '@/lib/actions/script-threads'
 import { getCategories } from '@/lib/actions/categories'
 import { CreateThreadDialog } from './create-thread-dialog'
 import { ThreadList } from './thread-list'
@@ -10,22 +9,20 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useLocale } from '@/lib/i18n/use-locale'
 import { useMembership } from '@/lib/auth/use-membership'
+import { useScriptThreads } from '@/lib/hooks/use-script-threads'
 
 export default function CategoryPage({ params }: { params: { categoryId: string } }) {
   const { t } = useLocale()
   const { membership } = useMembership()
   const [category, setCategory] = useState<any>(null)
-  const [threads, setThreads] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const { data: threads = [], isLoading } = useScriptThreads(params.categoryId)
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
 
   useEffect(() => {
     async function loadData() {
-      setLoading(true)
-      const threadsResult = await getThreadsByCategory(params.categoryId)
       const categoriesResult = await getCategories()
 
       const categories = categoriesResult.data || []
@@ -35,14 +32,12 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
         setNotFound(true)
       } else {
         setCategory(foundCategory)
-        setThreads(threadsResult.data || [])
       }
-      setLoading(false)
     }
     loadData()
   }, [params.categoryId])
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-muted-foreground">Загрузка...</div>

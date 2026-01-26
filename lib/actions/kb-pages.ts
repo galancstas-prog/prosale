@@ -50,6 +50,23 @@ export async function createKbPage(formData: FormData) {
     return { error: error.message }
   }
 
+  // FIX #3: Update ai_status after creating new content
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[createKbPage] AI status update error:', statusError)
+    }
+  }
+
   safeRevalidatePath('/app/knowledge')
   return { data }
 }
@@ -111,6 +128,34 @@ export async function deleteKbPage(id: string) {
   if (error) {
     console.error('[deleteKbPage] Database error:', error)
     return { error: error.message }
+  }
+
+  // FIX #1: Delete related ai_chunks
+  const { error: chunksError } = await supabase
+    .from('ai_chunks')
+    .delete()
+    .eq('module', 'kb')
+    .eq('entity_id', id)
+
+  if (chunksError) {
+    console.error('[deleteKbPage] AI chunks delete error:', chunksError)
+  }
+
+  // FIX #1: Update tenants ai_status to needs_reindex
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[deleteKbPage] AI status update error:', statusError)
+    }
   }
 
   safeRevalidatePath('/app/knowledge')

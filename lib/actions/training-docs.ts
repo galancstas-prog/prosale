@@ -105,7 +105,22 @@ export async function updateTrainingDoc(docId: string, content_richtext: string)
     return { error: error.message }
   }
 
-  safeRevalidatePath(`/app/training/doc/${docId}`)
+  // FIX #3: Update ai_status after content update
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[createTrainingDoc] AI status update error:', statusError)
+    }
+  }
   return { data }
 }
 
@@ -126,6 +141,34 @@ export async function deleteTrainingDoc(id: string) {
   if (error) {
     console.error('[deleteTrainingDoc] Delete error:', error)
     return { error: error.message }
+  }
+
+  // FIX #1: Delete related ai_chunks
+  const { error: chunksError } = await supabase
+    .from('ai_chunks')
+    .delete()
+    .eq('module', 'training')
+    .eq('entity_id', id)
+
+  if (chunksError) {
+    console.error('[deleteTrainingDoc] AI chunks delete error:', chunksError)
+  }
+
+  // FIX #1: Update tenants ai_status to needs_reindex
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[deleteTrainingDoc] AI status update error:', statusError)
+    }
   }
 
   return { success: true }

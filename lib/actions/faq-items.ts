@@ -32,6 +32,23 @@ export async function createFaqItem(formData: FormData) {
 
   if (error) return { error: error.message }
 
+  // FIX #3: Update ai_status after creating new content
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[createFaqItem] AI status update error:', statusError)
+    }
+  }
+
   safeRevalidatePath('/app/faq')
   return { data }
 }
@@ -41,6 +58,34 @@ export async function deleteFaqItem(id: string) {
 
   const { error } = await supabase.from('faq_items').delete().eq('id', id)
   if (error) return { error: error.message }
+
+  // FIX #1: Delete related ai_chunks
+  const { error: chunksError } = await supabase
+    .from('ai_chunks')
+    .delete()
+    .eq('module', 'faq')
+    .eq('entity_id', id)
+
+  if (chunksError) {
+    console.error('[deleteFaqItem] AI chunks delete error:', chunksError)
+  }
+
+  // FIX #1: Update tenants ai_status to needs_reindex
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[deleteFaqItem] AI status update error:', statusError)
+    }
+  }
 
   safeRevalidatePath('/app/faq')
   return { success: true }

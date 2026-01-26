@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ export function GlobalSearch() {
   const { t } = useLocale()
   const { plan } = useTenantPlan()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [mode, setMode] = useState<'search' | 'ai'>('search')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GlobalSearchResult[]>([])
@@ -48,6 +50,29 @@ export function GlobalSearch() {
   })
 
   const isAiEnabled = plan === 'PRO' || plan === 'TEAM'
+
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event.type === 'updated' && query.length >= 2) {
+        const action = event.action
+        if (action.type === 'success') {
+          const queryKey = event.query.queryKey
+          if (
+            (Array.isArray(queryKey) && queryKey[0] === 'script-threads') ||
+            (Array.isArray(queryKey) && queryKey[0] === 'script-turns') ||
+            (Array.isArray(queryKey) && queryKey[0] === 'training-docs') ||
+            (Array.isArray(queryKey) && queryKey[0] === 'faq-items') ||
+            (Array.isArray(queryKey) && queryKey[0] === 'kb-pages')
+          ) {
+            globalSearch(query).then((result) => {
+              setResults(result.data || [])
+            })
+          }
+        }
+      }
+    })
+    return () => unsubscribe()
+  }, [query, queryClient])
 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current)

@@ -19,6 +19,23 @@ export async function createThread(categoryId: string, formData: FormData) {
 
   if (error) return { error: error.message }
 
+  // FIX #3: Update ai_status after creating new content
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[createThread] AI status update error:', statusError)
+    }
+  }
+
   safeRevalidatePath('/app/scripts')
   safeRevalidatePath(`/app/scripts/${categoryId}`)
   return { data }
@@ -92,16 +109,64 @@ export async function updateThreadTitle(threadId: string, title: string) {
 export async function deleteThread(threadId: string) {
   const supabase = await getSupabaseServerClient()
 
+  // 1. узнаём category_id (для revalidate)
   const { data: thread } = await supabase
     .from('script_threads')
     .select('category_id')
     .eq('id', threadId)
     .single()
 
-  const { error } = await supabase.from('script_threads').delete().eq('id', threadId)
+  // 2. получаем turn-ы ДО удаления thread (иначе CASCADE сотрёт их)
+  const { data: turns } = await supabase
+    .from('script_turns')
+    .select('id')
+    .eq('thread_id', threadId)
+
+  // 3. чистим ai_chunks для turn-ов
+  if (turns?.length) {
+    const turnIds = turns.map((t) => t.id)
+
+    const { error: chunksError } = await supabase
+      .from('ai_chunks')
+      .delete()
+      .eq('module', 'scripts')
+      .in('entity_id', turnIds)
+
+    if (chunksError) {
+      console.error('[deleteThread] AI chunks delete error:', chunksError)
+    }
+  }
+
+  // 4. удаляем сам thread
+  const { error } = await supabase
+    .from('script_threads')
+    .delete()
+    .eq('id', threadId)
+
   if (error) return { error: error.message }
 
+  // 5. помечаем ИИ как требующий переиндексации
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[deleteThread] AI status update error:', statusError)
+    }
+  }
+
+  // 6. revalidate
   safeRevalidatePath('/app/scripts')
-  if (thread?.category_id) safeRevalidatePath(`/app/scripts/${thread.category_id}`)
+  if (thread?.category_id) {
+    safeRevalidatePath(`/app/scripts/${thread.category_id}`)
+  }
+
   return { success: true }
 }
