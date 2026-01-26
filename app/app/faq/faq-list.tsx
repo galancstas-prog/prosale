@@ -1,13 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/empty-state'
 import { Copy, Trash2, MessageCircle, Loader2, Check, ChevronDown, Plus } from 'lucide-react'
-import { deleteFaqItem } from '@/lib/actions/faq-items'
 import { useToast } from '@/hooks/use-toast'
+import { useFaqItemMutation } from '@/lib/hooks/use-faq-items'
 import { cn } from '@/lib/utils'
 
 interface FaqItem {
@@ -27,11 +26,10 @@ interface FaqListProps {
 }
 
 export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }: FaqListProps) {
-  const router = useRouter()
   const { toast } = useToast()
-  const [deleting, setDeleting] = useState<string | null>(null)
   const [openItems, setOpenItems] = useState<Set<string>>(new Set())
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const { deleteMutation } = useFaqItemMutation()
 
   useEffect(() => {
     if (openItemId) {
@@ -70,15 +68,19 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
       return
     }
 
-    setDeleting(itemId)
-    await deleteFaqItem(itemId)
-    setDeleting(null)
-    router.refresh()
-
-    toast({
-      title: 'Удалено',
-      description: 'Раздел часто задаваемых вопросов удален.',
-    })
+    try {
+      await deleteMutation.mutateAsync(itemId)
+      toast({
+        title: 'Удалено',
+        description: 'Раздел часто задаваемых вопросов удален.',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Ошибка',
+        description: err?.message || 'Ошибка при удалении',
+        variant: 'destructive',
+      })
+    }
   }
 
   const highlightText = (text: string, query: string) => {
@@ -168,10 +170,10 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDelete(item.id)}
-                    disabled={deleting === item.id}
+                    disabled={deleteMutation.isPending}
                     className="shrink-0 h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    {deleting === item.id ? (
+                    {deleteMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                     ) : (
                       <Trash2 className="h-4 w-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" />

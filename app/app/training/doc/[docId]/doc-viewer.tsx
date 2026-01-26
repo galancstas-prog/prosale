@@ -1,15 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { RichTextEditor } from '@/components/rich-text-editor'
 import { Check, Clock, Circle, Loader2, Save } from 'lucide-react'
 import { markDocCompleted, markDocInProgress } from '@/lib/actions/training-progress'
-import { updateTrainingDoc } from '@/lib/actions/training-docs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useTrainingDocMutation } from '@/lib/hooks/use-training-docs'
 
 interface Doc {
   id: string
@@ -32,13 +31,13 @@ interface TrainingDocViewerProps {
 }
 
 export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: TrainingDocViewerProps) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [content, setContent] = useState(doc.content_richtext || '<p>No content yet.</p>')
   const [shouldHighlight, setShouldHighlight] = useState(!!searchQuery)
+  const [loadingProgress, setLoadingProgress] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+  const { updateMutation } = useTrainingDocMutation(doc.category_id)
 
   useEffect(() => {
     if (!progress && !isAdmin) {
@@ -72,23 +71,26 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
 
   const handleMarkCompleted = async () => {
     setError('')
-    setLoading(true)
+    setLoadingProgress(true)
 
-    await markDocCompleted(doc.id)
-
-    setLoading(false)
-    router.refresh()
+    try {
+      await markDocCompleted(doc.id)
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при отметке')
+    } finally {
+      setLoadingProgress(false)
+    }
   }
 
   const handleSave = async () => {
     setError('')
-    setLoading(true)
 
-    await updateTrainingDoc(doc.id, content)
-
-    setEditing(false)
-    setLoading(false)
-    router.refresh()
+    try {
+      await updateMutation.mutateAsync({ docId: doc.id, content })
+      setEditing(false)
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при сохранении')
+    }
   }
 
   const statusConfig = {
@@ -148,8 +150,8 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
           </CardHeader>
           <CardContent>
             {status !== 'completed' && (
-              <Button onClick={handleMarkCompleted} disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Button onClick={handleMarkCompleted} disabled={loadingProgress}>
+                {loadingProgress && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Check className="h-4 w-4 mr-2" />
                 Отметить как выполненное
               </Button>
@@ -171,11 +173,11 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
               <div className="flex gap-2">
                 {editing ? (
                   <>
-                    <Button variant="outline" onClick={() => setEditing(false)} disabled={loading}>
+                    <Button variant="outline" onClick={() => setEditing(false)} disabled={updateMutation.isPending}>
                       Отмена
                     </Button>
-                    <Button onClick={handleSave} disabled={loading}>
-                      {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    <Button onClick={handleSave} disabled={updateMutation.isPending}>
+                      {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                       <Save className="h-4 w-4 mr-2" />
                       Сохранить
                     </Button>

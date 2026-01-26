@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,8 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { EmptyState } from '@/components/empty-state'
 import { BookOpen, ArrowRight, Pencil, Trash2, Loader2 } from 'lucide-react'
-import { updateTrainingCategory, deleteTrainingCategory } from '@/lib/actions/training-categories'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useTrainingCategoryMutation } from '@/lib/hooks/use-training-categories'
 import { getCategoryColor } from '@/lib/color-utils'
 import { cn } from '@/lib/utils'
 
@@ -28,38 +27,33 @@ interface CategoryListProps {
 }
 
 export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps) {
-  const router = useRouter()
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { updateMutation, deleteMutation } = useTrainingCategoryMutation()
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!editingCategory) return
 
     setError('')
-    setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    const result = await updateTrainingCategory(editingCategory.id, formData)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-    } else {
+    try {
+      const formData = new FormData(e.currentTarget)
+      await updateMutation.mutateAsync({ categoryId: editingCategory.id, formData })
       setEditingCategory(null)
-      setLoading(false)
-      router.refresh()
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при обновлении')
     }
   }
 
   const handleDelete = async (categoryId: string, categoryName: string) => {
     if (!confirm(`Вы уверены, что хотите удалить "${categoryName}"? Все учебные материалы будут удалены.`)) return
 
-    setLoading(true)
-    await deleteTrainingCategory(categoryId)
-    setLoading(false)
-    router.refresh()
+    try {
+      await deleteMutation.mutateAsync(categoryId)
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при удалении')
+    }
   }
 
   if (categories.length === 0) {
@@ -102,7 +96,7 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
                     e.preventDefault()
                     setEditingCategory(category)
                   }}
-                  disabled={loading}
+                  disabled={updateMutation.isPending || deleteMutation.isPending}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -113,7 +107,7 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
                     e.preventDefault()
                     handleDelete(category.id, category.name)
                   }}
-                  disabled={loading}
+                  disabled={updateMutation.isPending || deleteMutation.isPending}
                 >
                   <Trash2 className="h-4 w-4 text-red-600" />
                 </Button>
@@ -142,7 +136,7 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
                 name="name"
                 defaultValue={editingCategory?.name}
                 required
-                disabled={loading}
+                disabled={updateMutation.isPending}
               />
             </div>
             <div className="space-y-2">
@@ -151,15 +145,15 @@ export function TrainingCategoryList({ categories, isAdmin }: CategoryListProps)
                 id="edit-description"
                 name="description"
                 defaultValue={editingCategory?.description || ''}
-                disabled={loading}
+                disabled={updateMutation.isPending}
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditingCategory(null)} disabled={loading}>
+              <Button type="button" variant="outline" onClick={() => setEditingCategory(null)} disabled={updateMutation.isPending}>
                 Отмена
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Сохранить
               </Button>
             </div>

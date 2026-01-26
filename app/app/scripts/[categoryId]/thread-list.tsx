@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,8 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { EmptyState } from '@/components/empty-state'
 import { MessageSquare, ArrowRight, Pencil, Trash2, Loader2 } from 'lucide-react'
-import { updateThread, deleteThread } from '@/lib/actions/script-threads'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useScriptThreadMutation } from '@/lib/hooks/use-script-threads'
 
 interface Thread {
   id: string
@@ -22,42 +21,38 @@ interface Thread {
 
 interface ThreadListProps {
   threads: Thread[]
+  categoryId: string
   isAdmin: boolean
 }
 
-export function ThreadList({ threads, isAdmin }: ThreadListProps) {
-  const router = useRouter()
+export function ThreadList({ threads, categoryId, isAdmin }: ThreadListProps) {
   const [editingThread, setEditingThread] = useState<Thread | null>(null)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { updateMutation, deleteMutation } = useScriptThreadMutation(categoryId)
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!editingThread) return
 
     setError('')
-    setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    const result = await updateThread(editingThread.id, formData)
-
-    if (result.error) {
-      setError(result.error)
-      setLoading(false)
-    } else {
+    try {
+      const formData = new FormData(e.currentTarget)
+      await updateMutation.mutateAsync({ threadId: editingThread.id, formData })
       setEditingThread(null)
-      setLoading(false)
-      router.refresh()
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при обновлении')
     }
   }
 
   const handleDelete = async (threadId: string, threadTitle: string) => {
     if (!confirm(`Вы уверены, что хотите удалить "${threadTitle}"? Все сообщения будут удалены.`)) return
 
-    setLoading(true)
-    await deleteThread(threadId)
-    setLoading(false)
-    router.refresh()
+    try {
+      await deleteMutation.mutateAsync(threadId)
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при удалении')
+    }
   }
 
   if (threads.length === 0) {
@@ -100,7 +95,7 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
                     e.preventDefault()
                     setEditingThread(thread)
                   }}
-                  disabled={loading}
+                  disabled={updateMutation.isPending || deleteMutation.isPending}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -111,7 +106,7 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
                     e.preventDefault()
                     handleDelete(thread.id, thread.title)
                   }}
-                  disabled={loading}
+                  disabled={updateMutation.isPending || deleteMutation.isPending}
                 >
                   <Trash2 className="h-4 w-4 text-red-600" />
                 </Button>
@@ -140,7 +135,7 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
                 name="title"
                 defaultValue={editingThread?.title}
                 required
-                disabled={loading}
+                disabled={updateMutation.isPending}
               />
             </div>
             <div className="space-y-2">
@@ -149,15 +144,15 @@ export function ThreadList({ threads, isAdmin }: ThreadListProps) {
                 id="edit-description"
                 name="description"
                 defaultValue={editingThread?.description || ''}
-                disabled={loading}
+                disabled={updateMutation.isPending}
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditingThread(null)} disabled={loading}>
+              <Button type="button" variant="outline" onClick={() => setEditingThread(null)} disabled={updateMutation.isPending}>
                 Отмена
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Сохранить
               </Button>
             </div>

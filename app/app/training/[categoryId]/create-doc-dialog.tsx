@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,10 +13,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Loader2 } from 'lucide-react'
-import { createTrainingDoc } from '@/lib/actions/training-docs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RichTextEditor } from '@/components/rich-text-editor'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useTrainingDocMutation } from '@/lib/hooks/use-training-docs'
 
 interface CreateTrainingDocDialogProps {
   categoryId: string
@@ -25,46 +24,30 @@ interface CreateTrainingDocDialogProps {
 
 export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogProps) {
   const { t } = useLocale()
-  const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [content, setContent] = useState('<p>Enter your training content here...</p>')
+  const { createMutation } = useTrainingDocMutation(categoryId)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
     try {
       const formData = new FormData(e.currentTarget)
       formData.set('content', content)
 
-      // ВАЖНО: типизируем как any, чтобы TS не сходил с ума и не давал "never"
-      const result: any = await createTrainingDoc(categoryId, formData)
-
-      if (result?.error) {
-        const msg =
-          typeof result.error === 'string'
-            ? result.error
-            : result.error?.message || 'Не удалось создать документ'
-        setError(msg)
-        return
-      }
-
+      await createMutation.mutateAsync(formData)
+      
       // успех
       setOpen(false)
       setContent('<p>Enter your training content here...</p>')
-      router.refresh()
     } catch (err: any) {
-      // ЛОВИМ РЕАЛЬНУЮ ОШИБКУ, КОТОРУЮ РАНЬШЕ ТЫ НЕ ВИДЕЛ
       const msg =
         err?.message ||
         err?.toString?.() ||
         'Непредвиденная ошибка при создании документа'
       setError(msg)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -96,7 +79,7 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
               name="title"
               placeholder={t('training.docTitlePlaceholder')}
               required
-              disabled={loading}
+              disabled={createMutation.isPending}
             />
           </div>
           <div className="space-y-2">
@@ -104,11 +87,11 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
             <RichTextEditor content={content} onChange={setContent} />
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={createMutation.isPending}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t('common.create')}
             </Button>
           </div>

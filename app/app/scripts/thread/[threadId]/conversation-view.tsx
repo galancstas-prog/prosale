@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -17,13 +16,8 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react'
-import {
-  createTurn,
-  updateTurn,
-  deleteTurn,
-  reorderTurn,
-} from '@/lib/actions/script-turns'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useScriptTurnMutation } from '@/lib/hooks/use-script-turns'
 
 interface Turn {
   id: string
@@ -41,14 +35,13 @@ interface ConversationViewProps {
 }
 
 export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, searchQuery }: ConversationViewProps) {
-  const router = useRouter()
   const formRef = useRef<HTMLFormElement | null>(null)
 
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [editingTurnId, setEditingTurnId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [shouldHighlight, setShouldHighlight] = useState(!!highlightTurnId)
+  const { createMutation, updateMutation, deleteMutation, reorderMutation } = useScriptTurnMutation(threadId)
 
   useEffect(() => {
     if (highlightTurnId) {
@@ -68,14 +61,14 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
   const handleAddTurn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
-    const formData = new FormData(e.currentTarget)
-    await createTurn(threadId, formData)
-
-    formRef.current?.reset()
-    setLoading(false)
-    router.refresh()
+    try {
+      const formData = new FormData(e.currentTarget)
+      await createMutation.mutateAsync(formData)
+      formRef.current?.reset()
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при создании')
+    }
   }
 
   const handleEdit = (turn: Turn) => {
@@ -84,29 +77,31 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
   }
 
   const handleSaveEdit = async (turnId: string) => {
-    setLoading(true)
-    await updateTurn(turnId, editContent)
-
-    setEditingTurnId(null)
-    setEditContent('')
-    setLoading(false)
-    router.refresh()
+    try {
+      await updateMutation.mutateAsync({ turnId, message: editContent })
+      setEditingTurnId(null)
+      setEditContent('')
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при сохранении')
+    }
   }
 
   const handleDelete = async (turnId: string) => {
     if (!confirm('Are you sure you want to delete this turn?')) return
 
-    setLoading(true)
-    await deleteTurn(turnId, threadId)
-    setLoading(false)
-    router.refresh()
+    try {
+      await deleteMutation.mutateAsync(turnId)
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при удалении')
+    }
   }
 
   const handleReorder = async (turnId: string, direction: 'up' | 'down') => {
-    setLoading(true)
-    await reorderTurn(turnId, threadId, direction)
-    setLoading(false)
-    router.refresh()
+    try {
+      await reorderMutation.mutateAsync({ turnId, direction })
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка при переупорядочивании')
+    }
   }
 
   const highlightText = (text: string, query: string) => {
@@ -168,7 +163,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                           <Button
                             size="sm"
                             onClick={() => handleSaveEdit(turn.id)}
-                            disabled={loading}
+                            disabled={updateMutation.isPending}
                           >
                             Сохранить
                           </Button>
@@ -179,7 +174,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                               setEditingTurnId(null)
                               setEditContent('')
                             }}
-                            disabled={loading}
+                            disabled={updateMutation.isPending}
                           >
                             Отмена
                           </Button>
@@ -210,7 +205,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                               size="sm"
                               variant="ghost"
                               onClick={() => handleReorder(turn.id, 'up')}
-                              disabled={loading || index === 0}
+                              disabled={reorderMutation.isPending || index === 0}
                             >
                               <ChevronUp className="h-4 w-4" />
                             </Button>
@@ -218,7 +213,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                               size="sm"
                               variant="ghost"
                               onClick={() => handleReorder(turn.id, 'down')}
-                              disabled={loading || index === turns.length - 1}
+                              disabled={reorderMutation.isPending || index === turns.length - 1}
                             >
                               <ChevronDown className="h-4 w-4" />
                             </Button>
@@ -226,7 +221,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                               size="sm"
                               variant="ghost"
                               onClick={() => handleEdit(turn)}
-                              disabled={loading}
+                              disabled={updateMutation.isPending}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -234,7 +229,7 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDelete(turn.id)}
-                              disabled={loading}
+                              disabled={deleteMutation.isPending}
                             >
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </Button>
@@ -280,12 +275,12 @@ export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, se
                     name="message"
                     placeholder="Напишите сообщение..."
                     required
-                    disabled={loading}
+                    disabled={createMutation.isPending}
                     className="min-h-[150px]"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && (
+                <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+                  {createMutation.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}
                   Добавить сообщение

@@ -76,7 +76,7 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
         </div>
       </div>
 
-      <ThreadList threads={threads} isAdmin={isAdmin} />
+      <ThreadList threads={threads} categoryId={params.categoryId} isAdmin={isAdmin} />
     </div>
   )
 }

@@ -17,6 +17,15 @@ import { QuestionCaptureBar } from '@/components/question-capture-bar'
 import { WelcomePopup } from '@/components/welcome-popup'
 import { useMembership } from '@/lib/auth/use-membership'
 
+// Helper to detect soft timeout errors (504, AbortError, Failed to fetch)
+const isSoftTimeoutError = (e: any): boolean => {
+  if (e?.response?.status === 504) return true
+  if (e?.name === 'AbortError') return true
+  if (e?.message?.includes('Failed to fetch')) return true
+  if (e?.message?.includes('504')) return true
+  return false
+}
+
 interface DashboardContentProps {
   isAdmin: boolean
 }
@@ -125,7 +134,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     } else {
       // result undefined / странный ответ → скорее всего 504 таймаут,
       // но индексация могла реально завершиться в БД
-      setReindexError('Запрос переиндексации превысил таймаут. Проверяю статус…')
+      setReindexError('Запрос занял слишком долго, обучение может продолжаться в фоне. Проверяю статус...')
     }
 
     // 3) в любом случае — обновляем статус сразу
@@ -156,11 +165,39 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     }
   } catch (e: any) {
     console.error('[REINDEX UI ERROR]', e)
-    setReindexError(e?.message || 'Ошибка переиндексации')
-    // даже на ошибке — всё равно проверим статус в БД
-    try {
-      await loadAiStatus()
-    } catch {}
+    
+    // Check if this is a soft timeout error (504, AbortError, Failed to fetch)
+    if (isSoftTimeoutError(e)) {
+      // Show friendly message instead of error
+      setReindexError('Запрос занял слишком долго, обучение может продолжаться в фоне. Проверяю статус...')
+      
+      // Start polling for status in background
+      try {
+        const startedAt = Date.now()
+        const maxMs = 30_000 // 30 сек
+        while (Date.now() - startedAt < maxMs) {
+          await new Promise((r) => setTimeout(r, 1500))
+          
+          const status = await loadAiStatus()
+          
+          // если уже ready/empty — выходим
+          if (status === 'ready' || status === 'empty') {
+            setReindexError('')
+            break
+          }
+        }
+      } catch (pollError) {
+        console.error('[POLLING ERROR]', pollError)
+        // Silently continue, don't disturb the UI with poll errors
+      }
+    } else {
+      // For other errors, show normal error message
+      setReindexError(e?.message || 'Ошибка переиндексации')
+      // даже на ошибке — всё равно проверим статус в БД
+      try {
+        await loadAiStatus()
+      } catch {}
+    }
   } finally {
     setReindexLoading(false)
   }
