@@ -17,7 +17,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useScriptTurnMutation } from '@/lib/hooks/use-script-turns'
+import { useScriptTurns, useScriptTurnMutation } from '@/lib/hooks/use-script-turns'
 
 interface Turn {
   id: string
@@ -28,20 +28,28 @@ interface Turn {
 
 interface ConversationViewProps {
   threadId: string
-  turns: Turn[]
   isAdmin: boolean
   highlightTurnId?: string
   searchQuery?: string
 }
 
-export function ConversationView({ threadId, turns, isAdmin, highlightTurnId, searchQuery }: ConversationViewProps) {
+export function ConversationView({ threadId, isAdmin, highlightTurnId, searchQuery }: ConversationViewProps) {
   const formRef = useRef<HTMLFormElement | null>(null)
-
+  
   const [error, setError] = useState('')
   const [editingTurnId, setEditingTurnId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [shouldHighlight, setShouldHighlight] = useState(!!highlightTurnId)
+  const { data: turns = [], isLoading } = useScriptTurns(threadId)
   const { createMutation, updateMutation, deleteMutation, reorderMutation } = useScriptTurnMutation(threadId)
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-muted-foreground">Загрузка сообщений...</div>
+      </div>
+    )
+  }
 
   useEffect(() => {
     if (highlightTurnId) {

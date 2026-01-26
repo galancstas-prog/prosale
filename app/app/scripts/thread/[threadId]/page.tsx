@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getThreadById } from '@/lib/actions/script-threads'
-import { getTurnsByThread } from '@/lib/actions/script-turns'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -18,19 +17,16 @@ export default function ThreadPage({ params }: { params: { threadId: string } })
   const highlightTurnId = searchParams.get('turnId') || ''
   const searchQuery = searchParams.get('q') || ''
   const [thread, setThread] = useState<any>(null)
-  const [turns, setTurns] = useState<any[]>([])
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   useEffect(() => {
     async function loadData() {
       const threadResult = await getThreadById(params.threadId)
-      const turnsResult = await getTurnsByThread(params.threadId)
 
       if (threadResult.data) {
         setThread(threadResult.data)
       }
-      setTurns(turnsResult.data || [])
     }
     loadData()
   }, [params.threadId])
@@ -60,7 +56,6 @@ export default function ThreadPage({ params }: { params: { threadId: string } })
 
       <ConversationView
         threadId={params.threadId}
-        turns={turns}
         isAdmin={isAdmin}
         highlightTurnId={highlightTurnId}
         searchQuery={searchQuery}
