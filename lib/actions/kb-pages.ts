@@ -3,13 +3,19 @@
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
-export async function getKbPages() {
+export async function getKbPages(categoryId?: string | null) {
   const supabase = await getSupabaseServerClient()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('kb_pages')
-    .select('id,title,content_richtext,created_at')
+    .select('id,title,content_richtext,created_at,category_id')
     .order('created_at', { ascending: false })
+
+  if (categoryId) {
+    query = query.eq('category_id', categoryId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('[getKbPages] Database error:', error)
@@ -28,6 +34,8 @@ export async function createKbPage(formData: FormData) {
       formData.get('content') ?? // fallback на старое имя
       ''
   ).trim()
+  const categoryIdRaw = formData.get('category_id')
+  let categoryId = categoryIdRaw ? String(categoryIdRaw) : null
 
   // временная отладка (если надо) — потом убери
   // console.log('[createKbPage] keys:', Array.from(formData.keys()))
@@ -36,11 +44,26 @@ export async function createKbPage(formData: FormData) {
     return { error: 'Title and content are required' }
   }
 
+  // Если category_id не указан, найти категорию "Общая" для KB
+  if (!categoryId) {
+    const { data: defaultCategory } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('type', 'kb')
+      .eq('name', 'Общая')
+      .single()
+
+    if (defaultCategory) {
+      categoryId = defaultCategory.id
+    }
+  }
+
   const { data, error } = await supabase
     .from('kb_pages')
     .insert({
       title,
       content_richtext: content,
+      category_id: categoryId,
     })
     .select('*')
     .single()
@@ -97,15 +120,23 @@ export async function updateKbPage(pageId: string, formData: FormData) {
       formData.get('content') ?? // fallback
       ''
   ).trim()
+  const categoryIdRaw = formData.get('category_id')
+  const categoryId = categoryIdRaw ? String(categoryIdRaw) : null
 
   if (!title || !content) return { error: 'Title and content are required' }
 
+  const updateData: any = {
+    title,
+    content_richtext: content,
+  }
+
+  if (categoryId !== null) {
+    updateData.category_id = categoryId
+  }
+
   const { data, error } = await supabase
     .from('kb_pages')
-    .update({
-      title,
-      content_richtext: content,
-    })
+    .update(updateData)
     .eq('id', pageId)
     .select('*')
     .single()
