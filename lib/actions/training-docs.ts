@@ -81,8 +81,6 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
     return { error: `Ошибка базы данных: ${error.message}` }
   }
 
-  safeRevalidatePath(`/app/training/${categoryId}`)
-  safeRevalidatePath('/app/training')
   return { data }
 }
 
@@ -130,8 +128,6 @@ export async function deleteTrainingDoc(id: string) {
     return { error: error.message }
   }
 
-  if (doc?.category_id) safeRevalidatePath(`/app/training/${doc.category_id}`)
-  safeRevalidatePath('/app/training')
   return { success: true }
 }
 

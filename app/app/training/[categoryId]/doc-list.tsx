@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/empty-state'
 import { FileText, ArrowRight, Trash2, Loader2 } from 'lucide-react'
-import { deleteTrainingDoc } from '@/lib/actions/training-docs'
+import { useTrainingDocMutation } from '@/lib/hooks/use-training-docs'
+import { useToast } from '@/hooks/use-toast'
 
 interface Doc {
   id: string
@@ -17,22 +17,35 @@ interface Doc {
 interface DocListProps {
   docs: Doc[]
   isAdmin: boolean
+  categoryId: string
 }
 
-export function TrainingDocList({ docs, isAdmin }: DocListProps) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+export function TrainingDocList({ docs: initialDocs, isAdmin, categoryId }: DocListProps) {
+  const { toast } = useToast()
+  const { deleteMutation } = useTrainingDocMutation(categoryId)
+  const [error, setError] = useState('')
 
   const handleDelete = async (docId: string, docTitle: string) => {
     if (!confirm(`Вы уверены, что хотите удалить "${docTitle}"?`)) return
 
-    setLoading(true)
-    await deleteTrainingDoc(docId)
-    setLoading(false)
-    router.refresh()
+    try {
+      await deleteMutation.mutateAsync(docId)
+      toast({
+        title: 'Успешно',
+        description: 'Документ удален',
+      })
+    } catch (err: any) {
+      const message = err?.message || 'Ошибка при удалении'
+      setError(message)
+      toast({
+        title: 'Ошибка',
+        description: message,
+        variant: 'destructive',
+      })
+    }
   }
 
-  if (docs.length === 0) {
+  if (initialDocs.length === 0) {
     return (
       <EmptyState
         icon={FileText}
@@ -48,7 +61,7 @@ export function TrainingDocList({ docs, isAdmin }: DocListProps) {
 
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {docs.map((doc) => (
+      {initialDocs.map((doc) => (
         <Card key={doc.id} className="h-full hover:shadow-lg transition-all border-2 relative group">
           <Link href={`/app/training/doc/${doc.id}`}>
             <CardHeader className="cursor-pointer">
@@ -70,7 +83,7 @@ export function TrainingDocList({ docs, isAdmin }: DocListProps) {
                   e.preventDefault()
                   handleDelete(doc.id, doc.title)
                 }}
-                disabled={loading}
+                disabled={deleteMutation.isPending}
               >
                 <Trash2 className="h-4 w-4 text-red-600" />
               </Button>

@@ -59,7 +59,7 @@ export default function TrainingCategoryPage({ params }: { params: { categoryId:
         </div>
       </div>
 
-      <TrainingDocList docs={docs} isAdmin={isAdmin} />
+      <TrainingDocList docs={docs} isAdmin={isAdmin} categoryId={params.categoryId} />
     </div>
   )
 }
