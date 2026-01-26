@@ -43,16 +43,8 @@ export function ConversationView({ threadId, isAdmin, highlightTurnId, searchQue
   const { data: turns = [], isLoading } = useScriptTurns(threadId)
   const { createMutation, updateMutation, deleteMutation, reorderMutation } = useScriptTurnMutation(threadId)
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Загрузка сообщений...</div>
-      </div>
-    )
-  }
-
   useEffect(() => {
-    if (highlightTurnId) {
+    if (highlightTurnId && !isLoading) {
       setTimeout(() => {
         const element = document.getElementById(`turn-${highlightTurnId}`)
         if (element) {
@@ -64,7 +56,15 @@ export function ConversationView({ threadId, isAdmin, highlightTurnId, searchQue
         setShouldHighlight(false)
       }, 3000)
     }
-  }, [highlightTurnId])
+  }, [highlightTurnId, isLoading])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-muted-foreground">Загрузка сообщений...</div>
+      </div>
+    )
+  }
 
   const handleAddTurn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
