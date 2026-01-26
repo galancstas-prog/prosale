@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/empty-state'
 import { FileText, Trash2, Loader2, Eye } from 'lucide-react'
-import { deleteKbPage } from '@/lib/actions/kb-pages'
+import { useKbPageMutation } from '@/lib/hooks/use-kb-pages'
 import { useToast } from '@/hooks/use-toast'
 import { EditKbDialog } from './edit-kb-dialog'
 
@@ -26,23 +26,27 @@ interface KbListProps {
 export function KbList({ pages, isAdmin }: KbListProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const [deleting, setDeleting] = useState<string | null>(null)
+  const { deleteMutation } = useKbPageMutation()
 
   const handleDelete = async (pageId: string) => {
-  if (!confirm('Вы уверены, что хотите удалить эту страницу?')) {
-    return
+    if (!confirm('Вы уверены, что хотите удалить эту страницу?')) {
+      return
+    }
+
+    try {
+      await deleteMutation.mutateAsync(pageId)
+      toast({
+        title: 'Удалено',
+        description: 'Страница базы знаний была удалена',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Ошибка',
+        description: err?.message || 'Ошибка при удалении',
+        variant: 'destructive',
+      })
+    }
   }
-
-  setDeleting(pageId)
-  await deleteKbPage(pageId)
-  setDeleting(null)
-  router.refresh()
-
-  toast({
-    title: 'Удалено',
-    description: 'Страница базы знаний была удалена',
-  })
-}
 
 if (pages.length === 0) {
   return (
@@ -92,9 +96,9 @@ return (
                   size="sm"
                   variant="outline"
                   onClick={() => handleDelete(page.id)}
-                  disabled={deleting === page.id}
+                  disabled={deleteMutation.isPending}
                 >
-                  {deleting === page.id ? (
+                  {deleteMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin text-red-600" />
                   ) : (
                     <Trash2 className="h-4 w-4 text-red-600" />

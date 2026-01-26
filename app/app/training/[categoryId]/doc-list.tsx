@@ -6,22 +6,17 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/empty-state'
 import { FileText, ArrowRight, Trash2, Loader2 } from 'lucide-react'
-import { useTrainingDocMutation } from '@/lib/hooks/use-training-docs'
+import { useTrainingDocs, useTrainingDocMutation } from '@/lib/hooks/use-training-docs'
 import { useToast } from '@/hooks/use-toast'
 
-interface Doc {
-  id: string
-  title: string
-}
-
 interface DocListProps {
-  docs: Doc[]
   isAdmin: boolean
   categoryId: string
 }
 
-export function TrainingDocList({ docs: initialDocs, isAdmin, categoryId }: DocListProps) {
+export function TrainingDocList({ isAdmin, categoryId }: DocListProps) {
   const { toast } = useToast()
+  const { data: docs = [], isLoading } = useTrainingDocs(categoryId)
   const { deleteMutation } = useTrainingDocMutation(categoryId)
   const [error, setError] = useState('')
 
@@ -45,7 +40,15 @@ export function TrainingDocList({ docs: initialDocs, isAdmin, categoryId }: DocL
     }
   }
 
-  if (initialDocs.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-muted-foreground">Загрузка...</div>
+      </div>
+    )
+  }
+
+  if (docs.length === 0) {
     return (
       <EmptyState
         icon={FileText}
@@ -61,7 +64,7 @@ export function TrainingDocList({ docs: initialDocs, isAdmin, categoryId }: DocL
 
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {initialDocs.map((doc) => (
+      {docs.map((doc) => (
         <Card key={doc.id} className="h-full hover:shadow-lg transition-all border-2 relative group">
           <Link href={`/app/training/doc/${doc.id}`}>
             <CardHeader className="cursor-pointer">

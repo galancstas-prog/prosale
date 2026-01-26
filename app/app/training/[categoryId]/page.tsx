@@ -15,20 +15,17 @@ export default function TrainingCategoryPage({ params }: { params: { categoryId:
   const { t } = useLocale()
   const { membership } = useMembership()
   const [category, setCategory] = useState<any>(null)
-  const [docs, setDocs] = useState<any[]>([])
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   useEffect(() => {
     async function loadData() {
-      const docsResult = await getTrainingDocsByCategory(params.categoryId)
       const categoriesResult = await getTrainingCategories()
 
       const categories = categoriesResult.data || []
       const foundCategory = categories.find(c => c.id === params.categoryId)
 
       setCategory(foundCategory)
-      setDocs(docsResult.data || [])
     }
     loadData()
   }, [params.categoryId])
@@ -59,7 +56,7 @@ export default function TrainingCategoryPage({ params }: { params: { categoryId:
         </div>
       </div>
 
-      <TrainingDocList docs={docs} isAdmin={isAdmin} categoryId={params.categoryId} />
+      <TrainingDocList isAdmin={isAdmin} categoryId={params.categoryId} />
     </div>
   )
 }
