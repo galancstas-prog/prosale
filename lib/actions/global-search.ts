@@ -88,7 +88,10 @@ export async function globalSearch(query: string) {
       const snippet = (start > 0 ? '...' : '') + turn.message.substring(start, end) + (end < turn.message.length ? '...' : '')
 
       const thread = turn.script_threads as any
-      const category = thread.categories as any
+      const category = thread?.categories as any
+
+      // Skip if thread or category is missing (e.g., due to deletion)
+      if (!thread || !category) return
 
       results.push({
         module: 'scripts',
