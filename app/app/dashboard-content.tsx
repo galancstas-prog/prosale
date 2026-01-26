@@ -53,20 +53,23 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     loadUserName()
   }, [])
 
-  const loadAiStatus = async () => {
-    if (!isAdmin) return
+  const loadAiStatus = async (): Promise<'ready' | 'indexing' | 'needs_reindex' | 'empty' | undefined> => {
+    if (!isAdmin) return undefined
     setAiStatusLoading(true)
     try {
       const supabase = getSupabaseClient()
       const { data, error } = await supabase.rpc('get_ai_status')
       if (!error && data) {
-        setAiStatus((data.status as any) || 'empty')
+        const status = (data.status as any) || 'empty'
+        setAiStatus(status)
+        return status
       }
     } catch (e) {
       console.error('[AI STATUS ERROR]', e)
     } finally {
       setAiStatusLoading(false)
     }
+    return undefined
   }
 
   useEffect(() => {
