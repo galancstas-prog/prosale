@@ -36,7 +36,7 @@ export default function ThreadPage({ params }: { params: { threadId: string } })
   }, [params.threadId])
 
   if (!thread) {
-    return <div>Thread not found</div>
+    return <div>Чат не найден</div>
   }
 
   return (

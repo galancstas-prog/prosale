@@ -103,7 +103,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     }, 1500)
   }
 
-  const handleReindex = async () => {
+ const handleReindex = async () => {
   setReindexError('')
   setReindexSuccess(false)
   setReindexLoading(true)
@@ -126,7 +126,14 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     }
 
     // 3) в любом случае — обновляем статус сразу
-    await loadAiStatus()
+    // ВАЖНО: loadAiStatus должен возвращать status (см. предыдущий фикс)
+    const firstStatus = await loadAiStatus()
+
+    // если уже ready/empty — выходим сразу
+    if (firstStatus === 'ready' || firstStatus === 'empty') {
+      setReindexError('')
+      return
+    }
 
     // 4) и ещё подпуливаем статус короткое время,
     // чтобы UI сам “догнал” ready без ручного refresh
@@ -134,13 +141,15 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     const maxMs = 30_000 // 30 сек
     while (Date.now() - startedAt < maxMs) {
       await new Promise((r) => setTimeout(r, 1500))
-      await loadAiStatus()
+
+      const status = await loadAiStatus()
 
       // если уже ready/empty — выходим
-      // (aiStatus обновится через setState внутри loadAiStatus)
-      // лёгкий хак: после loadAiStatus() даём React применить state
-      await new Promise((r) => setTimeout(r, 0))
-      if (aiStatus === 'ready' || aiStatus === 'empty') break
+      // НЕ читаем aiStatus из state (он тут может быть старым)
+      if (status === 'ready' || status === 'empty') {
+        setReindexError('')
+        break
+      }
     }
   } catch (e: any) {
     console.error('[REINDEX UI ERROR]', e)

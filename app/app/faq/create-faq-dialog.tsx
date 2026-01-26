@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,35 +14,25 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Loader2 } from 'lucide-react'
-import { createFaqItem } from '@/lib/actions/faq-items'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useFaqItemMutation } from '@/lib/hooks/use-faq-items'
 
 export function CreateFaqDialog() {
   const { t } = useLocale()
-  const router = useRouter()
   const { toast } = useToast()
+  const { createMutation } = useFaqItemMutation()
 
   const formRef = useRef<HTMLFormElement | null>(null)
 
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    const result = await createFaqItem(formData)
-
-    if (result?.error) {
-      setError(result.error)
-      setLoading(false)
-      return
-    }
+    await createMutation.mutateAsync(formData)
 
     // закрываем диалог
     setOpen(false)
@@ -51,12 +40,9 @@ export function CreateFaqDialog() {
     // безопасно очищаем форму
     formRef.current?.reset()
 
-    setLoading(false)
-    router.refresh()
-
     toast({
-      title: 'Success',
-      description: 'FAQ item created successfully',
+      title: 'Успешно',
+      description: 'Пункт FAQ создан',
     })
   }
 
@@ -82,9 +68,9 @@ export function CreateFaqDialog() {
           onSubmit={handleSubmit}
           className="space-y-4"
         >
-          {error && (
+          {createMutation.error && (
             <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{createMutation.error.message}</AlertDescription>
             </Alert>
           )}
 
@@ -95,7 +81,7 @@ export function CreateFaqDialog() {
               name="question"
               placeholder={t('faq.questionPlaceholder')}
               required
-              disabled={loading}
+              disabled={createMutation.isPending}
             />
           </div>
 
@@ -106,7 +92,7 @@ export function CreateFaqDialog() {
               name="answer"
               placeholder={t('faq.answerPlaceholder')}
               required
-              disabled={loading}
+              disabled={createMutation.isPending}
               className="min-h-[150px]"
             />
           </div>
@@ -116,13 +102,13 @@ export function CreateFaqDialog() {
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              disabled={loading}
+              disabled={createMutation.isPending}
             >
               {t('common.cancel')}
             </Button>
 
-            <Button type="submit" disabled={loading}>
-              {loading && (
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               )}
               {t('common.create')}

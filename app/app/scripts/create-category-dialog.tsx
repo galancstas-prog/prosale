@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,28 +14,22 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Loader2 } from 'lucide-react'
-import { createCategory } from '@/lib/actions/categories'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useCategoryMutation } from '@/lib/hooks/use-categories'
 
 export function CreateCategoryDialog() {
   const { t } = useLocale()
-  const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const { createMutation } = useCategoryMutation()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    await createCategory(formData)
+    await createMutation.mutateAsync(formData)
 
     setOpen(false)
-    setLoading(false)
-    router.refresh()
   }
 
   return (
@@ -57,11 +50,13 @@ export function CreateCategoryDialog() {
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
+        {createMutation.error && (
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{createMutation.error.message}</AlertDescription>
           </Alert>
         )}
+
+
 
         <div className="space-y-2">
           <Label htmlFor="name">Название</Label>
@@ -70,7 +65,7 @@ export function CreateCategoryDialog() {
             name="name"
             placeholder="Например: Возражения"
             required
-            disabled={loading}
+            disabled={createMutation.isPending}
           />
         </div>
 
@@ -80,7 +75,7 @@ export function CreateCategoryDialog() {
             id="description"
             name="description"
             placeholder="Коротко: для чего эта категория"
-            disabled={loading}
+            disabled={createMutation.isPending}
           />
         </div>
 
@@ -89,13 +84,13 @@ export function CreateCategoryDialog() {
             type="button"
             variant="outline"
             onClick={() => setOpen(false)}
-            disabled={loading}
+            disabled={createMutation.isPending}
           >
             Отмена
           </Button>
 
-          <Button type="submit" disabled={loading}>
-            {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          <Button type="submit" disabled={createMutation.isPending}>
+            {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Создать
           </Button>
         </div>

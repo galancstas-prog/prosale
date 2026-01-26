@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,56 +14,40 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Loader2 } from 'lucide-react'
-import { createKbPage } from '@/lib/actions/kb-pages'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useKbPageMutation } from '@/lib/hooks/use-kb-pages'
 
 export function CreateKbDialog() {
   const { t } = useLocale()
-  const router = useRouter()
   const { toast } = useToast()
+  const { createMutation } = useKbPageMutation()
   const formRef = useRef<HTMLFormElement | null>(null)
 
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
 
     try {
       const formData = new FormData(e.currentTarget)
-      const result: any = await createKbPage(formData)
-
-      if (result?.error) {
-        const msg =
-          typeof result.error === 'string'
-            ? result.error
-            : result.error?.message || 'Не удалось создать страницу базы знаний'
-        setError(msg)
-        setLoading(false)
-        return
-      }
+      await createMutation.mutateAsync(formData)
 
       setOpen(false)
       formRef.current?.reset()
-      setLoading(false)
-      router.refresh()
 
       toast({
         title: 'Готово',
-        description: 'Неожиданная ошибка при создании страницы базы знаний',
+        description: 'Страница базы знаний создана',
       })
     } catch (err: any) {
-      const msg =
-        err?.message ||
-        err?.toString?.() ||
-        'Неожиданная ошибка при создании страницы базы знаний'
-      setError(msg)
-      setLoading(false)
+      const msg = err?.message || 'Неожиданная ошибка при создании страницы'
+      toast({
+        title: 'Ошибка',
+        description: msg,
+        variant: 'destructive',
+      })
     }
   }
 
@@ -86,9 +69,9 @@ export function CreateKbDialog() {
         </DialogHeader>
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-          {error && (
+          {createMutation.error && (
             <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{createMutation.error.message}</AlertDescription>
             </Alert>
           )}
 
@@ -99,7 +82,7 @@ export function CreateKbDialog() {
               name="title"
               placeholder={t('kb.pageTitlePlaceholder')}
               required
-              disabled={loading}
+              disabled={createMutation.isPending}
             />
           </div>
 
@@ -110,7 +93,7 @@ export function CreateKbDialog() {
               name="content"
               placeholder={t('kb.pageContentPlaceholder')}
               required
-              disabled={loading}
+              disabled={createMutation.isPending}
               className="min-h-[300px] font-mono text-sm"
             />
           </div>
@@ -120,13 +103,13 @@ export function CreateKbDialog() {
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
-              disabled={loading}
+              disabled={createMutation.isPending}
             >
               {t('common.cancel')}
             </Button>
 
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t('common.create')}
             </Button>
           </div>

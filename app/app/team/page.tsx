@@ -268,7 +268,7 @@ function TeamPageContent() {
       )}
 
       {!overview && !error && (
-        <div className="text-muted-foreground">{loading ? 'Loading...' : 'No data yet'}</div>
+        <div className="text-muted-foreground">{loading ? 'Загрузка...' : 'No data yet'}</div>
       )}
 
       {overview && (

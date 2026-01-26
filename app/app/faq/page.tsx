@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { getFaqItems } from '@/lib/actions/faq-items'
 import { CreateFaqDialog } from './create-faq-dialog'
 import { FaqList } from './faq-list'
 import { FaqSearch } from './faq-search'
 import { useLocale } from '@/lib/i18n/use-locale'
 import { useMembership } from '@/lib/auth/use-membership'
+import { useFaqItems } from '@/lib/hooks/use-faq-items'
 
 export default function FaqPage() {
   const { t } = useLocale()
@@ -15,23 +15,12 @@ export default function FaqPage() {
   const searchParams = useSearchParams()
   const urlHighlightId = searchParams.get('highlight') || null
   const urlSearchQuery = searchParams.get('q') || ''
-  const [faqItems, setFaqItems] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: faqItems = [], isLoading: loading } = useFaqItems()
   const [highlightId, setHighlightId] = useState<string | null>(urlHighlightId)
   const [searchQuery, setSearchQuery] = useState(urlSearchQuery)
   const [openItemId, setOpenItemId] = useState<string | null>(urlHighlightId)
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
-
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      const faqResult = await getFaqItems()
-      setFaqItems(faqResult.data || [])
-      setLoading(false)
-    }
-    loadData()
-  }, [])
 
   useEffect(() => {
     if (urlHighlightId) {
@@ -87,7 +76,7 @@ export default function FaqPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">Loading...</div>
+          <div className="text-muted-foreground">Загрузка...</div>
         </div>
       ) : (
         <FaqList

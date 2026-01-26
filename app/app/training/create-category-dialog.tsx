@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,28 +14,22 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Loader2 } from 'lucide-react'
-import { createTrainingCategory } from '@/lib/actions/training-categories'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useLocale } from '@/lib/i18n/use-locale'
+import { useTrainingCategoryMutation } from '@/lib/hooks/use-training-categories'
 
 export function CreateTrainingCategoryDialog() {
   const { t } = useLocale()
-  const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const { createMutation } = useTrainingCategoryMutation()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError('')
-    setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    await createTrainingCategory(formData)
+    await createMutation.mutateAsync(formData)
 
     setOpen(false)
-    setLoading(false)
-    router.refresh()
   }
 
   return (
@@ -55,9 +48,9 @@ export function CreateTrainingCategoryDialog() {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
+          {createMutation.error && (
             <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{createMutation.error.message}</AlertDescription>
             </Alert>
           )}
           <div className="space-y-2">
@@ -67,7 +60,7 @@ export function CreateTrainingCategoryDialog() {
               name="name"
               placeholder={t('training.categoryNamePlaceholder')}
               required
-              disabled={loading}
+              disabled={createMutation.isPending}
             />
           </div>
           <div className="space-y-2">
@@ -76,15 +69,15 @@ export function CreateTrainingCategoryDialog() {
               id="description"
               name="description"
               placeholder={t('training.categoryDescPlaceholder')}
-              disabled={loading}
+              disabled={createMutation.isPending}
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={createMutation.isPending}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {t('common.create')}
             </Button>
           </div>

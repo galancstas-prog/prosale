@@ -1,32 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCategories } from '@/lib/actions/categories'
 import { CreateCategoryDialog } from './create-category-dialog'
 import { CategoryList } from './category-list'
 import { ScriptsSearch } from './scripts-search'
 import { useLocale } from '@/lib/i18n/use-locale'
 import { useMembership } from '@/lib/auth/use-membership'
+import { useCategories } from '@/lib/hooks/use-categories'
 
 export default function ScriptsPage() {
   const { t } = useLocale()
   const { membership } = useMembership()
   const router = useRouter()
-  const [categories, setCategories] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: categories = [], isLoading: loading } = useCategories()
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
-
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      const categoriesResult = await getCategories()
-      setCategories(categoriesResult.data || [])
-      setLoading(false)
-    }
-    loadData()
-  }, [])
 
   const handleSearchResultClick = (threadId: string, turnId: string, query: string) => {
     router.push(`/app/scripts/thread/${threadId}?turnId=${turnId}&q=${encodeURIComponent(query)}`)
@@ -48,7 +36,7 @@ export default function ScriptsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="text-muted-foreground">Loading...</div>
+          <div className="text-muted-foreground">Загрузка...</div>
         </div>
       ) : (
         <CategoryList categories={categories} isAdmin={isAdmin} />

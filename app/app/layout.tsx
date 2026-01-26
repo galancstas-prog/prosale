@@ -3,12 +3,36 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase-client'
-import { MembershipProvider } from '@/lib/auth/use-membership'
+import { MembershipProvider, useMembership } from '@/lib/auth/use-membership'
 import { AppShell } from '@/components/app-shell'
 
 interface User {
   id: string
   email: string | null
+}
+
+function AppLayoutContent({ user, children }: { user: User; children: React.ReactNode }) {
+  const { membership, loading: membershipLoading } = useMembership()
+
+  // 🔴 LOADING GATE: Wait for membership before rendering content
+  if (membershipLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Загрузка...</div>
+      </div>
+    )
+  }
+
+  if (!membership) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-muted-foreground">Ошибка доступа</div>
+      </div>
+    )
+  }
+
+  // ✅ Membership готов -렌더 AppShell и children с известной ролью
+  return <AppShell user={user}>{children}</AppShell>
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -54,25 +78,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [router])
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Redirecting to login…</div>
+        <div className="text-muted-foreground">Загрузка...</div>
       </div>
     )
   }
 
   return (
     <MembershipProvider>
-      <AppShell user={user}>{children}</AppShell>
+      <AppLayoutContent user={user}>{children}</AppLayoutContent>
     </MembershipProvider>
   )
 }
