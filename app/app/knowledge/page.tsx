@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CreateKbDialog } from './create-kb-dialog'
 import { CreateKbCategoryDialog } from './create-kb-category-dialog'
@@ -10,7 +11,6 @@ import { useLocale } from '@/lib/i18n/use-locale'
 import { useMembership } from '@/lib/auth/use-membership'
 import { useKbPages } from '@/lib/hooks/use-kb-pages'
 import { useKbCategories } from '@/lib/hooks/use-kb-categories'
-import { useMemo } from 'react'
 
 export default function KnowledgePage() {
   const { t } = useLocale()

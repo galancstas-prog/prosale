@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getThreadById } from '@/lib/actions/script-threads'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { ConversationView } from './conversation-view'
 import { useLocale } from '@/lib/i18n/use-locale'
 import { useMembership } from '@/lib/auth/use-membership'
 
-export default function ThreadPage({ params }: { params: { threadId: string } }) {
+function ThreadPageContent({ params }: { params: { threadId: string } }) {
   const { t } = useLocale()
   const { membership } = useMembership()
   const searchParams = useSearchParams()
@@ -61,5 +61,13 @@ export default function ThreadPage({ params }: { params: { threadId: string } })
         searchQuery={searchQuery}
       />
     </div>
+  )
+}
+
+export default function ThreadPage({ params }: { params: { threadId: string } }) {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-12"><div className="text-muted-foreground">Загрузка...</div></div>}>
+      <ThreadPageContent params={params} />
+    </Suspense>
   )
 }

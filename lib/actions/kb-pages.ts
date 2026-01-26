@@ -3,19 +3,13 @@
 import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { safeRevalidatePath } from '@/lib/safe-revalidate'
 
-export async function getKbPages(categoryId?: string | null) {
+export async function getKbPages() {
   const supabase = await getSupabaseServerClient()
 
-  let query = supabase
+  const { data, error } = await supabase
     .from('kb_pages')
     .select('id,title,content_richtext,created_at,category_id')
     .order('created_at', { ascending: false })
-
-  if (categoryId) {
-    query = query.eq('category_id', categoryId)
-  }
-
-  const { data, error } = await query
 
   if (error) {
     console.error('[getKbPages] Database error:', error)
