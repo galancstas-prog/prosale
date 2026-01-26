@@ -37,7 +37,7 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
     loadData()
   }, [params.categoryId])
 
-  if (isLoading) {
+  if (isLoading || !category) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-muted-foreground">Загрузка...</div>
@@ -60,8 +60,8 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{category.name}</h1>
-            {category.description && (
+            <h1 className="text-3xl font-bold tracking-tight">{category?.name || 'Loading...'}</h1>
+            {category?.description && (
               <p className="text-slate-600 dark:text-slate-400 mt-2">
                 {category.description}
               </p>

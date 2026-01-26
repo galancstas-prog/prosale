@@ -48,8 +48,8 @@ export default function TrainingCategoryPage({ params }: { params: { categoryId:
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{category.name}</h1>
-            {category.description && (
+            <h1 className="text-3xl font-bold tracking-tight">{category?.name || 'Loading...'}</h1>
+            {category?.description && (
               <p className="text-slate-600 dark:text-slate-400 mt-2">
                 {category.description}
               </p>
