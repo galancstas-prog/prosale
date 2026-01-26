@@ -9,14 +9,13 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useLocale } from '@/lib/i18n/use-locale'
 import { useMembership } from '@/lib/auth/use-membership'
-import { useScriptThreads } from '@/lib/hooks/use-script-threads'
 
 export default function CategoryPage({ params }: { params: { categoryId: string } }) {
   const { t } = useLocale()
   const { membership } = useMembership()
   const [category, setCategory] = useState<any>(null)
   const [notFound, setNotFound] = useState(false)
-  const { data: threads = [], isLoading } = useScriptThreads(params.categoryId)
+  const [isLoading, setIsLoading] = useState(true)
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
@@ -33,6 +32,7 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
       } else {
         setCategory(foundCategory)
       }
+      setIsLoading(false)
     }
     loadData()
   }, [params.categoryId])
@@ -71,7 +71,7 @@ export default function CategoryPage({ params }: { params: { categoryId: string 
         </div>
       </div>
 
-      <ThreadList threads={threads} categoryId={params.categoryId} isAdmin={isAdmin} />
+      <ThreadList categoryId={params.categoryId} isAdmin={isAdmin} />
     </div>
   )
 }

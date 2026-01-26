@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { EmptyState } from '@/components/empty-state'
 import { MessageSquare, ArrowRight, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useScriptThreadMutation } from '@/lib/hooks/use-script-threads'
+import { useScriptThreads, useScriptThreadMutation } from '@/lib/hooks/use-script-threads'
 
 interface Thread {
   id: string
@@ -20,15 +20,23 @@ interface Thread {
 }
 
 interface ThreadListProps {
-  threads: Thread[]
   categoryId: string
   isAdmin: boolean
 }
 
-export function ThreadList({ threads, categoryId, isAdmin }: ThreadListProps) {
+export function ThreadList({ categoryId, isAdmin }: ThreadListProps) {
   const [editingThread, setEditingThread] = useState<Thread | null>(null)
   const [error, setError] = useState('')
+  const { data: threads = [], isLoading } = useScriptThreads(categoryId)
   const { updateMutation, deleteMutation } = useScriptThreadMutation(categoryId)
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-muted-foreground">Загрузка тем...</div>
+      </div>
+    )
+  }
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
