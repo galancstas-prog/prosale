@@ -93,7 +93,16 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
     fetchMembership()
 
     // 2) подписка на изменения auth
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      // ✅ Игнорируем события, которые не требуют обновления membership:
+      // TOKEN_REFRESHED - просто обновление токена при возврате на страницу
+      // INITIAL_SESSION - начальная загрузка (уже обработана выше)
+      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        console.log('[MEMBERSHIP] Ignoring auth event:', event)
+        return
+      }
+      
+      console.log('[MEMBERSHIP] Processing auth event:', event)
       fetchMembership()
     })
 

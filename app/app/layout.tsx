@@ -62,6 +62,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[AUTH STATE CHANGE]', event, session?.user)
 
+      // ✅ Игнорируем события, которые не требуют обновления UI:
+      // TOKEN_REFRESHED - просто обновление токена при возврате на страницу
+      // INITIAL_SESSION - начальная загрузка (уже обработана getUser() выше)
+      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        console.log('[AUTH STATE CHANGE] Ignoring event:', event)
+        return
+      }
+
       if (!session?.user) {
         router.replace('/login')
         setUser(null)
