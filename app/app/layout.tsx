@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import { MembershipProvider, useMembership } from '@/lib/auth/use-membership'
@@ -39,6 +39,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  
+  // ✅ Храним текущий userId чтобы не обновлять состояние при возврате на вкладку
+  const currentUserIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     const supabase = getSupabaseClient()
@@ -49,6 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (!data.user || error) {
         router.replace('/login')
       } else {
+        currentUserIdRef.current = data.user.id
         setUser({
           id: data.user.id,
           email: data.user.email ?? null,
@@ -60,20 +64,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[AUTH STATE CHANGE]', event, session?.user)
+      console.log('[AUTH STATE CHANGE]', event, session?.user?.id)
 
-      // ✅ Игнорируем события, которые не требуют обновления UI:
-      // TOKEN_REFRESHED - просто обновление токена при возврате на страницу
-      // INITIAL_SESSION - начальная загрузка (уже обработана getUser() выше)
+      // ✅ Игнорируем события, которые не меняют пользователя:
+      // - TOKEN_REFRESHED, INITIAL_SESSION - технические события
+      // - SIGNED_IN с тем же userId - просто возврат на вкладку
       if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        console.log('[AUTH STATE CHANGE] Ignoring event:', event)
+        console.log('[AUTH STATE CHANGE] Ignoring technical event:', event)
+        return
+      }
+
+      // ✅ Если пользователь тот же - не обновляем состояние (предотвращает перерендер при возврате на вкладку)
+      if (session?.user && session.user.id === currentUserIdRef.current) {
+        console.log('[AUTH STATE CHANGE] Same user, skipping update:', event)
         return
       }
 
       if (!session?.user) {
+        currentUserIdRef.current = null
         router.replace('/login')
         setUser(null)
       } else {
+        currentUserIdRef.current = session.user.id
         setUser({
           id: session.user.id,
           email: session.user.email ?? null,

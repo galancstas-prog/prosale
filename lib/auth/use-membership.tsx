@@ -28,24 +28,39 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
 
   // prevent duplicate parallel fetches (auth события могут стрелять пачкой)
   const inFlightRef = useRef<Promise<void> | null>(null)
+  
+  // ✅ Храним текущий userId чтобы не перезагружать при возврате на вкладку
+  const currentUserIdRef = useRef<string | null>(null)
+  // ✅ Флаг первой загрузки
+  const initialLoadDoneRef = useRef(false)
 
-  const fetchMembership = async () => {
+  const fetchMembership = async (forceRefresh = false) => {
     if (inFlightRef.current) return inFlightRef.current
 
     const run = (async () => {
       try {
-        setLoading(true)
-        setError(null)
-
         const supabase = getSupabaseClient()
 
         const { data: userData, error: userError } = await supabase.auth.getUser()
 
         if (userError || !userData.user) {
           // не считаем это фатальной ошибкой
+          currentUserIdRef.current = null
           setMembership(null)
           return
         }
+        
+        // ✅ Если пользователь тот же и уже загружен - не обновляем (предотвращает мигание)
+        if (!forceRefresh && initialLoadDoneRef.current && userData.user.id === currentUserIdRef.current && membership) {
+          console.log('[MEMBERSHIP] Same user already loaded, skipping refetch')
+          return
+        }
+        
+        // Показываем loading только при первой загрузке или смене пользователя
+        if (!initialLoadDoneRef.current || userData.user.id !== currentUserIdRef.current) {
+          setLoading(true)
+        }
+        setError(null)
 
         // ✅ ВАЖНО: НЕ limit(1). Берём все членства и выбираем приоритетно ADMIN.
         const { data: members, error: memberError } = await supabase
@@ -67,6 +82,8 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
 
         console.log('[DEBUG MEMBERSHIP] user:', userData.user.id, 'tenantId:', preferred.tenant_id, 'role:', preferred.role, 'all members:', members)
 
+        currentUserIdRef.current = userData.user.id
+        initialLoadDoneRef.current = true
         setMembership({
           user: userData.user,
           tenantId: preferred.tenant_id,
@@ -93,12 +110,16 @@ export function MembershipProvider({ children }: { children: ReactNode }) {
     fetchMembership()
 
     // 2) подписка на изменения auth
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      // ✅ Игнорируем события, которые не требуют обновления membership:
-      // TOKEN_REFRESHED - просто обновление токена при возврате на страницу
-      // INITIAL_SESSION - начальная загрузка (уже обработана выше)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // ✅ Игнорируем технические события
       if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        console.log('[MEMBERSHIP] Ignoring auth event:', event)
+        console.log('[MEMBERSHIP] Ignoring technical event:', event)
+        return
+      }
+      
+      // ✅ Если пользователь тот же и уже загружен - не перезагружаем
+      if (session?.user && session.user.id === currentUserIdRef.current && initialLoadDoneRef.current) {
+        console.log('[MEMBERSHIP] Same user, skipping refetch for event:', event)
         return
       }
       
