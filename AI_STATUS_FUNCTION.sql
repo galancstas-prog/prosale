@@ -11,33 +11,51 @@ AS $$
 DECLARE
   chunk_count integer;
   result_status text;
+  tenant_uuid uuid;
+  tenant_ai_status text;
+  tenant_last_indexed timestamptz;
 BEGIN
-  -- Подсчитываем количество чанков в таблице ai_chunks
-  SELECT COUNT(*) INTO chunk_count
-  FROM ai_chunks;
+  -- Получаем tenant_id текущего пользователя
+  tenant_uuid := public.current_tenant_id();
   
-  -- Определяем статус на основе количества чанков
-  IF chunk_count = 0 THEN
-    result_status := 'empty';
-  ELSIF chunk_count > 0 THEN
-    -- Проверяем, есть ли чанки без embeddings (индексируются)
-    IF EXISTS (
-      SELECT 1 FROM ai_chunks 
-      WHERE embedding IS NULL 
-      LIMIT 1
-    ) THEN
-      result_status := 'indexing';
-    ELSE
-      result_status := 'ready';
-    END IF;
+  -- Читаем ai_status из таблицы tenants
+  SELECT ai_status, ai_last_indexed_at
+  INTO tenant_ai_status, tenant_last_indexed
+  FROM tenants
+  WHERE id = tenant_uuid;
+  
+  -- Подсчитываем количество чанков для текущего тенанта
+  SELECT COUNT(*) INTO chunk_count
+  FROM ai_chunks
+  WHERE tenant_id = tenant_uuid;
+  
+  -- Если статус в tenants установлен - используем его
+  IF tenant_ai_status IS NOT NULL AND tenant_ai_status != '' THEN
+    result_status := tenant_ai_status;
   ELSE
-    result_status := 'needs_reindex';
+    -- Иначе определяем статус на основе количества чанков (fallback)
+    IF chunk_count = 0 THEN
+      result_status := 'empty';
+    ELSE
+      -- Проверяем, есть ли чанки без embeddings (индексируются)
+      IF EXISTS (
+        SELECT 1 FROM ai_chunks 
+        WHERE tenant_id = tenant_uuid
+        AND embedding IS NULL 
+        LIMIT 1
+      ) THEN
+        result_status := 'indexing';
+      ELSE
+        result_status := 'ready';
+      END IF;
+    END IF;
   END IF;
   
   -- Возвращаем результат в формате JSON
   RETURN jsonb_build_object(
     'status', result_status,
     'chunk_count', chunk_count,
+    'last_indexed_at', tenant_last_indexed,
     'timestamp', extract(epoch from now())
   );
   
