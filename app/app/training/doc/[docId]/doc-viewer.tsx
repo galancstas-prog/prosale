@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { RichTextEditor } from '@/components/rich-text-editor'
 import { Check, Clock, Circle, Loader2, Save } from 'lucide-react'
@@ -34,6 +35,7 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [content, setContent] = useState(doc.content_richtext || '<p>No content yet.</p>')
+  const [title, setTitle] = useState(doc.title || '')
   const [shouldHighlight, setShouldHighlight] = useState(!!searchQuery)
   const [loadingProgress, setLoadingProgress] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -86,8 +88,14 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
     setError('')
 
     try {
-      await updateMutation.mutateAsync({ docId: doc.id, content })
+      await updateMutation.mutateAsync({ 
+        docId: doc.id, 
+        title: title.trim(),
+        content: content 
+      })
       setEditing(false)
+      // Обновляем заголовок в родительском компоненте
+      doc.title = title.trim()
     } catch (err: any) {
       setError(err?.message || 'Ошибка при сохранении')
     }
@@ -168,12 +176,31 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Содержание обучения</CardTitle>
+            {editing ? (
+              <div className="flex-1 mr-4">
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Введите заголовок документа"
+                  className="text-lg font-semibold"
+                />
+              </div>
+            ) : (
+              <CardTitle>Содержание обучения</CardTitle>
+            )}
             {isAdmin && (
               <div className="flex gap-2">
                 {editing ? (
                   <>
-                    <Button variant="outline" onClick={() => setEditing(false)} disabled={updateMutation.isPending}>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditing(false)
+                        setTitle(doc.title || '')
+                        setContent(doc.content_richtext || '<p>No content yet.</p>')
+                      }} 
+                      disabled={updateMutation.isPending}
+                    >
                       Отмена
                     </Button>
                     <Button onClick={handleSave} disabled={updateMutation.isPending}>

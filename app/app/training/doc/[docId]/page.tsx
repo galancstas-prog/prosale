@@ -8,13 +8,17 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { TrainingDocViewer } from './doc-viewer'
+import { useMembership } from '@/lib/auth/use-membership'
 
 export default function TrainingDocPage({ params }: { params: { docId: string } }) {
   const searchParams = useSearchParams()
   const searchQuery = searchParams.get('q') || ''
+  const { membership } = useMembership()
   const [doc, setDoc] = useState<any>(null)
   const [progress, setProgress] = useState<any>(null)
   const [error, setError] = useState(false)
+
+  const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   useEffect(() => {
     async function loadData() {
@@ -54,7 +58,7 @@ export default function TrainingDocPage({ params }: { params: { docId: string } 
       <TrainingDocViewer
         doc={doc}
         progress={progress}
-        isAdmin={false}
+        isAdmin={isAdmin}
         searchQuery={searchQuery}
       />
     </div>

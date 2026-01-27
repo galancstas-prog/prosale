@@ -84,18 +84,31 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
   return { data }
 }
 
-export async function updateTrainingDoc(docId: string, content_richtext: string) {
+export async function updateTrainingDoc(docId: string, data: { title?: string; content_richtext?: string }) {
   const supabase = await getSupabaseServerClient()
 
-  const content = (content_richtext || '').trim()
-  if (!content) return { error: 'Содержание не может быть пустым' }
+  // Подготавливаем объект для обновления
+  const updateData: any = {}
 
-  const { data, error } = await supabase
+  if (data.title !== undefined) {
+    updateData.title = data.title.trim()
+    if (!updateData.title) return { error: 'Заголовок не может быть пустым' }
+  }
+
+  if (data.content_richtext !== undefined) {
+    const content = (data.content_richtext || '').trim()
+    if (!content) return { error: 'Содержание не может быть пустым' }
+    updateData.content = content
+    updateData.content_richtext = content
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return { error: 'Не указаны данные для обновления' }
+  }
+
+  const { data: result, error } = await supabase
     .from('training_docs')
-    .update({
-      content,
-      content_richtext: content,
-    })
+    .update(updateData)
     .eq('id', docId)
     .select('*')
     .single()
@@ -105,23 +118,32 @@ export async function updateTrainingDoc(docId: string, content_richtext: string)
     return { error: error.message }
   }
 
-  // FIX #3: Update ai_status after content update
-  const { data: tenantRow, error: tenantErr } = await supabase
-    .from('tenants')
-    .select('id')
-    .single()
-
-  if (!tenantErr && tenantRow?.id) {
-    const { error: statusError } = await supabase
+  // FIX #3: Update ai_status after content update (only if content was changed)
+  if (data.content_richtext !== undefined) {
+    const { data: tenantRow, error: tenantErr } = await supabase
       .from('tenants')
-      .update({ ai_status: 'needs_reindex' })
-      .eq('id', tenantRow.id)
+      .select('id')
+      .single()
 
-    if (statusError) {
-      console.error('[createTrainingDoc] AI status update error:', statusError)
+    if (!tenantErr && tenantRow?.id) {
+      const { error: statusError } = await supabase
+        .from('tenants')
+        .update({ ai_status: 'needs_reindex' })
+        .eq('id', tenantRow.id)
+
+      if (statusError) {
+        console.error('[updateTrainingDoc] AI status update error:', statusError)
+      }
     }
   }
-  return { data }
+
+  safeRevalidatePath('/app/training')
+  return { data: result, error: null }
+}
+
+// Вспомогательная функция для обратной совместимости
+export async function updateTrainingDocContent(docId: string, content_richtext: string) {
+  return updateTrainingDoc(docId, { content_richtext })
 }
 
 export async function deleteTrainingDoc(id: string) {

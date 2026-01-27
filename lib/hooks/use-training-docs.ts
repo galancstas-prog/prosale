@@ -53,8 +53,12 @@ export function useTrainingDocMutation(categoryId: string) {
   })
 
   const updateMutation = useMutation({
-    mutationFn: async ({ docId, content }: { docId: string; content: string }) => {
-      const result = await updateTrainingDoc(docId, content)
+    mutationFn: async ({ docId, title, content }: { docId: string; title?: string; content?: string }) => {
+      const updateData: { title?: string; content_richtext?: string } = {}
+      if (title !== undefined) updateData.title = title
+      if (content !== undefined) updateData.content_richtext = content
+      
+      const result = await updateTrainingDoc(docId, updateData)
       if (result.error) throw new Error(result.error)
       return result.data
     },
