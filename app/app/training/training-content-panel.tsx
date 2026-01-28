@@ -158,7 +158,7 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
         <Card className="p-4 h-full">
           <h3 className="font-semibold mb-4 text-base">Разделы</h3>
           <ScrollArea className="h-[calc(100%-3rem)]">
-            <div className="space-y-1 pr-3">
+            <div className="space-y-2 pr-3">
               {categories.map((category) => {
                 const isExpanded = expandedCategories.has(category.id)
                 const isSelected = selectedCategoryId === category.id
@@ -227,7 +227,7 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
 
                     {/* Подкатегории (раскрываются при выборе категории) */}
                     {isExpanded && isSelected && (
-                      <div className="ml-4 pl-3 mt-2 border-l border-slate-200 dark:border-slate-700">
+                      <div className="ml-4 pl-3 mt-3 pt-1 border-l border-slate-200 dark:border-slate-700">
                         {subcategoriesLoading ? (
                           <div className="flex items-center justify-center py-4">
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
