@@ -9,9 +9,11 @@ export function useTrainingDocs(categoryId: string) {
   return useQuery({
     queryKey: ['training-docs', categoryId],
     queryFn: async () => {
+      if (!categoryId) return []
       const result = await getTrainingDocsByCategory(categoryId)
       return result.data || []
     },
+    enabled: !!categoryId,
   })
 }
 

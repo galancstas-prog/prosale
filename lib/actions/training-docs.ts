@@ -11,7 +11,7 @@ export async function getTrainingDocsByCategory(categoryId: string) {
 
   const { data, error } = await supabase
     .from('training_docs')
-    .select('id,title,content_richtext,category_id,created_at,is_published')
+    .select('id,title,content_richtext,category_id,subcategory_id,created_at,is_published')
     .eq('category_id', categoryId)
     .order('created_at', { ascending: false })
 
@@ -54,11 +54,45 @@ export async function getTrainingDocById(docId: string) {
   return { data, error: null }
 }
 
-export async function createTrainingDoc(categoryId: string, formData: FormData) {
+export async function getTrainingDocsBySubcategory(subcategoryId: string) {
+  const supabase = await getSupabaseServerClient()
+
+  const { data, error } = await supabase
+    .from('training_docs')
+    .select('id,title,content_richtext,category_id,subcategory_id,created_at,is_published')
+    .eq('subcategory_id', subcategoryId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('[getTrainingDocsBySubcategory] Database error:', error)
+    return { error: error.message, data: null }
+  }
+
+  return { data, error: null }
+}
+
+export async function getAllTrainingDocs() {
+  const supabase = await getSupabaseServerClient()
+
+  const { data, error } = await supabase
+    .from('training_docs')
+    .select('id,title,content_richtext,category_id,subcategory_id,created_at,is_published')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('[getAllTrainingDocs] Database error:', error)
+    return { error: error.message, data: null }
+  }
+
+  return { data, error: null }
+}
+
+export async function createTrainingDoc(categoryId: string, formData: FormData, subcategoryId?: string) {
   const supabase = await getSupabaseServerClient()
 
   const title = (formData.get('title') as string)?.trim()
   const content = (formData.get('content') as string)?.trim() || ''
+  const subcatId = formData.get('subcategory_id') as string || subcategoryId || null
 
   if (!title) return { error: 'Заголовок обязателен' }
   if (!categoryId) return { error: 'Category is required' }
@@ -71,6 +105,7 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
     .from('training_docs')
     .insert({
       category_id: categoryId,
+      subcategory_id: subcatId,
       title,
       content,
       content_richtext: content,
