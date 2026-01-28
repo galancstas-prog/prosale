@@ -199,7 +199,7 @@ export function ConversationView({ threadId, isAdmin, highlightTurnId, searchQue
                               {turn.speaker === 'agent' ? 'Менеджер' : 'Клиент'}
                             </div>
                             <div
-                              className="text-sm whitespace-pre-wrap"
+                              className="text-sm rich-content"
                               dangerouslySetInnerHTML={{ __html: highlightText(turn.message, searchQuery) }}
                             />
                           </div>

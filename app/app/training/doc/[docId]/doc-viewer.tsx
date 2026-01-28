@@ -229,7 +229,7 @@ export function TrainingDocViewer({ doc, progress, isAdmin, searchQuery }: Train
             <div ref={contentRef}>
               {shouldHighlight && searchQuery ? (
                 <div
-                  className="prose prose-slate dark:prose-invert max-w-none"
+                  className="prose prose-slate dark:prose-invert max-w-none rich-content"
                   dangerouslySetInnerHTML={{ __html: highlightText(content, searchQuery) }}
                 />
               ) : (

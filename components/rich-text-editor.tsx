@@ -18,9 +18,17 @@ import {
   LinkIcon,
   Loader2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { uploadTrainingImage } from '@/lib/actions/training-docs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+
+// Функция для очистки контента от лишних символов
+const cleanContent = (content: string) => {
+  return content
+    .replace(/\u00A0/g, ' ') // Замена неразрывных пробелов на обычные
+    .replace(/\u200B/g, '') // Удаление символов нулевой ширины
+    .replace(/\u2060/g, '') // Удаление символов разрыва слов
+}
 
 interface RichTextEditorProps {
   content: string
@@ -40,7 +48,16 @@ export function RichTextEditor({ content, onChange, editable = true, placeholder
     immediatelyRender: false,
 
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        hardBreak: {
+          keepMarks: false,
+        },
+        paragraph: {
+          HTMLAttributes: {
+            class: 'mb-2 last:mb-0',
+          },
+        },
+      }),
       Image,
       Link.configure({
         openOnClick: false,
@@ -50,12 +67,20 @@ export function RichTextEditor({ content, onChange, editable = true, placeholder
         emptyEditorClass: 'is-editor-empty',
       }),
     ],
-    content,
+    content: cleanContent(content),
     editable,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML())
+      const cleanedContent = cleanContent(editor.getHTML())
+      onChange(cleanedContent)
     },
   })
+
+  // Обновляем контент редактора при изменении пропса content
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(cleanContent(content))
+    }
+  }, [editor, content])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -199,7 +224,7 @@ export function RichTextEditor({ content, onChange, editable = true, placeholder
 
       <EditorContent
         editor={editor}
-        className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[200px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:border-none [&_.ProseMirror]:shadow-none [&_.ProseMirror]:ring-0 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:focus:ring-0 [&_.ProseMirror]:focus:shadow-none [&_.is-editor-empty]:first-child::before:content-[attr(data-placeholder)] [&_.is-editor-empty]:first-child::before:text-muted-foreground [&_.is-editor-empty]:first-child::before:float-left [&_.is-editor-empty]:first-child::before:h-0 [&_.is-editor-empty]:first-child::before:pointer-events-none"
+        className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[200px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:border-none [&_.ProseMirror]:shadow-none [&_.ProseMirror]:ring-0 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:focus:ring-0 [&_.ProseMirror]:focus:shadow-none [&_.ProseMirror]:whitespace-pre-wrap [&_.is-editor-empty]:first-child::before:content-[attr(data-placeholder)] [&_.is-editor-empty]:first-child::before:text-muted-foreground [&_.is-editor-empty]:first-child::before:float-left [&_.is-editor-empty]:first-child::before:h-0 [&_.is-editor-empty]:first-child::before:pointer-events-none"
       />
     </div>
   )

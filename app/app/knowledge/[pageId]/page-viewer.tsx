@@ -56,11 +56,11 @@ export function KbPageViewer({ page, isAdmin, searchQuery }: KbPageViewerProps) 
         {shouldHighlight && searchQuery ? (
           <div
             ref={contentRef}
-            className="whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed"
+            className="rich-content text-slate-700 dark:text-slate-300 leading-relaxed"
             dangerouslySetInnerHTML={{ __html: highlightText(page.content_richtext, searchQuery) }}
           />
         ) : (
-          <div ref={contentRef} className="whitespace-pre-wrap text-slate-700 dark:text-slate-300 leading-relaxed">
+          <div ref={contentRef} className="rich-content text-slate-700 dark:text-slate-300 leading-relaxed">
             {page.content_richtext}
           </div>
         )}

@@ -248,11 +248,11 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
                     <div className="flex items-start gap-4">
                       {searchQuery && isHighlighted ? (
                         <p
-                          className="flex-1 text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed"
+                          className="flex-1 text-sm text-slate-600 dark:text-slate-400 rich-content leading-relaxed"
                           dangerouslySetInnerHTML={{ __html: highlightText(item.answer, searchQuery) }}
                         />
                       ) : (
-                        <p className="flex-1 text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">
+                        <p className="flex-1 text-sm text-slate-600 dark:text-slate-400 rich-content leading-relaxed">
                           {item.answer}
                         </p>
                       )}

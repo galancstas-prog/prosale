@@ -124,7 +124,7 @@ export function ScriptsSearch({ onResultClick }: ScriptsSearchProps) {
                   <span>{result.threadTitle}</span>
                 </div>
                 <div
-                  className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2"
+                  className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 rich-content"
                   dangerouslySetInnerHTML={{ __html: highlightText(result.snippet, query) }}
                 />
               </button>
