@@ -5,8 +5,13 @@ import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { BookOpen, ChevronDown, ChevronRight, FileText, FolderOpen } from 'lucide-react'
-import { useTrainingCategories } from '@/lib/hooks/use-training-categories'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { BookOpen, ChevronDown, ChevronRight, FileText, FolderOpen, Pencil, Trash2, Loader2 } from 'lucide-react'
+import { useTrainingCategories, useTrainingCategoryMutation } from '@/lib/hooks/use-training-categories'
 import { useTrainingSubcategories } from '@/lib/hooks/use-training-subcategories'
 import { useTrainingDocs } from '@/lib/hooks/use-training-docs'
 import { TrainingSubcategoryList } from './subcategory-list'
@@ -15,7 +20,7 @@ import { TrainingDocInlinePanel } from './doc-inline-panel'
 import { CreateSubcategoryDialog } from './create-subcategory-dialog'
 import { CreateDocInlineDialog } from './create-doc-inline-dialog'
 import { EmptyState } from '@/components/empty-state'
-import { Loader2 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface Category {
   id: string
@@ -30,6 +35,7 @@ interface TrainingContentPanelProps {
 }
 
 export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: TrainingContentPanelProps) {
+  const queryClient = useQueryClient()
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     categories[0]?.id || null
   )
@@ -38,6 +44,10 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(categories.map(c => c.id))
   )
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [editError, setEditError] = useState('')
+  
+  const { updateMutation, deleteMutation } = useTrainingCategoryMutation()
 
   // Получаем подкатегории для выбранной категории
   const { data: subcategories = [], isLoading: subcategoriesLoading } = useTrainingSubcategories(selectedCategoryId)
@@ -88,6 +98,40 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
     setViewingDocId(null)
   }
 
+  const handleDocMoved = () => {
+    // Инвалидируем кеш документов при перемещении
+    queryClient.invalidateQueries({ queryKey: ['training-docs'] })
+    setViewingDocId(null)
+  }
+
+  const handleUpdateCategory = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!editingCategory) return
+
+    setEditError('')
+
+    try {
+      const formData = new FormData(e.currentTarget)
+      await updateMutation.mutateAsync({ categoryId: editingCategory.id, formData })
+      setEditingCategory(null)
+    } catch (err: any) {
+      setEditError(err?.message || 'Ошибка при обновлении')
+    }
+  }
+
+  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
+    if (!confirm(`Вы уверены, что хотите удалить «${categoryName}»? Все учебные материалы будут удалены.`)) return
+
+    try {
+      await deleteMutation.mutateAsync(categoryId)
+      if (selectedCategoryId === categoryId) {
+        setSelectedCategoryId(categories.find(c => c.id !== categoryId)?.id || null)
+      }
+    } catch (err: any) {
+      setEditError(err?.message || 'Ошибка при удалении')
+    }
+  }
+
   const selectedCategory = categories.find(c => c.id === selectedCategoryId)
 
   if (categories.length === 0) {
@@ -107,13 +151,14 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
   }
 
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[600px]">
       {/* Левая панель - Категории и подкатегории */}
       <div className="lg:col-span-1">
         <Card className="p-4 h-full">
-          <h3 className="font-semibold mb-4 text-lg">Разделы</h3>
+          <h3 className="font-semibold mb-4 text-base">Разделы</h3>
           <ScrollArea className="h-[calc(100%-3rem)]">
-            <div className="space-y-2 pr-3">
+            <div className="space-y-1 pr-3">
               {categories.map((category) => {
                 const isExpanded = expandedCategories.has(category.id)
                 const isSelected = selectedCategoryId === category.id
@@ -121,10 +166,9 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
                 return (
                   <div key={category.id} className="space-y-1">
                     {/* Категория */}
-                    <button
-                      onClick={() => handleCategorySelect(category.id)}
+                    <div
                       className={cn(
-                        'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all font-medium',
+                        'group w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all text-sm',
                         isSelected
                           ? 'bg-primary text-primary-foreground'
                           : 'hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -135,21 +179,55 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
                           e.stopPropagation()
                           toggleCategory(category.id)
                         }}
-                        className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+                        className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded shrink-0"
                       >
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronDown className="w-3.5 h-3.5" />
                         ) : (
-                          <ChevronRight className="w-4 h-4" />
+                          <ChevronRight className="w-3.5 h-3.5" />
                         )}
                       </button>
-                      <BookOpen className="w-4 h-4 shrink-0" />
-                      <span className="truncate flex-1">{category.name}</span>
-                    </button>
+                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                      <button 
+                        onClick={() => handleCategorySelect(category.id)}
+                        className="flex-1 min-w-0 text-left font-medium"
+                        title={category.name}
+                      >
+                        <span className="block text-sm leading-tight break-words">{category.name}</span>
+                      </button>
+                      {isAdmin && (
+                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingCategory(category)
+                            }}
+                            disabled={updateMutation.isPending || deleteMutation.isPending}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteCategory(category.id, category.name)
+                            }}
+                            disabled={updateMutation.isPending || deleteMutation.isPending}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-600" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Подкатегории (раскрываются при выборе категории) */}
                     {isExpanded && isSelected && (
-                      <div className="ml-4 pl-4 border-l border-slate-200 dark:border-slate-700">
+                      <div className="ml-4 pl-3 border-l border-slate-200 dark:border-slate-700">
                         {subcategoriesLoading ? (
                           <div className="flex items-center justify-center py-4">
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -185,6 +263,7 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
             docId={viewingDocId}
             isAdmin={isAdmin}
             onBack={handleBackToList}
+            onDocMoved={handleDocMoved}
           />
         ) : (
           <div className="space-y-4">
@@ -226,5 +305,56 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
         )}
       </div>
     </div>
+
+    {/* Диалог редактирования категории */}
+    <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Редактировать категорию</DialogTitle>
+          <DialogDescription>Обновите сведения о категории</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleUpdateCategory} className="space-y-4">
+          {editError && (
+            <Alert variant="destructive">
+              <AlertDescription>{editError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="edit-cat-name">Название категории</Label>
+            <Input
+              id="edit-cat-name"
+              name="name"
+              defaultValue={editingCategory?.name}
+              required
+              disabled={updateMutation.isPending}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-cat-description">Описание</Label>
+            <Textarea
+              id="edit-cat-description"
+              name="description"
+              defaultValue={editingCategory?.description || ''}
+              disabled={updateMutation.isPending}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditingCategory(null)}
+              disabled={updateMutation.isPending}
+            >
+              Отмена
+            </Button>
+            <Button type="submit" disabled={updateMutation.isPending}>
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Сохранить
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

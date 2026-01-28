@@ -122,7 +122,7 @@ export async function createTrainingDoc(categoryId: string, formData: FormData, 
   return { data }
 }
 
-export async function updateTrainingDoc(docId: string, data: { title?: string; content_richtext?: string }) {
+export async function updateTrainingDoc(docId: string, data: { title?: string; content_richtext?: string; category_id?: string; subcategory_id?: string | null }) {
   const supabase = await getSupabaseServerClient()
 
   // Подготавливаем объект для обновления
@@ -139,6 +139,14 @@ export async function updateTrainingDoc(docId: string, data: { title?: string; c
     if (!textContent) return { error: 'Содержание не может быть пустым' }
     updateData.content = content
     updateData.content_richtext = content
+  }
+
+  if (data.category_id !== undefined) {
+    updateData.category_id = data.category_id
+  }
+
+  if (data.subcategory_id !== undefined) {
+    updateData.subcategory_id = data.subcategory_id || null
   }
 
   if (Object.keys(updateData).length === 0) {

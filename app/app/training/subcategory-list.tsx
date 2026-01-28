@@ -81,19 +81,19 @@ export function TrainingSubcategoryList({
         </Alert>
       )}
       
-      <div className="space-y-2">
+      <div className="space-y-1">
         {/* Пункт "Все документы" */}
         <button
           onClick={() => onSelect(null)}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all',
+            'w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all text-sm',
             selectedId === null
               ? 'bg-primary/10 text-primary border border-primary/30'
               : 'hover:bg-slate-100 dark:hover:bg-slate-800'
           )}
         >
-          <FolderOpen className="w-4 h-4 shrink-0" />
-          <span className="font-medium truncate">Все документы</span>
+          <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+          <span className="font-medium">Все документы</span>
         </button>
 
         {subcategories.map((subcategory) => {
@@ -103,27 +103,27 @@ export function TrainingSubcategoryList({
             <div
               key={subcategory.id}
               className={cn(
-                'group relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all cursor-pointer',
+                'group relative flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all cursor-pointer text-sm',
                 isSelected
                   ? 'bg-primary/10 text-primary border border-primary/30'
                   : 'hover:bg-slate-100 dark:hover:bg-slate-800'
               )}
               onClick={() => onSelect(subcategory.id)}
             >
-              <FolderOpen className="w-4 h-4 shrink-0" />
+              <FolderOpen className="w-3.5 h-3.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <span className="font-medium truncate block">{subcategory.name}</span>
+                <span className="font-medium text-sm leading-tight break-words block" title={subcategory.name}>{subcategory.name}</span>
                 {subcategory.description && (
-                  <span className="text-xs text-slate-500 truncate block">{subcategory.description}</span>
+                  <span className="text-xs text-slate-500 leading-tight break-words block">{subcategory.description}</span>
                 )}
               </div>
 
               {isAdmin && (
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 w-6 p-0"
+                    className="h-5 w-5 p-0"
                     onClick={(e) => {
                       e.stopPropagation()
                       setEditingSubcategory(subcategory)
@@ -135,7 +135,7 @@ export function TrainingSubcategoryList({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 w-6 p-0"
+                    className="h-5 w-5 p-0"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleDelete(subcategory.id, subcategory.name)

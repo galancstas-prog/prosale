@@ -4,12 +4,22 @@ import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { RichTextEditor } from '@/components/rich-text-editor'
-import { Check, Clock, Circle, Loader2, Save, X, ArrowLeft } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Check, Clock, Circle, Loader2, Save, X, ArrowLeft, Pencil } from 'lucide-react'
 import { markDocCompleted, markDocInProgress, getMyProgress } from '@/lib/actions/training-progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { getTrainingDocById, updateTrainingDoc } from '@/lib/actions/training-docs'
+import { getTrainingCategories } from '@/lib/actions/training-categories'
+import { getTrainingSubcategories } from '@/lib/actions/training-subcategories'
 
 interface Doc {
   id: string
@@ -25,14 +35,26 @@ interface Progress {
   completed_at: string | null
 }
 
+interface Category {
+  id: string
+  name: string
+}
+
+interface Subcategory {
+  id: string
+  name: string
+  category_id: string
+}
+
 interface TrainingDocInlinePanelProps {
   docId: string
   isAdmin: boolean
   searchQuery?: string
   onBack: () => void
+  onDocMoved?: () => void
 }
 
-export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: TrainingDocInlinePanelProps) {
+export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack, onDocMoved }: TrainingDocInlinePanelProps) {
   const [doc, setDoc] = useState<Doc | null>(null)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [loading, setLoading] = useState(true)
@@ -40,6 +62,10 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: 
   const [editing, setEditing] = useState(false)
   const [content, setContent] = useState('')
   const [title, setTitle] = useState('')
+  const [categoryId, setCategoryId] = useState('')
+  const [subcategoryId, setSubcategoryId] = useState<string>('')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [shouldHighlight, setShouldHighlight] = useState(!!searchQuery)
   const [loadingProgress, setLoadingProgress] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -50,6 +76,7 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: 
       setLoading(true)
       const docResult = await getTrainingDocById(docId)
       const progressResult = await getMyProgress(docId)
+      const categoriesResult = await getTrainingCategories()
 
       if (docResult.error || !docResult.data) {
         setError('Документ не найден')
@@ -57,12 +84,36 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: 
         setDoc(docResult.data)
         setContent(docResult.data.content_richtext || '')
         setTitle(docResult.data.title || '')
+        setCategoryId(docResult.data.category_id || '')
+        setSubcategoryId(docResult.data.subcategory_id || '')
         setProgress(progressResult.data)
+        setCategories(categoriesResult.data || [])
+        
+        // Загружаем подкатегории для текущей категории
+        if (docResult.data.category_id) {
+          const subcatResult = await getTrainingSubcategories(docResult.data.category_id)
+          setSubcategories(subcatResult.data || [])
+        }
       }
       setLoading(false)
     }
     loadData()
   }, [docId])
+
+  // Загружаем подкатегории при смене категории
+  useEffect(() => {
+    async function loadSubcategories() {
+      if (categoryId && editing) {
+        const subcatResult = await getTrainingSubcategories(categoryId)
+        setSubcategories(subcatResult.data || [])
+        // Сбрасываем подкатегорию если она не принадлежит новой категории
+        if (subcategoryId && !subcatResult.data?.find((s: Subcategory) => s.id === subcategoryId)) {
+          setSubcategoryId('')
+        }
+      }
+    }
+    loadSubcategories()
+  }, [categoryId, editing])
 
   useEffect(() => {
     if (doc && !progress && !isAdmin) {
@@ -115,10 +166,23 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: 
     setSaving(true)
 
     try {
-      const result = await updateTrainingDoc(doc.id, { title: title.trim(), content_richtext: content })
+      const categoryChanged = categoryId !== doc.category_id
+      const subcategoryChanged = subcategoryId !== (doc.subcategory_id || '')
+      
+      const result = await updateTrainingDoc(doc.id, { 
+        title: title.trim(), 
+        content_richtext: content,
+        category_id: categoryId,
+        subcategory_id: subcategoryId || null
+      })
       if (result.error) throw new Error(result.error)
-      setDoc({ ...doc, title: title.trim(), content_richtext: content })
+      setDoc({ ...doc, title: title.trim(), content_richtext: content, category_id: categoryId, subcategory_id: subcategoryId || null })
       setEditing(false)
+      
+      // Если категория или подкатегория изменились, уведомляем родителя
+      if ((categoryChanged || subcategoryChanged) && onDocMoved) {
+        onDocMoved()
+      }
     } catch (err: any) {
       setError(err?.message || 'Ошибка при сохранении')
     } finally {
@@ -179,6 +243,13 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: 
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {/* Кнопка редактирования наверху */}
+              {isAdmin && !editing && (
+                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Редактировать
+                </Button>
+              )}
               {status === 'completed' && (
                 <Badge variant="default" className="bg-green-600">
                   <Check className="h-3 w-3 mr-1" />
@@ -199,6 +270,43 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: 
               )}
             </div>
           </div>
+          
+          {/* Селекторы категории/подкатегории при редактировании */}
+          {editing && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t">
+              <div className="space-y-2">
+                <Label>Категория</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите категорию" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Подкатегория</Label>
+                <Select value={subcategoryId} onValueChange={setSubcategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Без подкатегории" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Без подкатегории</SelectItem>
+                    {subcategories.map((subcat) => (
+                      <SelectItem key={subcat.id} value={subcat.id}>
+                        {subcat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -247,13 +355,9 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: 
             />
           )}
 
-          <div className="flex flex-wrap gap-2 pt-4 border-t">
-            {isAdmin && !editing && (
-              <Button variant="outline" onClick={() => setEditing(true)}>
-                Редактировать
-              </Button>
-            )}
-            {!isAdmin && status !== 'completed' && (
+          {/* Кнопка завершения обучения для не-админов */}
+          {!isAdmin && status !== 'completed' && (
+            <div className="flex flex-wrap gap-2 pt-4 border-t">
               <Button onClick={handleMarkCompleted} disabled={loadingProgress}>
                 {loadingProgress ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -262,8 +366,8 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack }: 
                 )}
                 Отметить как завершённое
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
