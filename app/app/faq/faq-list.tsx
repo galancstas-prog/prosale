@@ -252,9 +252,10 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
                           dangerouslySetInnerHTML={{ __html: highlightText(item.answer, searchQuery) }}
                         />
                       ) : (
-                        <p className="flex-1 text-sm text-slate-600 dark:text-slate-400 rich-content leading-relaxed">
-                          {item.answer}
-                        </p>
+                        <div 
+                          className="flex-1 text-sm text-slate-600 dark:text-slate-400 rich-content leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: item.answer }}
+                        />
                       )}
                       <Button
                         size="sm"

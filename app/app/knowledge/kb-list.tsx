@@ -10,6 +10,7 @@ import { FileText, Trash2, Loader2, Eye } from 'lucide-react'
 import { useKbPageMutation } from '@/lib/hooks/use-kb-pages'
 import { useToast } from '@/hooks/use-toast'
 import { EditKbDialog } from './edit-kb-dialog'
+import { getTextPreview } from '@/lib/text-utils'
 
 interface KbPage {
   id: string
@@ -74,7 +75,7 @@ return (
           </div>
 
           <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3">
-            {page.content_richtext.substring(0, 150)}...
+            {getTextPreview(page.content_richtext)}
           </p>
 
           <div className="text-xs text-slate-500">
