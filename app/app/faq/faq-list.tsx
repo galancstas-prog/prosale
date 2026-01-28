@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RichTextEditor } from '@/components/rich-text-editor'
 import { useToast } from '@/hooks/use-toast'
+import { useMembership } from '@/lib/auth/use-membership'
 import { useFaqItemMutation } from '@/lib/hooks/use-faq-items'
 import { cn } from '@/lib/utils'
 
@@ -31,12 +32,15 @@ interface FaqListProps {
 
 export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }: FaqListProps) {
   const { toast } = useToast()
+  const { membership } = useMembership()
   const [openItems, setOpenItems] = useState<Set<string>>(new Set())
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [editingItem, setEditingItem] = useState<FaqItem | null>(null)
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
   const { updateMutation, deleteMutation } = useFaqItemMutation()
+
+  const isOwnerOrAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
   useEffect(() => {
     if (openItemId) {
@@ -211,7 +215,7 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
                   </div>
                 </button>
 
-                {isAdmin && (
+                {isOwnerOrAdmin && (
                   <div className="flex gap-1">
                     <Button
                       size="sm"

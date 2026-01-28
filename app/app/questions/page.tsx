@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, CheckCircle2, AlertCircle, Clock, Sparkles, X, Check, Wand2, Lock } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/rich-text-editor'
 import { toast } from 'sonner'
 
 type MatchTypeFilter = 'all' | 'missing' | 'partial' | 'covered'
