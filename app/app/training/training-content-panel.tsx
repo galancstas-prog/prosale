@@ -227,7 +227,7 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
 
                     {/* Подкатегории (раскрываются при выборе категории) */}
                     {isExpanded && isSelected && (
-                      <div className="ml-4 pl-3 border-l border-slate-200 dark:border-slate-700">
+                      <div className="ml-4 pl-3 mt-2 border-l border-slate-200 dark:border-slate-700">
                         {subcategoriesLoading ? (
                           <div className="flex items-center justify-center py-4">
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

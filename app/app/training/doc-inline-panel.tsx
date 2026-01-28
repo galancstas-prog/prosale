@@ -291,12 +291,12 @@ export function TrainingDocInlinePanel({ docId, isAdmin, searchQuery, onBack, on
               </div>
               <div className="space-y-2">
                 <Label>Подкатегория</Label>
-                <Select value={subcategoryId} onValueChange={setSubcategoryId}>
+                <Select value={subcategoryId || 'none'} onValueChange={(val) => setSubcategoryId(val === 'none' ? '' : val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Без подкатегории" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Без подкатегории</SelectItem>
+                    <SelectItem value="none">Без подкатегории</SelectItem>
                     {subcategories.map((subcat) => (
                       <SelectItem key={subcat.id} value={subcat.id}>
                         {subcat.name}
