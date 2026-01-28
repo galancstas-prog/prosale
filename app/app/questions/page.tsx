@@ -36,6 +36,7 @@ function QuestionsPageContent() {
   const [filter, setFilter] = useState<MatchTypeFilter>('all')
   const [error, setError] = useState('')
   const [editingDrafts, setEditingDrafts] = useState<Record<string, string>>({})
+  const [richEditingDrafts, setRichEditingDrafts] = useState<Record<string, string>>({})
   const [publishingDrafts, setPublishingDrafts] = useState<Set<string>>(new Set())
   const [deletingDrafts, setDeletingDrafts] = useState<Set<string>>(new Set())
   const [publishingAll, setPublishingAll] = useState(false)
@@ -165,7 +166,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
 
       setStandaloneDrafts(prev => prev.filter(d => d.id !== draftId))
 
-      setEditingDrafts(prev => {
+      setRichEditingDrafts(prev => {
         const next = { ...prev }
         delete next[question]
         return next
@@ -191,7 +192,7 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
 
     setStandaloneDrafts(prev => prev.filter(d => d.id !== draftId))
 
-    setEditingDrafts(prev => {
+    setRichEditingDrafts(prev => {
       const next = { ...prev }
       delete next[question]
       return next
@@ -221,11 +222,11 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
     setPublishingAll(true)
 
     for (const draft of standaloneDrafts) {
-      const answer = editingDrafts[draft.id] || draft.answer
+      const answer = richEditingDrafts[draft.id] || draft.answer
 
       setStandaloneDrafts(prev => prev.filter(d => d.id !== draft.id))
 
-      setEditingDrafts(prev => {
+      setRichEditingDrafts(prev => {
         const next = { ...prev }
         delete next[draft.id]
         return next
@@ -377,10 +378,10 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
           <CardContent>
             <div className="space-y-3">
               {standaloneDrafts.map((draft) => {
-                const isEditing = draft.id in editingDrafts
+                const isEditing = draft.id in richEditingDrafts
                 const isPublishing = publishingDrafts.has(draft.question)
                 const isDeleting = deletingDrafts.has(draft.id)
-                const currentAnswer = isEditing ? editingDrafts[draft.id] : draft.answer
+                const currentAnswer = isEditing ? richEditingDrafts[draft.id] : draft.answer
 
                 return (
                   <div
@@ -407,16 +408,16 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                         <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
                           Ответ
                         </label>
-                        <Textarea
-                          value={currentAnswer}
-                          onChange={(e) => {
-                            setEditingDrafts(prev => ({
+                        <RichTextEditor
+                          content={currentAnswer}
+                          onChange={(value) => {
+                            setRichEditingDrafts(prev => ({
                               ...prev,
-                              [draft.id]: e.target.value
+                              [draft.id]: value
                             }))
                           }}
-                          className="min-h-[100px] text-sm"
-                          disabled={isPublishing || isDeleting || publishingAll}
+                          editable={!isPublishing && !isDeleting && !publishingAll}
+                          placeholder="Ответ на вопрос..."
                         />
                       </div>
 
@@ -605,9 +606,9 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                         </div>
 
                         {showDrafts && drafts.map((draft) => {
-                          const isEditing = draft.question in editingDrafts
+                          const isEditing = draft.question in richEditingDrafts
                           const isPublishing = publishingDrafts.has(draft.question)
-                          const currentAnswer = isEditing ? editingDrafts[draft.question] : draft.answer_draft
+                          const currentAnswer = isEditing ? richEditingDrafts[draft.question] : draft.answer_draft
 
                           return (
                             <div
@@ -640,16 +641,16 @@ const handlePublishDraft = async (draftId: string, question: string, answer: str
                                   <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
                                     Ответ
                                   </label>
-                                  <Textarea
-                                    value={currentAnswer}
-                                    onChange={(e) => {
-                                      setEditingDrafts(prev => ({
+                                  <RichTextEditor
+                                    content={currentAnswer}
+                                    onChange={(value) => {
+                                      setRichEditingDrafts(prev => ({
                                         ...prev,
-                                        [draft.question]: e.target.value
+                                        [draft.question]: value
                                       }))
                                     }}
-                                    className="min-h-[100px] text-sm"
-                                    disabled={isPublishing}
+                                    editable={!isPublishing}
+                                    placeholder="Ответ на вопрос..."
                                   />
                                 </div>
 

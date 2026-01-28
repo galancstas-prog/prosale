@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/empty-state'
-import { Copy, Trash2, MessageCircle, Loader2, Check, ChevronDown, Plus } from 'lucide-react'
+import { Copy, Trash2, MessageCircle, Loader2, Check, ChevronDown, Plus, Edit3 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RichTextEditor } from '@/components/rich-text-editor'
 import { useToast } from '@/hooks/use-toast'
 import { useFaqItemMutation } from '@/lib/hooks/use-faq-items'
 import { cn } from '@/lib/utils'
@@ -29,7 +33,10 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
   const { toast } = useToast()
   const [openItems, setOpenItems] = useState<Set<string>>(new Set())
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const { deleteMutation } = useFaqItemMutation()
+  const [editingItem, setEditingItem] = useState<FaqItem | null>(null)
+  const [editQuestion, setEditQuestion] = useState('')
+  const [editAnswer, setEditAnswer] = useState('')
+  const { updateMutation, deleteMutation } = useFaqItemMutation()
 
   useEffect(() => {
     if (openItemId) {
@@ -78,6 +85,45 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
       toast({
         title: 'Ошибка',
         description: err?.message || 'Ошибка при удалении',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleEdit = (item: FaqItem) => {
+    setEditingItem(item)
+    setEditQuestion(item.question)
+    setEditAnswer(item.answer)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingItem(null)
+    setEditQuestion('')
+    setEditAnswer('')
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return
+
+    try {
+      const formData = new FormData()
+      formData.set('question', editQuestion)
+      formData.set('answer', editAnswer)
+      
+      await updateMutation.mutateAsync({ id: editingItem.id, formData })
+      
+      setEditingItem(null)
+      setEditQuestion('')
+      setEditAnswer('')
+      
+      toast({
+        title: 'Сохранено',
+        description: 'FAQ обновлен успешно',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Ошибка',
+        description: err?.message || 'Ошибка при обновлении',
         variant: 'destructive',
       })
     }
@@ -166,19 +212,29 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
                 </button>
 
                 {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deleteMutation.isPending}
-                    className="shrink-0 h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    {deleteMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-                    ) : (
-                      <Trash2 className="h-4 w-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" />
-                    )}
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleEdit(item)}
+                      className="shrink-0 h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Edit3 className="h-4 w-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDelete(item.id)}
+                      disabled={deleteMutation.isPending}
+                      className="shrink-0 h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      {deleteMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300" />
+                      )}
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -222,6 +278,55 @@ export function FaqList({ items, isAdmin, highlightId, searchQuery, openItemId }
           </Card>
         )
       })}
+
+      {/* Модальное окно редактирования */}
+      <Dialog open={!!editingItem} onOpenChange={handleCancelEdit}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Редактировать FAQ</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-question">Вопрос</Label>
+              <Input
+                id="edit-question"
+                value={editQuestion}
+                onChange={(e) => setEditQuestion(e.target.value)}
+                placeholder="Введите вопрос..."
+                disabled={updateMutation.isPending}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Ответ</Label>
+              <RichTextEditor
+                content={editAnswer}
+                onChange={setEditAnswer}
+                placeholder="Введите ответ..."
+                editable={!updateMutation.isPending}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleCancelEdit}
+              disabled={updateMutation.isPending}
+            >
+              Отмена
+            </Button>
+            <Button 
+              onClick={handleSaveEdit}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Сохранить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

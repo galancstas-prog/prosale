@@ -62,7 +62,10 @@ export async function createTrainingDoc(categoryId: string, formData: FormData) 
 
   if (!title) return { error: 'Заголовок обязателен' }
   if (!categoryId) return { error: 'Category is required' }
-  if (!content) return { error: 'Content is required' }
+  
+  // Проверяем, что контент не пустой (учитываем пустые HTML теги)
+  const textContent = content.replace(/<[^>]*>/g, '').trim()
+  if (!textContent) return { error: 'Содержание обязательно' }
 
   const { data, error } = await supabase
     .from('training_docs')
@@ -97,7 +100,8 @@ export async function updateTrainingDoc(docId: string, data: { title?: string; c
 
   if (data.content_richtext !== undefined) {
     const content = (data.content_richtext || '').trim()
-    if (!content) return { error: 'Содержание не может быть пустым' }
+    const textContent = content.replace(/<[^>]*>/g, '').trim()
+    if (!textContent) return { error: 'Содержание не может быть пустым' }
     updateData.content = content
     updateData.content_richtext = content
   }

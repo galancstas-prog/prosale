@@ -26,7 +26,7 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
   const { t } = useLocale()
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
-  const [content, setContent] = useState('<p>Enter your training content here...</p>')
+  const [content, setContent] = useState('')
   const { createMutation } = useTrainingDocMutation(categoryId)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -41,7 +41,7 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
       
       // успех
       setOpen(false)
-      setContent('<p>Enter your training content here...</p>')
+      setContent('')
     } catch (err: any) {
       const msg =
         err?.message ||
@@ -84,7 +84,11 @@ export function CreateTrainingDocDialog({ categoryId }: CreateTrainingDocDialogP
           </div>
           <div className="space-y-2">
             <Label>{t('training.content')}</Label>
-            <RichTextEditor content={content} onChange={setContent} />
+            <RichTextEditor 
+              content={content} 
+              onChange={setContent}
+              placeholder="Введите содержимое обучающего материала..."
+            />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={createMutation.isPending}>

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/rich-text-editor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Edit, Loader2 } from 'lucide-react'
 import { updateKbPage } from '@/lib/actions/kb-pages'
@@ -38,6 +38,7 @@ export function EditKbDialog({ page }: EditKbDialogProps) {
 
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [content, setContent] = useState(page.content_richtext || '')
   const [error, setError] = useState('')
   const [categoryId, setCategoryId] = useState<string | undefined>(page.category_id || undefined)
 
@@ -52,6 +53,8 @@ export function EditKbDialog({ page }: EditKbDialogProps) {
     if (categoryId) {
       formData.set('category_id', categoryId)
     }
+    
+    formData.set('content', content)
     
     const result = await updateKbPage(page.id, formData)
 
@@ -132,14 +135,11 @@ export function EditKbDialog({ page }: EditKbDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-content">Содержание</Label>
-            <Textarea
-              id="edit-content"
-              name="content"
-              defaultValue={page.content_richtext}
-              required
-              disabled={loading}
-              className="min-h-[300px] font-mono text-sm"
+            <Label>Содержание</Label>
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+              placeholder="Напишите содержание страницы..."
             />
           </div>
 

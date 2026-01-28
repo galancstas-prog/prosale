@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
+import Placeholder from '@tiptap/extension-placeholder'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -25,9 +26,10 @@ interface RichTextEditorProps {
   content: string
   onChange: (content: string) => void
   editable?: boolean
+  placeholder?: string
 }
 
-export function RichTextEditor({ content, onChange, editable = true }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, editable = true, placeholder = 'Введите содержимое...' }: RichTextEditorProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
@@ -42,6 +44,10 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
       Image,
       Link.configure({
         openOnClick: false,
+      }),
+      Placeholder.configure({
+        placeholder,
+        emptyEditorClass: 'is-editor-empty',
       }),
     ],
     content,
@@ -90,7 +96,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg overflow-hidden bg-background">
       {editable && (
         <div className="border-b bg-slate-50 dark:bg-slate-900 p-2 flex flex-wrap gap-1">
           <Button
@@ -193,7 +199,7 @@ export function RichTextEditor({ content, onChange, editable = true }: RichTextE
 
       <EditorContent
         editor={editor}
-        className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[300px] focus:outline-none"
+        className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[200px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:border-none [&_.ProseMirror]:shadow-none [&_.ProseMirror]:ring-0 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:focus:ring-0 [&_.ProseMirror]:focus:shadow-none [&_.is-editor-empty]:first-child::before:content-[attr(data-placeholder)] [&_.is-editor-empty]:first-child::before:text-muted-foreground [&_.is-editor-empty]:first-child::before:float-left [&_.is-editor-empty]:first-child::before:h-0 [&_.is-editor-empty]:first-child::before:pointer-events-none"
       />
     </div>
   )

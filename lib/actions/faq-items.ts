@@ -22,7 +22,11 @@ export async function createFaqItem(formData: FormData) {
   const question = (formData.get('question') as string)?.trim()
   const answer = (formData.get('answer') as string)?.trim()
 
-  if (!question || !answer) return { error: 'Question and answer are required' }
+  if (!question) return { error: 'Вопрос обязателен' }
+  
+  // Проверяем, что ответ не пустой (учитываем пустые HTML теги)
+  const textContent = answer.replace(/<[^>]*>/g, '').trim()
+  if (!textContent) return { error: 'Ответ обязателен' }
 
   const { data, error } = await supabase
     .from('faq_items')
@@ -46,6 +50,48 @@ export async function createFaqItem(formData: FormData) {
 
     if (statusError) {
       console.error('[createFaqItem] AI status update error:', statusError)
+    }
+  }
+
+  safeRevalidatePath('/app/faq')
+  return { data }
+}
+
+export async function updateFaqItem(id: string, formData: FormData) {
+  const supabase = await getSupabaseServerClient()
+
+  const question = (formData.get('question') as string)?.trim()
+  const answer = (formData.get('answer') as string)?.trim()
+
+  if (!question) return { error: 'Вопрос обязателен' }
+  
+  // Проверяем, что ответ не пустой (учитываем пустые HTML теги)
+  const textContent = answer.replace(/<[^>]*>/g, '').trim()
+  if (!textContent) return { error: 'Ответ обязателен' }
+
+  const { data, error } = await supabase
+    .from('faq_items')
+    .update({ question, answer })
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) return { error: error.message }
+
+  // FIX #3: Update ai_status after updating content
+  const { data: tenantRow, error: tenantErr } = await supabase
+    .from('tenants')
+    .select('id')
+    .single()
+
+  if (!tenantErr && tenantRow?.id) {
+    const { error: statusError } = await supabase
+      .from('tenants')
+      .update({ ai_status: 'needs_reindex' })
+      .eq('id', tenantRow.id)
+
+    if (statusError) {
+      console.error('[updateFaqItem] AI status update error:', statusError)
     }
   }
 

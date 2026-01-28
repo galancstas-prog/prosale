@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/rich-text-editor'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { publishFaqDraft, deleteFaqDraft } from '@/lib/actions/faq-magic'
@@ -188,11 +188,12 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
                         <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
                           Вопрос
                         </label>
-                        <Textarea
+                        <input
+                          type="text"
                           value={currentQuestion}
                           onChange={(e) => handleEdit(key, 'question', e.target.value)}
                           disabled={isProcessing}
-                          className="min-h-[60px] text-sm"
+                          className="min-h-[60px] w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         />
                       </div>
 
@@ -200,11 +201,11 @@ export function FaqMagicDrafts({ clusters }: FaqMagicDraftsProps) {
                         <label className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 block">
                           Ответ
                         </label>
-                        <Textarea
-                          value={currentAnswer}
-                          onChange={(e) => handleEdit(key, 'answer', e.target.value)}
-                          disabled={isProcessing}
-                          className="min-h-[100px] text-sm"
+                        <RichTextEditor
+                          content={currentAnswer}
+                          onChange={(value) => handleEdit(key, 'answer', value)}
+                          editable={!isProcessing}
+                          placeholder="Ответ на вопрос..."
                         />
                       </div>
 

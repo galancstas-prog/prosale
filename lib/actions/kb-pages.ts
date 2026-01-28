@@ -34,9 +34,11 @@ export async function createKbPage(formData: FormData) {
   // временная отладка (если надо) — потом убери
   // console.log('[createKbPage] keys:', Array.from(formData.keys()))
 
-  if (!title || !content) {
-    return { error: 'Title and content are required' }
-  }
+  if (!title) return { error: 'Название страницы обязательно' }
+  
+  // Проверяем, что контент не пустой (учитываем пустые HTML теги)
+  const textContent = content.replace(/<[^>]*>/g, '').trim()
+  if (!textContent) return { error: 'Содержание страницы обязательно' }
 
   // Если category_id не указан, найти категорию "Общая" для KB
   if (!categoryId) {
@@ -117,7 +119,11 @@ export async function updateKbPage(pageId: string, formData: FormData) {
   const categoryIdRaw = formData.get('category_id')
   const categoryId = categoryIdRaw ? String(categoryIdRaw) : null
 
-  if (!title || !content) return { error: 'Title and content are required' }
+  if (!title) return { error: 'Название страницы обязательно' }
+  
+  // Проверяем, что контент не пустой (учитываем пустые HTML теги)
+  const textContent = content.replace(/<[^>]*>/g, '').trim()
+  if (!textContent) return { error: 'Содержание страницы обязательно' }
 
   const updateData: any = {
     title,

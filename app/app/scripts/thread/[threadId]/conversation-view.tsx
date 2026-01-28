@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/rich-text-editor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ChatBubble } from '@/components/chat-bubble'
 import { EmptyState } from '@/components/empty-state'
@@ -39,6 +39,7 @@ export function ConversationView({ threadId, isAdmin, highlightTurnId, searchQue
   const [error, setError] = useState('')
   const [editingTurnId, setEditingTurnId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [newMessage, setNewMessage] = useState('')
   const [shouldHighlight, setShouldHighlight] = useState(!!highlightTurnId)
   const { data: turns = [], isLoading } = useScriptTurns(threadId)
   const { createMutation, updateMutation, deleteMutation, reorderMutation } = useScriptTurnMutation(threadId)
@@ -72,8 +73,10 @@ export function ConversationView({ threadId, isAdmin, highlightTurnId, searchQue
 
     try {
       const formData = new FormData(e.currentTarget)
+      formData.set('message', newMessage)
       await createMutation.mutateAsync(formData)
       formRef.current?.reset()
+      setNewMessage('')
     } catch (err: any) {
       setError(err?.message || 'Ошибка при создании')
     }
@@ -162,10 +165,10 @@ export function ConversationView({ threadId, isAdmin, highlightTurnId, searchQue
                   >
                     {editingTurnId === turn.id ? (
                       <div className="border rounded-lg p-4 space-y-2">
-                        <Textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="min-h-[100px]"
+                        <RichTextEditor
+                          content={editContent}
+                          onChange={setEditContent}
+                          placeholder="Редактировать сообщение..."
                         />
                         <div className="flex gap-2">
                           <Button
@@ -279,12 +282,11 @@ export function ConversationView({ threadId, isAdmin, highlightTurnId, searchQue
                 </div>
                 <div className="space-y-2">
                   <Label>Сообщение</Label>
-                  <Textarea
-                    name="message"
+                  <RichTextEditor
+                    content={newMessage}
+                    onChange={setNewMessage}
                     placeholder="Напишите сообщение..."
-                    required
-                    disabled={createMutation.isPending}
-                    className="min-h-[150px]"
+                    editable={!createMutation.isPending}
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={createMutation.isPending}>

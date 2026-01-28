@@ -23,8 +23,11 @@ export async function createTurn(threadId: string, formData: FormData) {
   const speaker = String(formData.get('speaker') || '').trim()
   const message = String(formData.get('message') || '').trim()
 
-  if (!threadId) return { error: 'Missing threadId' }
-  if (!message) return { error: 'Message is required' }
+  if (!threadId) return { error: 'Отсутствует threadId' }
+  
+  // Проверяем, что сообщение не пустое (учитываем пустые HTML теги)
+  const textContent = message.replace(/<[^>]*>/g, '').trim()
+  if (!textContent) return { error: 'Сообщение обязательно' }
 
   if (speaker !== 'agent' && speaker !== 'client') {
     return { error: 'Invalid speaker (must be agent or client)' }
@@ -79,8 +82,11 @@ export async function updateTurn(turnId: string, message: string) {
   const supabase = await getSupabaseServerClient()
 
   const text = String(message || '').trim()
-  if (!turnId) return { error: 'Missing turnId' }
-  if (!text) return { error: 'Message is required' }
+  if (!turnId) return { error: 'Отсутствует turnId' }
+  
+  // Проверяем, что сообщение не пустое (учитываем пустые HTML теги)
+  const textContent = text.replace(/<[^>]*>/g, '').trim()
+  if (!textContent) return { error: 'Сообщение обязательно' }
 
   const { data, error } = await supabase
     .from('script_turns')

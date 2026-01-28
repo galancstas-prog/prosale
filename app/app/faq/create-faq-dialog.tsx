@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/rich-text-editor'
 import { Plus, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
@@ -27,15 +27,18 @@ export function CreateFaqDialog() {
   const formRef = useRef<HTMLFormElement | null>(null)
 
   const [open, setOpen] = useState(false)
+  const [answer, setAnswer] = useState('')
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const formData = new FormData(e.currentTarget)
+    formData.set('answer', answer)
     await createMutation.mutateAsync(formData)
 
     // закрываем диалог
     setOpen(false)
+    setAnswer('')
 
     // безопасно очищаем форму
     formRef.current?.reset()
@@ -86,14 +89,11 @@ export function CreateFaqDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="answer">{t('faq.answer')}</Label>
-            <Textarea
-              id="answer"
-              name="answer"
+            <Label>{t('faq.answer')}</Label>
+            <RichTextEditor
+              content={answer}
+              onChange={setAnswer}
               placeholder={t('faq.answerPlaceholder')}
-              required
-              disabled={createMutation.isPending}
-              className="min-h-[150px]"
             />
           </div>
 

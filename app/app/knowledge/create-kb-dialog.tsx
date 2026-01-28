@@ -33,6 +33,7 @@ export function CreateKbDialog({ selectedCategoryId }: CreateKbDialogProps) {
   const formRef = useRef<HTMLFormElement | null>(null)
 
   const [open, setOpen] = useState(false)
+  const [content, setContent] = useState('')
   const [categoryId, setCategoryId] = useState<string | undefined>(selectedCategoryId || undefined)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -46,9 +47,12 @@ export function CreateKbDialog({ selectedCategoryId }: CreateKbDialogProps) {
         formData.set('category_id', categoryId)
       }
       
+      formData.set('content', content)
+      
       await createMutation.mutateAsync(formData)
 
       setOpen(false)
+      setContent('')
       formRef.current?.reset()
       setCategoryId(selectedCategoryId || undefined)
 
@@ -127,14 +131,11 @@ export function CreateKbDialog({ selectedCategoryId }: CreateKbDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content">{t('kb.pageContent')}</Label>
-            <Textarea
-              id="content"
-              name="content"
+            <Label>{t('kb.pageContent')}</Label>
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
               placeholder={t('kb.pageContentPlaceholder')}
-              required
-              disabled={createMutation.isPending}
-              className="min-h-[300px] font-mono text-sm"
             />
           </div>
 

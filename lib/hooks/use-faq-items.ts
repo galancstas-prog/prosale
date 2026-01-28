@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getFaqItems, createFaqItem, deleteFaqItem, searchFaqItems } from '@/lib/actions/faq-items'
+import { getFaqItems, createFaqItem, updateFaqItem, deleteFaqItem, searchFaqItems } from '@/lib/actions/faq-items'
 
 export function useFaqItems() {
   return useQuery({
@@ -27,6 +27,17 @@ export function useFaqItemMutation() {
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, formData }: { id: string; formData: FormData }) => {
+      const result = await updateFaqItem(id, formData)
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['faq-items'] })
+    },
+  })
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const result = await deleteFaqItem(id)
@@ -38,7 +49,7 @@ export function useFaqItemMutation() {
     },
   })
 
-  return { createMutation, deleteMutation }
+  return { createMutation, updateMutation, deleteMutation }
 }
 
 export function useFaqSearch(query: string) {
