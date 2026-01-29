@@ -229,6 +229,11 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
             threadId={viewingThreadId}
             isAdmin={isAdmin}
             onBack={handleBackToList}
+            categories={categories}
+            onThreadMoved={() => {
+              queryClient.invalidateQueries({ queryKey: ['script-threads'] })
+              setViewingThreadId(null)
+            }}
           />
         ) : (
           <div className="space-y-4">

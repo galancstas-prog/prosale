@@ -74,19 +74,40 @@ export async function updateThread(threadId: string, formData: FormData) {
 
   const title = (formData.get('title') as string)?.trim()
   const description = (formData.get('description') as string)?.trim() || null
+  const categoryId = (formData.get('category_id') as string)?.trim() || null
 
   if (!title) return { error: 'Title is required' }
 
+  // Получаем старый category_id для revalidate
+  const { data: oldThread } = await supabase
+    .from('script_threads')
+    .select('category_id')
+    .eq('id', threadId)
+    .single()
+
+  const updateData: any = { title, description }
+  if (categoryId) {
+    updateData.category_id = categoryId
+  }
+
   const { data, error } = await supabase
     .from('script_threads')
-    .update({ title, description })
+    .update(updateData)
     .eq('id', threadId)
     .select('*')
     .single()
 
   if (error) return { error: error.message }
 
+  // Revalidate обе категории при перемещении
   safeRevalidatePath('/app/scripts')
+  if (oldThread?.category_id && oldThread.category_id !== categoryId) {
+    safeRevalidatePath(`/app/scripts/${oldThread.category_id}`)
+  }
+  if (categoryId) {
+    safeRevalidatePath(`/app/scripts/${categoryId}`)
+  }
+
   return { data }
 }
 

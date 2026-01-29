@@ -34,19 +34,27 @@ interface Turn {
   order_index: number
 }
 
+interface Category {
+  id: string
+  name: string
+}
+
 interface ScriptThreadInlinePanelProps {
   threadId: string
   isAdmin: boolean
   onBack: () => void
+  categories?: Category[]
+  onThreadMoved?: () => void
 }
 
-export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack }: ScriptThreadInlinePanelProps) {
+export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack, categories = [], onThreadMoved }: ScriptThreadInlinePanelProps) {
   const queryClient = useQueryClient()
   const formRef = useRef<HTMLFormElement | null>(null)
   
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
+  const [editCategoryId, setEditCategoryId] = useState<string>('')
   const [error, setError] = useState('')
   const [editingTurnId, setEditingTurnId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -71,6 +79,7 @@ export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack }: ScriptThr
     if (thread) {
       setEditTitle(thread.title || '')
       setEditDescription(thread.description || '')
+      setEditCategoryId(thread.category_id || '')
       setIsEditingTitle(true)
     }
   }
@@ -84,10 +93,15 @@ export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack }: ScriptThr
     setIsSavingTitle(true)
     setError('')
 
+    const categoryChanged = editCategoryId && editCategoryId !== thread?.category_id
+
     try {
       const formData = new FormData()
       formData.set('title', editTitle.trim())
       formData.set('description', editDescription.trim())
+      if (editCategoryId) {
+        formData.set('category_id', editCategoryId)
+      }
       
       const result = await updateThread(threadId, formData)
       
@@ -98,6 +112,11 @@ export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack }: ScriptThr
       queryClient.invalidateQueries({ queryKey: ['script-thread', threadId] })
       queryClient.invalidateQueries({ queryKey: ['script-threads'] })
       setIsEditingTitle(false)
+
+      // Если категория изменилась, уведомляем родителя
+      if (categoryChanged && onThreadMoved) {
+        onThreadMoved()
+      }
     } catch (err: any) {
       setError(err?.message || 'Ошибка при сохранении')
     } finally {
@@ -109,6 +128,7 @@ export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack }: ScriptThr
     setIsEditingTitle(false)
     setEditTitle('')
     setEditDescription('')
+    setEditCategoryId('')
     setError('')
   }
 
@@ -213,6 +233,27 @@ export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack }: ScriptThr
                     rows={2}
                   />
                 </div>
+                {categories.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Категория</Label>
+                    <Select
+                      value={editCategoryId}
+                      onValueChange={setEditCategoryId}
+                      disabled={isSavingTitle}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите категорию" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleSaveTitle} disabled={isSavingTitle}>
                     {isSavingTitle && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
