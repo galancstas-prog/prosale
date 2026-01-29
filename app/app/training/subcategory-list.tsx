@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/empty-state'
 import { FolderOpen, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useTrainingSubcategoryMutation } from '@/lib/hooks/use-training-subcategories'
+import { SortableList, DragHandle } from '@/components/sortable-list'
 
 interface Subcategory {
   id: string
@@ -24,6 +25,7 @@ interface SubcategoryListProps {
   onSelect: (id: string | null) => void
   isAdmin: boolean
   categoryId: string
+  onReorder?: (orderedIds: string[]) => Promise<void>
 }
 
 export function TrainingSubcategoryList({ 
@@ -31,11 +33,24 @@ export function TrainingSubcategoryList({
   selectedId, 
   onSelect, 
   isAdmin,
-  categoryId 
+  categoryId,
+  onReorder
 }: SubcategoryListProps) {
   const [editingSubcategory, setEditingSubcategory] = useState<Subcategory | null>(null)
   const [error, setError] = useState('')
   const { updateMutation, deleteMutation } = useTrainingSubcategoryMutation(categoryId)
+  const [localSubcategories, setLocalSubcategories] = useState(subcategories)
+
+  useEffect(() => {
+    setLocalSubcategories(subcategories)
+  }, [subcategories])
+
+  const handleReorder = async (reordered: Subcategory[]) => {
+    setLocalSubcategories(reordered)
+    if (onReorder) {
+      await onReorder(reordered.map(s => s.id))
+    }
+  }
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -96,59 +111,67 @@ export function TrainingSubcategoryList({
           <span className="font-medium">Все документы</span>
         </button>
 
-        {subcategories.map((subcategory) => {
-          const isSelected = selectedId === subcategory.id
+        <SortableList
+          items={localSubcategories}
+          onReorder={handleReorder}
+          disabled={!isAdmin || !onReorder}
+          renderItem={(subcategory, dragHandleProps) => {
+            const isSelected = selectedId === subcategory.id
 
-          return (
-            <div
-              key={subcategory.id}
-              className={cn(
-                'group relative flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all cursor-pointer text-sm',
-                isSelected
-                  ? 'bg-primary/10 text-primary border border-primary/30'
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
-              onClick={() => onSelect(subcategory.id)}
-            >
-              <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="font-medium text-sm leading-tight break-words block" title={subcategory.name}>{subcategory.name}</span>
-                {subcategory.description && (
-                  <span className="text-xs text-slate-500 leading-tight break-words block">{subcategory.description}</span>
+            return (
+              <div
+                key={subcategory.id}
+                className={cn(
+                  'group relative flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all cursor-pointer text-sm',
+                  isSelected
+                    ? 'bg-primary/10 text-primary border border-primary/30'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                )}
+                onClick={() => onSelect(subcategory.id)}
+              >
+                {isAdmin && onReorder && (
+                  <DragHandle {...dragHandleProps} className="shrink-0 opacity-0 group-hover:opacity-100" />
+                )}
+                <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-sm leading-tight break-words block" title={subcategory.name}>{subcategory.name}</span>
+                  {subcategory.description && (
+                    <span className="text-xs text-slate-500 leading-tight break-words block">{subcategory.description}</span>
+                  )}
+                </div>
+
+                {isAdmin && (
+                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 w-5 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingSubcategory(subcategory)
+                      }}
+                      disabled={updateMutation.isPending || deleteMutation.isPending}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 w-5 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(subcategory.id, subcategory.name)
+                      }}
+                      disabled={updateMutation.isPending || deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-3 w-3 text-red-600" />
+                    </Button>
+                  </div>
                 )}
               </div>
-
-              {isAdmin && (
-                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 w-5 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setEditingSubcategory(subcategory)
-                    }}
-                    disabled={updateMutation.isPending || deleteMutation.isPending}
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 w-5 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(subcategory.id, subcategory.name)
-                    }}
-                    disabled={updateMutation.isPending || deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-3 w-3 text-red-600" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          )
-        })}
+            )
+          }}
+        />
       </div>
 
       <Dialog open={!!editingSubcategory} onOpenChange={(open) => !open && setEditingSubcategory(null)}>

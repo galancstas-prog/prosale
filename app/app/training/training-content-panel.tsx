@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { BookOpen, ChevronDown, ChevronRight, FileText, FolderOpen, Pencil, Trash2, Loader2 } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, ChevronLeft, FileText, FolderOpen, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { useTrainingCategories, useTrainingCategoryMutation } from '@/lib/hooks/use-training-categories'
 import { useTrainingSubcategories } from '@/lib/hooks/use-training-subcategories'
 import { useTrainingDocs } from '@/lib/hooks/use-training-docs'
@@ -21,6 +21,11 @@ import { CreateSubcategoryDialog } from './create-subcategory-dialog'
 import { CreateDocInlineDialog } from './create-doc-inline-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { useQueryClient } from '@tanstack/react-query'
+import { SortableList, DragHandle } from '@/components/sortable-list'
+import { ExportImportMenu } from '@/components/export-import-menu'
+import { useCollapsiblePanel } from '@/lib/hooks/use-collapsible-panel'
+import { reorderTrainingCategories, reorderTrainingSubcategories, reorderTrainingDocs } from '@/lib/actions/reorder'
+import { exportTraining, importTraining } from '@/lib/actions/export-import'
 
 interface Category {
   id: string
@@ -36,6 +41,8 @@ interface TrainingContentPanelProps {
 
 export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: TrainingContentPanelProps) {
   const queryClient = useQueryClient()
+  const { isCollapsed, toggleCollapsed, isLoaded } = useCollapsiblePanel('training-sidebar')
+  const [localCategories, setLocalCategories] = useState(categories)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     categories[0]?.id || null
   )
@@ -125,16 +132,40 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
     try {
       await deleteMutation.mutateAsync(categoryId)
       if (selectedCategoryId === categoryId) {
-        setSelectedCategoryId(categories.find(c => c.id !== categoryId)?.id || null)
+        setSelectedCategoryId(localCategories.find(c => c.id !== categoryId)?.id || null)
       }
     } catch (err: any) {
       setEditError(err?.message || 'Ошибка при удалении')
     }
   }
 
-  const selectedCategory = categories.find(c => c.id === selectedCategoryId)
+  // Обработчик reorder категорий
+  const handleReorderCategories = async (newCategories: Category[]) => {
+    setLocalCategories(newCategories)
+    const ids = newCategories.map(c => c.id)
+    await reorderTrainingCategories(ids)
+    queryClient.invalidateQueries({ queryKey: ['training-categories'] })
+  }
 
-  if (categories.length === 0) {
+  // Обработчик reorder подкатегорий
+  const handleReorderSubcategories = async (newSubcats: any[]) => {
+    if (!selectedCategoryId) return
+    const ids = newSubcats.map(s => s.id)
+    await reorderTrainingSubcategories(selectedCategoryId, ids)
+    queryClient.invalidateQueries({ queryKey: ['training-subcategories', selectedCategoryId] })
+  }
+
+  // Обработчик reorder документов
+  const handleReorderDocs = async (newDocs: any[]) => {
+    if (!selectedCategoryId) return
+    const ids = newDocs.map(d => d.id)
+    await reorderTrainingDocs(selectedCategoryId, ids)
+    queryClient.invalidateQueries({ queryKey: ['training-docs', selectedCategoryId] })
+  }
+
+  const selectedCategory = localCategories.find(c => c.id === selectedCategoryId)
+
+  if (localCategories.length === 0) {
     return (
       <Card className="p-12">
         <EmptyState
@@ -152,112 +183,169 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
 
   return (
     <>
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[600px]">
+    <div className={cn(
+      "grid gap-6 min-h-[600px] transition-all duration-300",
+      isCollapsed ? "grid-cols-1 lg:grid-cols-[48px_1fr]" : "grid-cols-1 lg:grid-cols-4"
+    )}>
       {/* Левая панель - Категории и подкатегории */}
-      <div className="lg:col-span-1">
-        <Card className="p-4 h-full">
-          <h3 className="font-semibold mb-4 text-base">Разделы</h3>
-          <ScrollArea className="h-[calc(100%-3rem)]">
-            <div className="space-y-2 pr-3">
-              {categories.map((category) => {
-                const isExpanded = expandedCategories.has(category.id)
-                const isSelected = selectedCategoryId === category.id
+      <div className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "lg:col-span-1" : "lg:col-span-1"
+      )}>
+        <Card className={cn(
+          "p-4 h-full relative transition-all duration-300",
+          isCollapsed && "overflow-hidden"
+        )}>
+          {/* Кнопка сворачивания */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleCollapsed}
+            className="absolute top-2 right-2 z-10 h-7 w-7 p-0"
+            title={isCollapsed ? 'Развернуть панель' : 'Свернуть панель'}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
 
-                return (
-                  <div key={category.id} className="space-y-1">
-                    {/* Категория */}
-                    <div
-                      className={cn(
-                        'group w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all text-sm',
-                        isSelected
-                          ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                      )}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleCategory(category.id)
-                        }}
-                        className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded shrink-0"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                      <button 
-                        onClick={() => handleCategorySelect(category.id)}
-                        className="flex-1 min-w-0 text-left font-medium"
-                        title={category.name}
-                      >
-                        <span className="block text-sm leading-tight break-words">{category.name}</span>
-                      </button>
-                      {isAdmin && (
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-5 w-5 p-0"
+          {/* Контент панели */}
+          <div className={cn(
+            "transition-all duration-300",
+            isCollapsed ? "opacity-0 invisible w-0" : "opacity-100 visible"
+          )}>
+            <h3 className="font-semibold mb-4 text-base pr-8">Разделы</h3>
+            <ScrollArea className="h-[calc(100%-3rem)]">
+              <div className="space-y-2 pr-3">
+                <SortableList
+                  items={localCategories}
+                  onReorder={handleReorderCategories}
+                  disabled={!isAdmin}
+                  renderItem={(category, dragHandleProps) => {
+                    const isExpanded = expandedCategories.has(category.id)
+                    const isSelected = selectedCategoryId === category.id
+
+                    return (
+                      <div key={category.id} className="space-y-1">
+                        {/* Категория */}
+                        <div
+                          className={cn(
+                            'group w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all text-sm',
+                            isSelected
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                          )}
+                        >
+                          {isAdmin && (
+                            <DragHandle {...dragHandleProps} className="shrink-0 opacity-0 group-hover:opacity-100" />
+                          )}
+                          <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              setEditingCategory(category)
+                              toggleCategory(category.id)
                             }}
-                            disabled={updateMutation.isPending || deleteMutation.isPending}
+                            className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded shrink-0"
                           >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-5 w-5 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteCategory(category.id, category.name)
-                            }}
-                            disabled={updateMutation.isPending || deleteMutation.isPending}
+                            {isExpanded ? (
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                          <button 
+                            onClick={() => handleCategorySelect(category.id)}
+                            className="flex-1 min-w-0 text-left font-medium"
+                            title={category.name}
                           >
-                            <Trash2 className="h-3 w-3 text-red-600" />
-                          </Button>
+                            <span className="block text-sm leading-tight break-words">{category.name}</span>
+                          </button>
+                          {isAdmin && (
+                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setEditingCategory(category)
+                                }}
+                                disabled={updateMutation.isPending || deleteMutation.isPending}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteCategory(category.id, category.name)
+                                }}
+                                disabled={updateMutation.isPending || deleteMutation.isPending}
+                              >
+                                <Trash2 className="h-3 w-3 text-red-600" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {/* Подкатегории (раскрываются при выборе категории) */}
-                    {isExpanded && isSelected && (
-                      <div className="ml-4 pl-3 mt-3 pt-1 border-l border-slate-200 dark:border-slate-700">
-                        {subcategoriesLoading ? (
-                          <div className="flex items-center justify-center py-4">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          </div>
-                        ) : (
-                          <TrainingSubcategoryList
-                            subcategories={subcategories}
-                            selectedId={selectedSubcategoryId}
-                            onSelect={handleSubcategorySelect}
-                            isAdmin={isAdmin}
-                            categoryId={category.id}
-                          />
-                        )}
-                        {isAdmin && (
-                          <div className="mt-3">
-                            <CreateSubcategoryDialog categoryId={category.id} />
+                        {/* Подкатегории */}
+                        {isExpanded && isSelected && (
+                          <div className="ml-4 pl-3 mt-3 pt-1 border-l border-slate-200 dark:border-slate-700">
+                            {subcategoriesLoading ? (
+                              <div className="flex items-center justify-center py-4">
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : (
+                              <TrainingSubcategoryList
+                                subcategories={subcategories}
+                                selectedId={selectedSubcategoryId}
+                                onSelect={handleSubcategorySelect}
+                                isAdmin={isAdmin}
+                                categoryId={category.id}
+                                onReorder={handleReorderSubcategories}
+                              />
+                            )}
+                            {isAdmin && (
+                              <div className="mt-3">
+                                <CreateSubcategoryDialog categoryId={category.id} />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                    )
+                  }}
+                />
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* Вертикальный текст при свёрнутом состоянии */}
+          {isCollapsed && (
+            <div className="absolute top-12 left-1/2 -translate-x-1/2">
+              <span
+                className="text-xs font-medium text-muted-foreground whitespace-nowrap"
+                style={{
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'mixed',
+                }}
+              >
+                Разделы
+              </span>
             </div>
-          </ScrollArea>
+          )}
         </Card>
       </div>
 
       {/* Правая панель - Контент */}
-      <div className="lg:col-span-3">
+      <div className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "lg:col-span-1" : "lg:col-span-3"
+      )}>
         {viewingDocId ? (
           <TrainingDocInlinePanel
             docId={viewingDocId}
@@ -279,13 +367,33 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
                   </p>
                 )}
               </div>
-              {isAdmin && selectedCategoryId && (
-                <CreateDocInlineDialog
-                  categoryId={selectedCategoryId}
-                  subcategories={subcategories}
-                  selectedSubcategoryId={selectedSubcategoryId}
-                />
-              )}
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <ExportImportMenu
+                    onExport={async () => {
+                      const result = await exportTraining()
+                      if (result.error || !result.data) {
+                        throw new Error(result.error || 'Export failed')
+                      }
+                      return result.data
+                    }}
+                    onImport={async (data) => {
+                      const result = await importTraining(data)
+                      if (result.error) {
+                        throw new Error(result.error || 'Import failed')
+                      }
+                    }}
+                    moduleName="training"
+                  />
+                )}
+                {isAdmin && selectedCategoryId && (
+                  <CreateDocInlineDialog
+                    categoryId={selectedCategoryId}
+                    subcategories={subcategories}
+                    selectedSubcategoryId={selectedSubcategoryId}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Список документов */}
@@ -299,6 +407,7 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
                 isAdmin={isAdmin}
                 onViewDoc={handleViewDoc}
                 onDeleteDoc={onDeleteDoc}
+                onReorder={handleReorderDocs}
               />
             )}
           </div>

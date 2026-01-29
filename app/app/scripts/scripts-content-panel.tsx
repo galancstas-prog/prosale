@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { FileText, ChevronDown, ChevronRight, FolderOpen, Pencil, Trash2, Loader2, MessageSquare } from 'lucide-react'
+import { FileText, ChevronDown, ChevronRight, FolderOpen, Pencil, Trash2, Loader2, MessageSquare, ChevronLeft } from 'lucide-react'
 import { useCategories, useCategoryMutation } from '@/lib/hooks/use-categories'
 import { useScriptThreads, useScriptThreadMutation } from '@/lib/hooks/use-script-threads'
 import { ScriptThreadGrid } from './thread-grid'
@@ -18,6 +18,11 @@ import { ScriptThreadInlinePanel } from './thread-inline-panel'
 import { CreateThreadDialog } from './create-thread-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { useQueryClient } from '@tanstack/react-query'
+import { SortableList, DragHandle } from '@/components/sortable-list'
+import { ExportImportMenu } from '@/components/export-import-menu'
+import { useCollapsiblePanel } from '@/lib/hooks/use-collapsible-panel'
+import { reorderCategories, reorderScriptThreads } from '@/lib/actions/reorder'
+import { exportScripts, importScripts } from '@/lib/actions/export-import'
 
 interface Category {
   id: string
@@ -32,6 +37,8 @@ interface ScriptsContentPanelProps {
 
 export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanelProps) {
   const queryClient = useQueryClient()
+  const { isCollapsed, toggleCollapsed, isLoaded } = useCollapsiblePanel('scripts-sidebar')
+  const [localCategories, setLocalCategories] = useState(categories)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     categories[0]?.id || null
   )
@@ -96,16 +103,32 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
     try {
       await deleteMutation.mutateAsync(categoryId)
       if (selectedCategoryId === categoryId) {
-        setSelectedCategoryId(categories.find(c => c.id !== categoryId)?.id || null)
+        setSelectedCategoryId(localCategories.find(c => c.id !== categoryId)?.id || null)
       }
     } catch (err: any) {
       setEditError(err?.message || 'Ошибка при удалении')
     }
   }
 
-  const selectedCategory = categories.find(c => c.id === selectedCategoryId)
+  // Обработчик reorder категорий
+  const handleReorderCategories = async (newCategories: Category[]) => {
+    setLocalCategories(newCategories)
+    const ids = newCategories.map(c => c.id)
+    await reorderCategories(ids)
+    queryClient.invalidateQueries({ queryKey: ['categories'] })
+  }
 
-  if (categories.length === 0) {
+  // Обработчик reorder threads
+  const handleReorderThreads = async (newThreads: any[]) => {
+    if (!selectedCategoryId) return
+    const ids = newThreads.map(t => t.id)
+    await reorderScriptThreads(selectedCategoryId, ids)
+    queryClient.invalidateQueries({ queryKey: ['script-threads', selectedCategoryId] })
+  }
+
+  const selectedCategory = localCategories.find(c => c.id === selectedCategoryId)
+
+  if (localCategories.length === 0) {
     return (
       <Card className="p-12">
         <EmptyState
@@ -123,113 +146,170 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
 
   return (
     <>
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[600px]">
+    <div className={cn(
+      "grid gap-6 min-h-[600px] transition-all duration-300",
+      isCollapsed ? "grid-cols-1 lg:grid-cols-[48px_1fr]" : "grid-cols-1 lg:grid-cols-4"
+    )}>
       {/* Левая панель - Категории и threads */}
-      <div className="lg:col-span-1">
-        <Card className="p-4 h-full">
-          <h3 className="font-semibold mb-4 text-base">Разделы</h3>
-          <ScrollArea className="h-[calc(100%-3rem)]">
-            <div className="space-y-2 pr-3">
-              {categories.map((category) => {
-                const isExpanded = expandedCategories.has(category.id)
-                const isSelected = selectedCategoryId === category.id
+      <div className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "lg:col-span-1" : "lg:col-span-1"
+      )}>
+        <Card className={cn(
+          "p-4 h-full relative transition-all duration-300",
+          isCollapsed && "overflow-hidden"
+        )}>
+          {/* Кнопка сворачивания */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleCollapsed}
+            className="absolute top-2 right-2 z-10 h-7 w-7 p-0"
+            title={isCollapsed ? 'Развернуть панель' : 'Свернуть панель'}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
 
-                return (
-                  <div key={category.id} className="space-y-1">
-                    {/* Категория */}
-                    <div
-                      className={cn(
-                        'group w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all text-sm',
-                        isSelected
-                          ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                      )}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleCategory(category.id)
-                        }}
-                        className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded shrink-0"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        ) : (
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-                      <button 
-                        onClick={() => handleCategorySelect(category.id)}
-                        className="flex-1 min-w-0 text-left font-medium"
-                        title={category.name}
-                      >
-                        <span className="block text-sm leading-tight break-words">{category.name}</span>
-                      </button>
-                      {isAdmin && (
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-5 w-5 p-0"
+          {/* Контент панели */}
+          <div className={cn(
+            "transition-all duration-300",
+            isCollapsed ? "opacity-0 invisible w-0" : "opacity-100 visible"
+          )}>
+            <h3 className="font-semibold mb-4 text-base pr-8">Разделы</h3>
+            <ScrollArea className="h-[calc(100%-3rem)]">
+              <div className="space-y-2 pr-3">
+                <SortableList
+                  items={localCategories}
+                  onReorder={handleReorderCategories}
+                  disabled={!isAdmin}
+                  renderItem={(category, dragHandleProps) => {
+                    const isExpanded = expandedCategories.has(category.id)
+                    const isSelected = selectedCategoryId === category.id
+
+                    return (
+                      <div key={category.id} className="space-y-1">
+                        {/* Категория */}
+                        <div
+                          className={cn(
+                            'group w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-left transition-all text-sm',
+                            isSelected
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                          )}
+                        >
+                          {isAdmin && (
+                            <DragHandle {...dragHandleProps} className="shrink-0 opacity-0 group-hover:opacity-100" />
+                          )}
+                          <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              setEditingCategory(category)
+                              toggleCategory(category.id)
                             }}
-                            disabled={updateMutation.isPending || deleteMutation.isPending}
+                            className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded shrink-0"
                           >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-5 w-5 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteCategory(category.id, category.name)
-                            }}
-                            disabled={updateMutation.isPending || deleteMutation.isPending}
+                            {isExpanded ? (
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+                          <button 
+                            onClick={() => handleCategorySelect(category.id)}
+                            className="flex-1 min-w-0 text-left font-medium"
+                            title={category.name}
                           >
-                            <Trash2 className="h-3 w-3 text-red-600" />
-                          </Button>
+                            <span className="block text-sm leading-tight break-words">{category.name}</span>
+                          </button>
+                          {isAdmin && (
+                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setEditingCategory(category)
+                                }}
+                                disabled={updateMutation.isPending || deleteMutation.isPending}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteCategory(category.id, category.name)
+                                }}
+                                disabled={updateMutation.isPending || deleteMutation.isPending}
+                              >
+                                <Trash2 className="h-3 w-3 text-red-600" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {/* Threads внутри категории (раскрываются при выборе категории) */}
-                    {isExpanded && isSelected && (
-                      <div className="ml-4 pl-3 mt-3 pt-1 border-l border-slate-200 dark:border-slate-700">
-                        <ThreadListInNav
-                          threads={threads}
-                          isLoading={threadsLoading}
-                          selectedThreadId={viewingThreadId}
-                          onSelectThread={handleViewThread}
-                          isAdmin={isAdmin}
-                          categoryId={category.id}
-                        />
-                        {isAdmin && (
-                          <div className="mt-3">
-                            <CreateThreadDialog categoryId={category.id} compact />
+                        {/* Threads внутри категории */}
+                        {isExpanded && isSelected && (
+                          <div className="ml-4 pl-3 mt-3 pt-1 border-l border-slate-200 dark:border-slate-700">
+                            <ThreadListInNav
+                              threads={threads}
+                              isLoading={threadsLoading}
+                              selectedThreadId={viewingThreadId}
+                              onSelectThread={handleViewThread}
+                              isAdmin={isAdmin}
+                              categoryId={category.id}
+                              onReorder={handleReorderThreads}
+                            />
+                            {isAdmin && (
+                              <div className="mt-3">
+                                <CreateThreadDialog categoryId={category.id} compact />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                    )
+                  }}
+                />
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* Вертикальный текст при свёрнутом состоянии */}
+          {isCollapsed && (
+            <div className="absolute top-12 left-1/2 -translate-x-1/2">
+              <span
+                className="text-xs font-medium text-muted-foreground whitespace-nowrap"
+                style={{
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'mixed',
+                }}
+              >
+                Разделы
+              </span>
             </div>
-          </ScrollArea>
+          )}
         </Card>
       </div>
 
       {/* Правая панель - Контент */}
-      <div className="lg:col-span-3">
+      <div className={cn(
+        "transition-all duration-300",
+        isCollapsed ? "lg:col-span-1" : "lg:col-span-3"
+      )}>
         {viewingThreadId ? (
           <ScriptThreadInlinePanel
             threadId={viewingThreadId}
             isAdmin={isAdmin}
             onBack={handleBackToList}
-            categories={categories}
+            categories={localCategories}
             onThreadMoved={() => {
               queryClient.invalidateQueries({ queryKey: ['script-threads'] })
               setViewingThreadId(null)
@@ -249,9 +329,29 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
                   </p>
                 )}
               </div>
-              {isAdmin && selectedCategoryId && (
-                <CreateThreadDialog categoryId={selectedCategoryId} />
-              )}
+              <div className="flex items-center gap-2">
+                {isAdmin && (
+                  <ExportImportMenu
+                    onExport={async () => {
+                      const result = await exportScripts()
+                      if (result.error || !result.data) {
+                        throw new Error(result.error || 'Export failed')
+                      }
+                      return result.data
+                    }}
+                    onImport={async (data) => {
+                      const result = await importScripts(data)
+                      if (result.error) {
+                        throw new Error(result.error || 'Import failed')
+                      }
+                    }}
+                    moduleName="scripts"
+                  />
+                )}
+                {isAdmin && selectedCategoryId && (
+                  <CreateThreadDialog categoryId={selectedCategoryId} />
+                )}
+              </div>
             </div>
 
             {/* Список threads */}
@@ -332,10 +432,17 @@ interface ThreadListInNavProps {
   onSelectThread: (threadId: string) => void
   isAdmin: boolean
   categoryId: string
+  onReorder?: (threads: any[]) => void
 }
 
-function ThreadListInNav({ threads, isLoading, selectedThreadId, onSelectThread, isAdmin, categoryId }: ThreadListInNavProps) {
+function ThreadListInNav({ threads, isLoading, selectedThreadId, onSelectThread, isAdmin, categoryId, onReorder }: ThreadListInNavProps) {
   const { deleteMutation } = useScriptThreadMutation(categoryId)
+  const [localThreads, setLocalThreads] = useState(threads)
+
+  // Синхронизация с props
+  useState(() => {
+    setLocalThreads(threads)
+  })
   
   if (isLoading) {
     return (
@@ -353,47 +460,60 @@ function ThreadListInNav({ threads, isLoading, selectedThreadId, onSelectThread,
     )
   }
 
+  const handleReorder = (newThreads: any[]) => {
+    setLocalThreads(newThreads)
+    onReorder?.(newThreads)
+  }
+
   return (
     <div className="space-y-1">
-      {threads.map((thread) => {
-        const isSelected = selectedThreadId === thread.id
-        return (
-          <div
-            key={thread.id}
-            className={cn(
-              'group flex items-center gap-1.5 px-2 py-1 rounded-md text-sm cursor-pointer transition-all',
-              isSelected
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground'
-            )}
-          >
-            <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-            <button
-              onClick={() => onSelectThread(thread.id)}
-              className="flex-1 min-w-0 text-left"
-              title={thread.title}
+      <SortableList
+        items={threads}
+        onReorder={handleReorder}
+        disabled={!isAdmin}
+        renderItem={(thread, dragHandleProps) => {
+          const isSelected = selectedThreadId === thread.id
+          return (
+            <div
+              key={thread.id}
+              className={cn(
+                'group flex items-center gap-1.5 px-2 py-1 rounded-md text-sm cursor-pointer transition-all',
+                isSelected
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-muted-foreground'
+              )}
             >
-              <span className="block text-sm leading-tight break-words">{thread.title}</span>
-            </button>
-            {isAdmin && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (confirm(`Удалить "${thread.title}"?`)) {
-                    deleteMutation.mutate(thread.id)
-                  }
-                }}
-                disabled={deleteMutation.isPending}
+              {isAdmin && (
+                <DragHandle {...dragHandleProps} className="shrink-0 opacity-0 group-hover:opacity-100 h-5 w-5" />
+              )}
+              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+              <button
+                onClick={() => onSelectThread(thread.id)}
+                className="flex-1 min-w-0 text-left"
+                title={thread.title}
               >
-                <Trash2 className="h-3 w-3 text-red-600" />
-              </Button>
-            )}
-          </div>
-        )
-      })}
+                <span className="block text-sm leading-tight break-words">{thread.title}</span>
+              </button>
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirm(`Удалить "${thread.title}"?`)) {
+                      deleteMutation.mutate(thread.id)
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="h-3 w-3 text-red-600" />
+                </Button>
+              )}
+            </div>
+          )
+        }}
+      />
     </div>
   )
 }
