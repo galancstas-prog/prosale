@@ -47,7 +47,7 @@ export function SortableList<T extends { id: string }>({
     })
   )
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = React.useCallback((event: DragEndEvent) => {
     const { active, over } = event
 
     if (over && active.id !== over.id) {
@@ -56,9 +56,21 @@ export function SortableList<T extends { id: string }>({
       const newItems = arrayMove(items, oldIndex, newIndex)
       onReorder(newItems)
     }
-  }
+  }, [items, onReorder])
 
+  // Простой рендер без DnD если disabled
   if (disabled || items.length === 0) {
+    if (!className) {
+      return (
+        <>
+          {items.map((item) => (
+            <React.Fragment key={item.id}>
+              {renderItem(item, {})}
+            </React.Fragment>
+          ))}
+        </>
+      )
+    }
     return (
       <div className={className}>
         {items.map((item) => (
@@ -70,16 +82,34 @@ export function SortableList<T extends { id: string }>({
     )
   }
 
+  const itemIds = items.map(i => i.id)
+
+  if (!className) {
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          {items.map((item) => (
+            <SortableItem key={item.id} id={item.id} item={item} renderItem={renderItem} />
+          ))}
+        </SortableContext>
+      </DndContext>
+    )
+  }
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
         <div className={className}>
           {items.map((item) => (
-            <SortableItem key={item.id} id={item.id} renderItem={renderItem} item={item} />
+            <SortableItem key={item.id} id={item.id} item={item} renderItem={renderItem} />
           ))}
         </div>
       </SortableContext>

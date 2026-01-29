@@ -1,12 +1,8 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { ChevronLeft, ChevronRight, FolderOpen, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { CreateKbDialog } from './create-kb-dialog'
 import { CreateKbCategoryDialog } from './create-kb-category-dialog'
 import { KbCategoryList } from './kb-category-list'
@@ -17,8 +13,6 @@ import { useMembership } from '@/lib/auth/use-membership'
 import { useKbPages } from '@/lib/hooks/use-kb-pages'
 import { useKbCategories } from '@/lib/hooks/use-kb-categories'
 import { ExportImportMenu } from '@/components/export-import-menu'
-import { useCollapsiblePanel } from '@/lib/hooks/use-collapsible-panel'
-import { reorderKbCategories, reorderKbPages } from '@/lib/actions/reorder'
 import { exportKnowledge, importKnowledge } from '@/lib/actions/export-import'
 
 export default function KnowledgePage() {
@@ -27,16 +21,9 @@ export default function KnowledgePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const categoryId = searchParams.get('category')
-  const { isCollapsed, toggleCollapsed, isLoaded } = useCollapsiblePanel('knowledge')
   
   const { data: allPages = [], isLoading: pagesLoading } = useKbPages()
   const { data: categories = [], isLoading: categoriesLoading } = useKbCategories()
-  
-  const [localCategories, setLocalCategories] = useState(categories)
-
-  useEffect(() => {
-    setLocalCategories(categories)
-  }, [categories])
 
   const isAdmin = membership?.role === 'ADMIN' || membership?.role === 'OWNER'
 
@@ -60,15 +47,6 @@ export default function KnowledgePage() {
 
   const handleSearchResultClick = (id: string, query: string) => {
     router.push(`/app/knowledge/${id}?q=${encodeURIComponent(query)}`)
-  }
-
-  const handleReorderCategories = async (orderedIds: string[]) => {
-    await reorderKbCategories(orderedIds)
-  }
-
-  const handleReorderPages = async (orderedIds: string[]) => {
-    if (!selectedCategoryId) return
-    await reorderKbPages(selectedCategoryId, orderedIds)
   }
 
   const loading = pagesLoading || categoriesLoading
@@ -113,84 +91,22 @@ export default function KnowledgePage() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className={cn(
-          "grid gap-6 min-h-[500px] transition-all duration-300",
-          isCollapsed ? "grid-cols-1 lg:grid-cols-[48px_1fr]" : "grid-cols-1 lg:grid-cols-4"
-        )}>
-          {/* Левая панель - Категории */}
-          <div className="lg:col-span-1">
-            <Card className={cn(
-              "p-4 h-full relative transition-all duration-300",
-              isCollapsed && "overflow-hidden"
-            )}>
-              {/* Кнопка сворачивания */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleCollapsed}
-                className="absolute top-2 right-2 z-10 h-7 w-7 p-0"
-                title={isCollapsed ? 'Развернуть панель' : 'Свернуть панель'}
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-4 w-4" />
-                ) : (
-                  <ChevronLeft className="h-4 w-4" />
-                )}
-              </Button>
-
-              {/* Контент панели */}
-              <div className={cn(
-                "transition-all duration-300",
-                isCollapsed ? "opacity-0 invisible w-0" : "opacity-100 visible"
-              )}>
-                <h3 className="font-semibold mb-4 text-base pr-8">Категории</h3>
-                <ScrollArea className="h-[calc(100%-3rem)]">
-                  <KbCategoryList 
-                    categories={localCategories} 
-                    isAdmin={isAdmin} 
-                    onReorder={handleReorderCategories}
-                    compact
-                  />
-                </ScrollArea>
-              </div>
-
-              {/* Вертикальный текст при свёрнутом состоянии */}
-              {isCollapsed && (
-                <div className="absolute top-12 left-1/2 -translate-x-1/2">
-                  <span
-                    className="text-xs font-medium text-muted-foreground whitespace-nowrap"
-                    style={{
-                      writingMode: 'vertical-rl',
-                      textOrientation: 'mixed',
-                    }}
-                  >
-                    Категории
-                  </span>
-                </div>
-              )}
-            </Card>
+        <>
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-4">Категории</h2>
+            <KbCategoryList categories={categories} isAdmin={isAdmin} />
           </div>
-
-          {/* Правая панель - Страницы */}
-          <div className={cn(
-            "transition-all duration-300",
-            isCollapsed ? "lg:col-span-1" : "lg:col-span-3"
-          )}>
-            <div>
-              <h2 className="text-xl font-semibold mb-4">
-                {selectedCategoryId 
-                  ? `Страницы: ${categories.find(c => c.id === selectedCategoryId)?.name || 'Категория'}`
-                  : 'Все страницы'
-                }
-              </h2>
-              <KbList 
-                pages={filteredPages} 
-                isAdmin={isAdmin} 
-                onReorder={handleReorderPages}
-              />
-            </div>
+          
+          <div>
+            <h2 className="text-xl font-semibold mb-4">
+              {selectedCategoryId 
+                ? `Страницы: ${categories.find(c => c.id === selectedCategoryId)?.name || 'Категория'}`
+                : 'Все страницы'
+              }
+            </h2>
+            <KbList pages={filteredPages} isAdmin={isAdmin} />
           </div>
-        </div>
+        </>
       )}
     </div>
   )
