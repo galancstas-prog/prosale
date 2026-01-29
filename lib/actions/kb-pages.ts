@@ -9,6 +9,7 @@ export async function getKbPages() {
   const { data, error } = await supabase
     .from('kb_pages')
     .select('id,title,content_richtext,created_at,category_id')
+    .order('order_index', { ascending: true })
     .order('created_at', { ascending: false })
 
   if (error) {

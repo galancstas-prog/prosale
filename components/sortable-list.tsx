@@ -26,6 +26,7 @@ interface SortableListProps<T extends { id: string }> {
   onReorder: (items: T[]) => void
   renderItem: (item: T, dragHandleProps: React.HTMLAttributes<HTMLDivElement>) => React.ReactNode
   disabled?: boolean
+  className?: string
 }
 
 export function SortableList<T extends { id: string }>({
@@ -33,6 +34,7 @@ export function SortableList<T extends { id: string }>({
   onReorder,
   renderItem,
   disabled = false,
+  className,
 }: SortableListProps<T>) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -56,11 +58,15 @@ export function SortableList<T extends { id: string }>({
     }
   }
 
-  if (disabled) {
+  if (disabled || items.length === 0) {
     return (
-      <>
-        {items.map((item) => renderItem(item, {}))}
-      </>
+      <div className={className}>
+        {items.map((item) => (
+          <React.Fragment key={item.id}>
+            {renderItem(item, {})}
+          </React.Fragment>
+        ))}
+      </div>
     )
   }
 
@@ -70,23 +76,24 @@ export function SortableList<T extends { id: string }>({
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        {items.map((item) => (
-          <SortableItem key={item.id} id={item.id}>
-            {(dragHandleProps) => renderItem(item, dragHandleProps)}
-          </SortableItem>
-        ))}
+      <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+        <div className={className}>
+          {items.map((item) => (
+            <SortableItem key={item.id} id={item.id} renderItem={renderItem} item={item} />
+          ))}
+        </div>
       </SortableContext>
     </DndContext>
   )
 }
 
-interface SortableItemProps {
+interface SortableItemProps<T extends { id: string }> {
   id: string
-  children: (dragHandleProps: React.HTMLAttributes<HTMLDivElement>) => React.ReactNode
+  item: T
+  renderItem: (item: T, dragHandleProps: React.HTMLAttributes<HTMLDivElement>) => React.ReactNode
 }
 
-function SortableItem({ id, children }: SortableItemProps) {
+function SortableItem<T extends { id: string }>({ id, item, renderItem }: SortableItemProps<T>) {
   const {
     attributes,
     listeners,
@@ -96,7 +103,7 @@ function SortableItem({ id, children }: SortableItemProps) {
     isDragging,
   } = useSortable({ id })
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 50 : undefined,
@@ -111,7 +118,7 @@ function SortableItem({ id, children }: SortableItemProps) {
 
   return (
     <div ref={setNodeRef} style={style}>
-      {children(dragHandleProps)}
+      {renderItem(item, dragHandleProps)}
     </div>
   )
 }

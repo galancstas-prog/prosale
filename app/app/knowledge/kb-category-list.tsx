@@ -113,7 +113,6 @@ export function KbCategoryList({ categories, isAdmin, onReorder, compact = false
               
               return (
                 <Link
-                  key={category.id}
                   href={`/app/knowledge?category=${category.id}`}
                   className={cn(
                     'group flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all text-sm',
@@ -224,70 +223,68 @@ export function KbCategoryList({ categories, isAdmin, onReorder, compact = false
         </Alert>
       )}
       
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <SortableList
-          items={localCategories}
-          onReorder={handleReorder}
-          disabled={!isAdmin || !onReorder}
-          renderItem={(category, dragHandleProps) => {
-            const isSelected = selectedCategoryId === category.id
-            
-            return (
-              <Card 
-                key={category.id} 
-                className={cn(
-                  "h-full hover:shadow-lg transition-all border-2 relative group",
-                  isSelected && 'border-primary ring-2 ring-primary/20'
-                )}
-              >
-                {isAdmin && onReorder && (
-                  <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <DragHandle {...dragHandleProps} />
+      <SortableList
+        items={localCategories}
+        onReorder={handleReorder}
+        disabled={!isAdmin || !onReorder}
+        className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+        renderItem={(category, dragHandleProps) => {
+          const isSelected = selectedCategoryId === category.id
+          
+          return (
+            <Card 
+              className={cn(
+                "h-full hover:shadow-lg transition-all border-2 relative group",
+                isSelected && 'border-primary ring-2 ring-primary/20'
+              )}
+            >
+              {isAdmin && onReorder && (
+                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <DragHandle {...dragHandleProps} />
+                </div>
+              )}
+              <Link href={`/app/knowledge?category=${category.id}`}>
+                <CardHeader className="cursor-pointer">
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    <FolderOpen className="w-6 h-6" />
                   </div>
-                )}
-                <Link href={`/app/knowledge?category=${category.id}`}>
-                  <CardHeader className="cursor-pointer">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                      <FolderOpen className="w-6 h-6" />
-                    </div>
-                    <CardTitle className="flex items-center justify-between">
-                      {category.name}
-                      <ArrowRight className="h-4 w-4 text-slate-400" />
-                    </CardTitle>
-                    {category.description && <CardDescription>{category.description}</CardDescription>}
-                  </CardHeader>
-                </Link>
-                {isAdmin && (
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setEditingCategory(category)
-                      }}
-                      disabled={updateMutation.isPending || deleteMutation.isPending}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        handleDelete(category.id, category.name)
-                      }}
-                      disabled={updateMutation.isPending || deleteMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
-                  </div>
-                )}
-              </Card>
-            )
-          }}
-        />
-      </div>
+                  <CardTitle className="flex items-center justify-between">
+                    {category.name}
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                  </CardTitle>
+                  {category.description && <CardDescription>{category.description}</CardDescription>}
+                </CardHeader>
+              </Link>
+              {isAdmin && (
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setEditingCategory(category)
+                    }}
+                    disabled={updateMutation.isPending || deleteMutation.isPending}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleDelete(category.id, category.name)
+                    }}
+                    disabled={updateMutation.isPending || deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </div>
+              )}
+            </Card>
+          )
+        }}
+      />
 
       <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
         <DialogContent>

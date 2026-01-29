@@ -10,6 +10,7 @@ export async function getKbCategories() {
     .from('categories')
     .select('*')
     .eq('type', 'kb')
+    .order('order_index', { ascending: true })
     .order('created_at', { ascending: false })
 
   if (error) {

@@ -13,6 +13,7 @@ export async function getTrainingDocsByCategory(categoryId: string) {
     .from('training_docs')
     .select('id,title,content_richtext,category_id,subcategory_id,created_at,is_published')
     .eq('category_id', categoryId)
+    .order('order_index', { ascending: true })
     .order('created_at', { ascending: false })
 
   if (error) {

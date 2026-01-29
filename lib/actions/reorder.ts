@@ -52,7 +52,7 @@ export async function reorderKbCategories(categoryIds: string[]) {
 
   for (let i = 0; i < categoryIds.length; i++) {
     const { error } = await supabase
-      .from('kb_categories')
+      .from('categories')
       .update({ order_index: i })
       .eq('id', categoryIds[i])
 

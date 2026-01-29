@@ -34,6 +34,7 @@ export async function getCategories() {
     .from('categories')
     .select('*')
     .eq('type', 'script')
+    .order('order_index', { ascending: true })
     .order('created_at', { ascending: false })
 
   if (error) {

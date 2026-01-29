@@ -32,6 +32,7 @@ export async function getTrainingCategories() {
     .from('categories')
     .select('*')
     .eq('type', 'training')
+    .order('order_index', { ascending: true })
     .order('created_at', { ascending: false })
 
   if (error) {

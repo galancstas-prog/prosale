@@ -228,7 +228,7 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
                     const isSelected = selectedCategoryId === category.id
 
                     return (
-                      <div key={category.id} className="space-y-1">
+                      <div className="space-y-1">
                         {/* Категория */}
                         <div
                           className={cn(

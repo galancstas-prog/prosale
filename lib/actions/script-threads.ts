@@ -48,6 +48,7 @@ export async function getThreadsByCategory(categoryId: string) {
     .from('script_threads')
     .select('*')
     .eq('category_id', categoryId)
+    .order('order_index', { ascending: true })
     .order('created_at', { ascending: false })
 
   if (error) return { error: error.message, data: [] as any[] }
