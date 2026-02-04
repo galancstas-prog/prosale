@@ -283,7 +283,7 @@ export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack, categories 
                   )}
                 </div>
                 {thread.description && (
-                  <p className="text-sm text-muted-foreground mt-1">{thread.description}</p>
+                  <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{thread.description}</p>
                 )}
               </>
             )}
