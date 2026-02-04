@@ -8,21 +8,24 @@ import { safeRevalidatePath } from '@/lib/safe-revalidate'
 // =====================================================
 
 export async function reorderCategories(categoryIds: string[]) {
+  console.log('[reorderCategories] Starting with ids:', categoryIds)
   const supabase = await getSupabaseServerClient()
 
   // Обновляем order_index для каждой категории
   for (let i = 0; i < categoryIds.length; i++) {
+    console.log('[reorderCategories] Updating', categoryIds[i], 'to order_index', i)
     const { error } = await supabase
       .from('categories')
       .update({ order_index: i })
       .eq('id', categoryIds[i])
 
     if (error) {
-      console.error('[reorderCategories]', error)
+      console.error('[reorderCategories] Error:', error)
       return { error: error.message }
     }
   }
 
+  console.log('[reorderCategories] Success!')
   safeRevalidatePath('/app/scripts')
   return { success: true }
 }

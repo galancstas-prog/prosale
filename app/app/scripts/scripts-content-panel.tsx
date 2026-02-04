@@ -112,13 +112,14 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
 
   // Обработчик reorder категорий - оптимистичное обновление
   const handleReorderCategories = (newCategories: Category[]) => {
+    console.log('[DnD] Reordering categories:', newCategories.map(c => c.name))
     // Моментально обновляем UI
     setLocalCategories(newCategories)
     // В фоне сохраняем на сервер (без await - не ждём ответа)
     const ids = newCategories.map(c => c.id)
-    reorderCategories(ids).catch(err => {
-      console.error('Ошибка сохранения порядка категорий:', err)
-    })
+    reorderCategories(ids)
+      .then(result => console.log('[DnD] Save result:', result))
+      .catch(err => console.error('[DnD] Ошибка сохранения порядка категорий:', err))
   }
 
   // Обработчик reorder threads - оптимистичное обновление
