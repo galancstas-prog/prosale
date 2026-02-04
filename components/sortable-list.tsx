@@ -39,7 +39,7 @@ export function SortableList<T extends { id: string }>({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -49,10 +49,12 @@ export function SortableList<T extends { id: string }>({
 
   const handleDragEnd = React.useCallback((event: DragEndEvent) => {
     const { active, over } = event
+    console.log('[SortableList] DragEnd:', { activeId: active.id, overId: over?.id })
 
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex((item) => item.id === active.id)
       const newIndex = items.findIndex((item) => item.id === over.id)
+      console.log('[SortableList] Moving from', oldIndex, 'to', newIndex)
       const newItems = arrayMove(items, oldIndex, newIndex)
       onReorder(newItems)
     }

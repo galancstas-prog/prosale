@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/empty-state'
 import { MessageSquare, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useScriptThreadMutation } from '@/lib/hooks/use-script-threads'
+import { getTextPreview } from '@/lib/text-utils'
 
 interface Thread {
   id: string
@@ -91,7 +92,7 @@ export function ScriptThreadGrid({ threads, isAdmin, onViewThread }: ScriptThrea
               <CardTitle className="text-base leading-snug">{thread.title}</CardTitle>
               {thread.description && (
                 <CardDescription className="text-sm line-clamp-2">
-                  {thread.description}
+                  {getTextPreview(thread.description, 100)}
                 </CardDescription>
               )}
             </CardHeader>
