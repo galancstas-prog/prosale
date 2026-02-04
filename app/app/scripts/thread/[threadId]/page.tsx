@@ -47,9 +47,10 @@ function ThreadPageContent({ params }: { params: { threadId: string } }) {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{thread.title}</h1>
           {thread.description && (
-            <p className="text-slate-600 dark:text-slate-400 mt-2 whitespace-pre-wrap">
-              {thread.description}
-            </p>
+            <div 
+              className="text-slate-600 dark:text-slate-400 mt-2 prose prose-sm dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: thread.description }}
+            />
           )}
         </div>
       </div>

@@ -225,12 +225,12 @@ export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack, categories 
                 </div>
                 <div className="space-y-2">
                   <Label>Описание</Label>
-                  <Textarea
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
+                  <RichTextEditor
+                    content={editDescription}
+                    onChange={setEditDescription}
                     placeholder="Описание скрипта"
                     disabled={isSavingTitle}
-                    rows={2}
+                    minHeight="80px"
                   />
                 </div>
                 {categories.length > 0 && (
@@ -283,7 +283,10 @@ export function ScriptThreadInlinePanel({ threadId, isAdmin, onBack, categories 
                   )}
                 </div>
                 {thread.description && (
-                  <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{thread.description}</p>
+                  <div 
+                    className="text-sm text-muted-foreground mt-1 prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: thread.description }}
+                  />
                 )}
               </>
             )}

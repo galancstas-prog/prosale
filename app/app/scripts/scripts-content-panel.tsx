@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -50,6 +50,11 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
   const [editError, setEditError] = useState('')
   
   const { updateMutation, deleteMutation } = useCategoryMutation()
+
+  // Синхронизируем localCategories с categories при изменении props
+  useEffect(() => {
+    setLocalCategories(categories)
+  }, [categories])
 
   // Получаем threads для выбранной категории
   const { data: threads = [], isLoading: threadsLoading } = useScriptThreads(selectedCategoryId || '')

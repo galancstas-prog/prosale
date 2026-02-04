@@ -35,11 +35,15 @@ interface RichTextEditorProps {
   onChange: (content: string) => void
   editable?: boolean
   placeholder?: string
+  disabled?: boolean
+  minHeight?: string
 }
 
-export function RichTextEditor({ content, onChange, editable = true, placeholder = 'Введите содержимое...' }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, editable = true, placeholder = 'Введите содержимое...', disabled = false, minHeight }: RichTextEditorProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+
+  const isEditable = editable && !disabled
 
   const editor = useEditor({
     // ✅ Важно для Next.js (особенно в превью/SSR окружениях):
@@ -68,7 +72,7 @@ export function RichTextEditor({ content, onChange, editable = true, placeholder
       }),
     ],
     content: cleanContent(content),
-    editable,
+    editable: isEditable,
     onUpdate: ({ editor }) => {
       const cleanedContent = cleanContent(editor.getHTML())
       onChange(cleanedContent)
@@ -81,6 +85,13 @@ export function RichTextEditor({ content, onChange, editable = true, placeholder
       editor.commands.setContent(cleanContent(content))
     }
   }, [editor, content])
+
+  // Обновляем editable при изменении disabled
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(isEditable)
+    }
+  }, [editor, isEditable])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -224,7 +235,8 @@ export function RichTextEditor({ content, onChange, editable = true, placeholder
 
       <EditorContent
         editor={editor}
-        className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[200px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:border-none [&_.ProseMirror]:shadow-none [&_.ProseMirror]:ring-0 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:focus:ring-0 [&_.ProseMirror]:focus:shadow-none [&_.ProseMirror]:whitespace-pre-wrap [&_.is-editor-empty]:first-child::before:content-[attr(data-placeholder)] [&_.is-editor-empty]:first-child::before:text-muted-foreground [&_.is-editor-empty]:first-child::before:float-left [&_.is-editor-empty]:first-child::before:h-0 [&_.is-editor-empty]:first-child::before:pointer-events-none"
+        className="prose prose-sm dark:prose-invert max-w-none p-4 focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:border-none [&_.ProseMirror]:shadow-none [&_.ProseMirror]:ring-0 [&_.ProseMirror]:focus:outline-none [&_.ProseMirror]:focus:ring-0 [&_.ProseMirror]:focus:shadow-none [&_.ProseMirror]:whitespace-pre-wrap [&_.is-editor-empty]:first-child::before:content-[attr(data-placeholder)] [&_.is-editor-empty]:first-child::before:text-muted-foreground [&_.is-editor-empty]:first-child::before:float-left [&_.is-editor-empty]:first-child::before:h-0 [&_.is-editor-empty]:first-child::before:pointer-events-none"
+        style={{ minHeight: minHeight || '200px' }}
       />
     </div>
   )
