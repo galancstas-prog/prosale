@@ -139,28 +139,31 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
     }
   }
 
-  // Обработчик reorder категорий
-  const handleReorderCategories = async (newCategories: Category[]) => {
+  // Обработчик reorder категорий - оптимистичное обновление
+  const handleReorderCategories = (newCategories: Category[]) => {
     setLocalCategories(newCategories)
     const ids = newCategories.map(c => c.id)
-    await reorderTrainingCategories(ids)
-    queryClient.invalidateQueries({ queryKey: ['training-categories'] })
+    reorderTrainingCategories(ids).catch(err => {
+      console.error('Ошибка сохранения порядка категорий:', err)
+    })
   }
 
-  // Обработчик reorder подкатегорий
-  const handleReorderSubcategories = async (newSubcats: any[]) => {
+  // Обработчик reorder подкатегорий - оптимистичное обновление
+  const handleReorderSubcategories = (newSubcats: any[]) => {
     if (!selectedCategoryId) return
     const ids = newSubcats.map(s => s.id)
-    await reorderTrainingSubcategories(selectedCategoryId, ids)
-    queryClient.invalidateQueries({ queryKey: ['training-subcategories', selectedCategoryId] })
+    reorderTrainingSubcategories(selectedCategoryId, ids).catch(err => {
+      console.error('Ошибка сохранения порядка подкатегорий:', err)
+    })
   }
 
-  // Обработчик reorder документов
-  const handleReorderDocs = async (newDocs: any[]) => {
+  // Обработчик reorder документов - оптимистичное обновление
+  const handleReorderDocs = (newDocs: any[]) => {
     if (!selectedCategoryId) return
     const ids = newDocs.map(d => d.id)
-    await reorderTrainingDocs(selectedCategoryId, ids)
-    queryClient.invalidateQueries({ queryKey: ['training-docs', selectedCategoryId] })
+    reorderTrainingDocs(selectedCategoryId, ids).catch(err => {
+      console.error('Ошибка сохранения порядка документов:', err)
+    })
   }
 
   const selectedCategory = localCategories.find(c => c.id === selectedCategoryId)

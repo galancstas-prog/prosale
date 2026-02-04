@@ -23,7 +23,7 @@ interface TrainingDocGridProps {
   onViewDoc: (docId: string) => void
   onDeleteDoc?: (docId: string) => Promise<void>
   isDeleting?: boolean
-  onReorder?: (orderedIds: string[]) => Promise<void>
+  onReorder?: (orderedIds: string[]) => void
 }
 
 export function TrainingDocGrid({ docs, isAdmin, onViewDoc, onDeleteDoc, isDeleting, onReorder }: TrainingDocGridProps) {
@@ -34,10 +34,10 @@ export function TrainingDocGrid({ docs, isAdmin, onViewDoc, onDeleteDoc, isDelet
     setLocalDocs(docs)
   }, [docs])
 
-  const handleReorder = async (reordered: Doc[]) => {
+  const handleReorder = (reordered: Doc[]) => {
     setLocalDocs(reordered)
     if (onReorder) {
-      await onReorder(reordered.map(d => d.id))
+      onReorder(reordered.map(d => d.id))
     }
   }
 

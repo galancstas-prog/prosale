@@ -25,7 +25,7 @@ interface SubcategoryListProps {
   onSelect: (id: string | null) => void
   isAdmin: boolean
   categoryId: string
-  onReorder?: (orderedIds: string[]) => Promise<void>
+  onReorder?: (orderedIds: string[]) => void
 }
 
 export function TrainingSubcategoryList({ 
@@ -45,10 +45,10 @@ export function TrainingSubcategoryList({
     setLocalSubcategories(subcategories)
   }, [subcategories])
 
-  const handleReorder = async (reordered: Subcategory[]) => {
+  const handleReorder = (reordered: Subcategory[]) => {
     setLocalSubcategories(reordered)
     if (onReorder) {
-      await onReorder(reordered.map(s => s.id))
+      onReorder(reordered.map(s => s.id))
     }
   }
 

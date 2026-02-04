@@ -110,20 +110,25 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
     }
   }
 
-  // Обработчик reorder категорий
-  const handleReorderCategories = async (newCategories: Category[]) => {
+  // Обработчик reorder категорий - оптимистичное обновление
+  const handleReorderCategories = (newCategories: Category[]) => {
+    // Моментально обновляем UI
     setLocalCategories(newCategories)
+    // В фоне сохраняем на сервер (без await - не ждём ответа)
     const ids = newCategories.map(c => c.id)
-    await reorderCategories(ids)
-    queryClient.invalidateQueries({ queryKey: ['categories'] })
+    reorderCategories(ids).catch(err => {
+      console.error('Ошибка сохранения порядка категорий:', err)
+    })
   }
 
-  // Обработчик reorder threads
-  const handleReorderThreads = async (newThreads: any[]) => {
+  // Обработчик reorder threads - оптимистичное обновление
+  const handleReorderThreads = (newThreads: any[]) => {
     if (!selectedCategoryId) return
+    // В фоне сохраняем на сервер (без await - не ждём ответа)
     const ids = newThreads.map(t => t.id)
-    await reorderScriptThreads(selectedCategoryId, ids)
-    queryClient.invalidateQueries({ queryKey: ['script-threads', selectedCategoryId] })
+    reorderScriptThreads(selectedCategoryId, ids).catch(err => {
+      console.error('Ошибка сохранения порядка тредов:', err)
+    })
   }
 
   const selectedCategory = localCategories.find(c => c.id === selectedCategoryId)
