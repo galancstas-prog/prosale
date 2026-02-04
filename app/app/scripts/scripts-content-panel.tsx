@@ -51,9 +51,20 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
   
   const { updateMutation, deleteMutation } = useCategoryMutation()
 
-  // Синхронизируем localCategories с categories при изменении props
+  // Синхронизируем только при добавлении/удалении категорий (изменение количества)
   useEffect(() => {
-    setLocalCategories(categories)
+    // Проверяем добавились ли новые категории
+    const newCategories = categories.filter(c => !localCategories.find(lc => lc.id === c.id))
+    // Проверяем удалились ли категории
+    const removedCategories = localCategories.filter(lc => !categories.find(c => c.id === lc.id))
+    
+    if (newCategories.length > 0 || removedCategories.length > 0) {
+      // Сохраняем текущий порядок и добавляем новые в конец
+      const updatedCategories = localCategories
+        .filter(lc => categories.find(c => c.id === lc.id)) // убираем удалённые
+        .concat(newCategories) // добавляем новые
+      setLocalCategories(updatedCategories)
+    }
   }, [categories])
 
   // Получаем threads для выбранной категории

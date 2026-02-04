@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,19 @@ export function TrainingContentPanel({ categories, isAdmin, onDeleteDoc }: Train
   const [editError, setEditError] = useState('')
   
   const { updateMutation, deleteMutation } = useTrainingCategoryMutation()
+
+  // Синхронизируем только при добавлении/удалении категорий
+  useEffect(() => {
+    const newCategories = categories.filter(c => !localCategories.find(lc => lc.id === c.id))
+    const removedCategories = localCategories.filter(lc => !categories.find(c => c.id === lc.id))
+    
+    if (newCategories.length > 0 || removedCategories.length > 0) {
+      const updatedCategories = localCategories
+        .filter(lc => categories.find(c => c.id === lc.id))
+        .concat(newCategories)
+      setLocalCategories(updatedCategories)
+    }
+  }, [categories])
 
   // Получаем подкатегории для выбранной категории
   const { data: subcategories = [], isLoading: subcategoriesLoading } = useTrainingSubcategories(selectedCategoryId)
