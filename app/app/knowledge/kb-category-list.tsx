@@ -102,7 +102,7 @@ export function KbCategoryList({ categories, isAdmin }: KbCategoryListProps) {
                     {category.name}
                     <ArrowRight className="h-4 w-4 text-slate-400" />
                   </CardTitle>
-                  {category.description && <CardDescription>{category.description}</CardDescription>}
+                  {category.description && <CardDescription className="whitespace-pre-wrap">{category.description}</CardDescription>}
                 </CardHeader>
               </Link>
               {isAdmin && (

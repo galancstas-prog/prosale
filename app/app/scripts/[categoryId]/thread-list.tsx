@@ -91,7 +91,7 @@ export function ThreadList({ categoryId, isAdmin }: ThreadListProps) {
                   {thread.title}
                   <ArrowRight className="h-4 w-4 text-slate-400" />
                 </CardTitle>
-                {thread.description && <CardDescription>{thread.description}</CardDescription>}
+                {thread.description && <CardDescription className="whitespace-pre-wrap">{thread.description}</CardDescription>}
               </CardHeader>
             </Link>
             {isAdmin && (

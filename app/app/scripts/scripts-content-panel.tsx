@@ -324,7 +324,7 @@ export function ScriptsContentPanel({ categories, isAdmin }: ScriptsContentPanel
                   {selectedCategory?.name || 'Выберите категорию'}
                 </h2>
                 {selectedCategory?.description && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {selectedCategory.description}
                   </p>
                 )}
