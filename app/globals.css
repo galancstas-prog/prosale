@@ -109,3 +109,253 @@
 .rich-content p:last-child {
   margin-bottom: 0;
 }
+/* ============================================
+   PREMIUM MINIMALISM 2026 STYLES
+   WhatsApp Integration Module
+   ============================================ */
+
+/* Glass morphism effects */
+.glass {
+  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl;
+}
+
+.glass-subtle {
+  @apply bg-white/60 dark:bg-slate-900/60 backdrop-blur-lg;
+}
+
+/* Premium card styles */
+.premium-card {
+  @apply bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/50 dark:border-slate-800/50;
+  @apply shadow-sm hover:shadow-md transition-all duration-300;
+}
+
+.premium-card-interactive {
+  @apply premium-card cursor-pointer;
+  @apply hover:border-slate-300 dark:hover:border-slate-700;
+  @apply hover:translate-y-[-1px];
+}
+
+/* WhatsApp Chat Styles */
+.wa-chat-list {
+  @apply divide-y divide-slate-100 dark:divide-slate-800/50;
+}
+
+.wa-chat-item {
+  @apply flex items-start gap-3 p-4 cursor-pointer transition-all duration-200;
+  @apply hover:bg-slate-50 dark:hover:bg-slate-800/50;
+}
+
+.wa-chat-item.active {
+  @apply bg-slate-100 dark:bg-slate-800;
+}
+
+.wa-chat-item.unread {
+  @apply bg-blue-50/50 dark:bg-blue-950/20;
+}
+
+/* Message bubbles */
+.wa-message {
+  @apply max-w-[75%] rounded-2xl px-4 py-2.5 relative;
+}
+
+.wa-message-in {
+  @apply bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100;
+  @apply border border-slate-200 dark:border-slate-700;
+  @apply rounded-tl-md;
+}
+
+.wa-message-out {
+  @apply bg-gradient-to-br from-emerald-500 to-emerald-600 text-white;
+  @apply rounded-tr-md;
+}
+
+/* AI Suggestion panel */
+.wa-ai-panel {
+  @apply bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30;
+  @apply border border-violet-200/50 dark:border-violet-800/30;
+  @apply rounded-xl p-4;
+}
+
+.wa-ai-suggestion {
+  @apply bg-white dark:bg-slate-900 rounded-lg p-3 mt-3;
+  @apply border border-violet-200 dark:border-violet-800/50;
+  @apply text-sm leading-relaxed;
+}
+
+/* Status indicators */
+.wa-status-dot {
+  @apply w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-slate-900;
+}
+
+.wa-status-online {
+  @apply bg-emerald-500;
+}
+
+.wa-status-away {
+  @apply bg-amber-500;
+}
+
+.wa-status-offline {
+  @apply bg-slate-400;
+}
+
+/* Priority badges */
+.wa-priority {
+  @apply text-xs font-medium px-2 py-0.5 rounded-full;
+}
+
+.wa-priority-low {
+  @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400;
+}
+
+.wa-priority-normal {
+  @apply bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400;
+}
+
+.wa-priority-high {
+  @apply bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400;
+}
+
+.wa-priority-urgent {
+  @apply bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400;
+}
+
+/* Tags */
+.wa-tag {
+  @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full;
+  @apply bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300;
+}
+
+/* Smooth animations */
+@keyframes wa-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wa-slide-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes wa-pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.wa-animate-fade-in {
+  animation: wa-fade-in 0.2s ease-out;
+}
+
+.wa-animate-slide-in {
+  animation: wa-slide-in 0.2s ease-out;
+}
+
+.wa-animate-pulse {
+  animation: wa-pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Input styles */
+.wa-input {
+  @apply w-full bg-slate-50 dark:bg-slate-800/50 border-0 rounded-xl;
+  @apply px-4 py-3 text-sm placeholder:text-slate-400;
+  @apply focus:ring-2 focus:ring-violet-500/30 focus:bg-white dark:focus:bg-slate-800;
+  @apply transition-all duration-200;
+}
+
+/* Scrollbar styling */
+.wa-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
+}
+
+.wa-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wa-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wa-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225);
+  border-radius: 3px;
+}
+
+.dark .wa-scrollbar {
+  scrollbar-color: rgb(71 85 105) transparent;
+}
+
+.dark .wa-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgb(71 85 105);
+}
+
+/* Dashboard module cards - Premium 2026 */
+.dashboard-module {
+  @apply relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/80;
+  @apply bg-white dark:bg-slate-900;
+  @apply transition-all duration-300 ease-out;
+  @apply hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50;
+  @apply hover:border-slate-300 dark:hover:border-slate-700;
+}
+
+.dashboard-module::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-br from-white to-transparent dark:from-slate-800/50 opacity-0;
+  @apply transition-opacity duration-300;
+}
+
+.dashboard-module:hover::before {
+  @apply opacity-100;
+}
+
+.dashboard-module-icon {
+  @apply w-12 h-12 rounded-xl flex items-center justify-center;
+  @apply bg-gradient-to-br;
+}
+
+.dashboard-module-icon.blue {
+  @apply from-blue-500 to-blue-600 text-white;
+}
+
+.dashboard-module-icon.green {
+  @apply from-emerald-500 to-emerald-600 text-white;
+}
+
+.dashboard-module-icon.orange {
+  @apply from-orange-500 to-orange-600 text-white;
+}
+
+.dashboard-module-icon.purple {
+  @apply from-violet-500 to-violet-600 text-white;
+}
+
+.dashboard-module-icon.whatsapp {
+  @apply from-emerald-500 to-teal-600 text-white;
+}
+
+/* Stats cards */
+.stats-card {
+  @apply rounded-xl p-4 border border-slate-200/50 dark:border-slate-800/50;
+  @apply bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900;
+}
+
+.stats-value {
+  @apply text-3xl font-bold tracking-tight;
+  @apply bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300;
+  @apply bg-clip-text text-transparent;
+}
+
+/* Quick actions */
+.quick-action-btn {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl;
+  @apply text-sm font-medium transition-all duration-200;
+  @apply bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300;
+  @apply hover:bg-slate-200 dark:hover:bg-slate-700;
+  @apply active:scale-[0.98];
+}
+
+.quick-action-btn.primary {
+  @apply bg-gradient-to-r from-violet-600 to-indigo-600 text-white;
+  @apply hover:from-violet-700 hover:to-indigo-700;
+  @apply shadow-lg shadow-violet-500/25;
+}

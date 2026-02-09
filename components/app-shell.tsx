@@ -25,6 +25,7 @@ import {
   X,
   LogOut,
   HelpCircle,
+  Phone,
 } from 'lucide-react'
 
 interface AppShellProps {
@@ -61,6 +62,7 @@ function AppShellContent({ children, user }: AppShellProps) {
     { name: t('nav.training'), href: '/app/training', icon: BookOpen },
     { name: t('nav.faq'), href: '/app/faq', icon: FileText },
     { name: t('nav.knowledge'), href: '/app/knowledge', icon: Database },
+    { name: 'WhatsApp', href: '/app/whatsapp', icon: Phone },
 
     // Показываем только когда мы УЖЕ точно знаем роль.
     ...(membershipLoading

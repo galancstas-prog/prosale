@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useLocale } from '@/lib/i18n/use-locale'
-import { MessageSquare, BookOpen, FileText, Database, ArrowRight, Loader2, RefreshCw } from 'lucide-react'
+import { MessageSquare, BookOpen, FileText, Database, ArrowRight, Loader2, RefreshCw, Phone } from 'lucide-react'
 import { createDemoContent } from '@/lib/actions/seed-demo'
 import { reindexAllContent } from '@/lib/actions/ai-search'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -119,6 +119,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     { title: t('dashboard.training'), description: t('dashboard.trainingDesc'), icon: BookOpen, href: '/app/training', color: 'green' },
     { title: t('dashboard.faq'), description: t('dashboard.faqDesc'), icon: FileText, href: '/app/faq', color: 'orange' },
     { title: t('dashboard.knowledge'), description: t('dashboard.knowledgeDesc'), icon: Database, href: '/app/knowledge', color: 'purple' },
+    { title: 'WhatsApp', description: 'Чаты с клиентами и AI подсказки', icon: Phone, href: '/app/whatsapp', color: 'whatsapp' },
   ]
 
   const colorClasses = {
@@ -126,6 +127,7 @@ export function DashboardContent({ isAdmin }: DashboardContentProps) {
     green: 'bg-green-100 dark:bg-green-950 text-green-600 dark:text-green-400',
     orange: 'bg-orange-100 dark:bg-orange-950 text-orange-600 dark:text-orange-400',
     purple: 'bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400',
+    whatsapp: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400',
   }
 
   const handleCreateDemo = async () => {
