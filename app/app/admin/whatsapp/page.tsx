@@ -146,6 +146,34 @@ export default function WhatsAppAdminPage() {
     }
   }
 
+  // Handle connect session - calls Bridge server to get QR code
+  const handleConnectSession = async (sessionId: string) => {
+    try {
+      setError(null)
+      const bridgeUrl = process.env.NEXT_PUBLIC_WA_BRIDGE_URL || 'http://localhost:3001'
+      
+      // Call bridge server to start WhatsApp connection
+      const response = await fetch(`${bridgeUrl}/sessions/${sessionId}/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Не удалось подключиться к WhatsApp Bridge')
+      }
+      
+      // Refresh data to show QR code
+      setTimeout(() => loadData(), 2000)
+      setTimeout(() => loadData(), 5000)
+      setTimeout(() => loadData(), 10000)
+      loadData()
+    } catch (e: any) {
+      console.error('Connect error:', e)
+      setError(`Ошибка подключения: ${e.message}. Убедитесь что WhatsApp Bridge запущен на сервере.`)
+    }
+  }
+
   // Handle delete session
   const handleDeleteSession = async (sessionId: string) => {
     if (!confirm('Удалить эту сессию WhatsApp? Все чаты будут потеряны.')) return
@@ -363,7 +391,7 @@ export default function WhatsAppAdminPage() {
                     {/* QR Code or Status */}
                     <QRCodeDisplay
                       session={session}
-                      onRefresh={loadData}
+                      onRefresh={() => handleConnectSession(session.id)}
                     />
 
                     {/* Settings */}
