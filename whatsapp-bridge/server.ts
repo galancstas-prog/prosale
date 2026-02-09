@@ -28,11 +28,15 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SESSIONS_DIR = process.env.WA_SESSIONS_DIR || './wa-sessions'
 
+// Webhook URL - Bridge sends all data here instead of writing to Supabase directly
+const WEBHOOK_URL = process.env.WEBHOOK_URL || ''
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'prosale-wa-bridge-2024'
+
 if (!fs.existsSync(SESSIONS_DIR)) {
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
 }
 
-// Initialize Supabase client (optional)
+// Initialize Supabase client (optional fallback)
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   : null
@@ -43,6 +47,38 @@ const logger = pino({ level: 'info' })
 const connections = new Map<string, any>()
 const qrCodes = new Map<string, { qr: string; expiresAt: number }>()
 const sessionStatuses = new Map<string, string>()
+
+// ============================================
+// WEBHOOK HELPER
+// Sends data to Next.js API (which saves to Supabase)
+// ============================================
+
+async function sendWebhook(action: string, data: any): Promise<any> {
+  if (!WEBHOOK_URL) {
+    logger.debug('No WEBHOOK_URL configured, skipping webhook for action: ' + action)
+    return null
+  }
+  try {
+    const response = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-webhook-secret': WEBHOOK_SECRET,
+      },
+      body: JSON.stringify({ action, ...data }),
+    })
+    const result = await response.json()
+    if (!response.ok) {
+      logger.warn(`Webhook ${action} failed (${response.status}): ${JSON.stringify(result)}`)
+    } else {
+      logger.info(`Webhook ${action} success: ${JSON.stringify(result)}`)
+    }
+    return result
+  } catch (e: any) {
+    logger.warn('Webhook call failed for ' + action + ': ' + e.message)
+    return null
+  }
+}
 
 // ============================================
 // EXPRESS + SOCKET.IO SETUP
@@ -99,7 +135,14 @@ async function connectToWhatsApp(sessionId: string) {
       })
       sessionStatuses.set(sessionId, 'qr_pending')
 
-      // Also try to update DB if Supabase is configured
+      // Notify via webhook (saves to DB through Next.js API)
+      await sendWebhook('connection-update', {
+        sessionId,
+        status: 'qr_pending',
+        qrCode: qrData,
+      })
+
+      // Fallback: direct DB update if Supabase configured
       await updateSessionStatusDB(sessionId, 'qr_pending', qrData)
 
       // Emit to WebSocket clients
@@ -117,6 +160,12 @@ async function connectToWhatsApp(sessionId: string) {
       sessionStatuses.set(sessionId, 'disconnected')
       qrCodes.delete(sessionId)
       connections.delete(sessionId)
+
+      // Notify via webhook
+      await sendWebhook('connection-update', {
+        sessionId,
+        status: 'disconnected',
+      })
       await updateSessionStatusDB(sessionId, 'disconnected')
 
       if (shouldReconnect) {
@@ -131,6 +180,14 @@ async function connectToWhatsApp(sessionId: string) {
       sessionStatuses.set(sessionId, 'connected')
       qrCodes.delete(sessionId)
 
+      // Notify via webhook (primary path)
+      await sendWebhook('connection-update', {
+        sessionId,
+        status: 'connected',
+        phoneNumber,
+      })
+
+      // Fallback: direct DB update
       if (supabase) {
         await supabase
           .from('whatsapp_sessions')
@@ -160,12 +217,40 @@ async function connectToWhatsApp(sessionId: string) {
       if (remoteJid === 'status@broadcast') continue
 
       const isFromMe = msg.key.fromMe
-      const chat = await getOrCreateChat(sessionId, remoteJid, msg)
-      if (!chat) continue
-
       const content = extractMessageContent(msg)
 
-      if (supabase) {
+      logger.info(`New message in ${remoteJid} (fromMe: ${isFromMe}, type: ${content.type})`)
+
+      // PRIMARY: Send to webhook (Next.js saves to Supabase)
+      const webhookResult = await sendWebhook('incoming-message', {
+        sessionId,
+        remoteJid,
+        messageId: msg.key.id || null,
+        isFromMe: isFromMe || false,
+        contentType: content.type,
+        contentText: content.text,
+        senderJid: msg.key.participant || remoteJid,
+        senderName: null,
+        pushName: msg.pushName || null,
+      })
+
+      // Emit to WebSocket clients
+      if (webhookResult?.chatId) {
+        io.to(sessionId).emit('message', {
+          chatId: webhookResult.chatId,
+          messageId: webhookResult.messageId,
+          remoteJid,
+          isFromMe,
+          content,
+          pushName: msg.pushName,
+        })
+      }
+
+      // FALLBACK: Direct Supabase write if webhook not configured
+      if (!WEBHOOK_URL && supabase) {
+        const chat = await getOrCreateChat(sessionId, remoteJid, msg)
+        if (!chat) continue
+
         const { data: savedMessage } = await supabase
           .from('whatsapp_messages')
           .insert({
@@ -193,8 +278,6 @@ async function connectToWhatsApp(sessionId: string) {
 
         io.to(sessionId).emit('message', { message: savedMessage, chat })
       }
-
-      logger.info('New message in ' + remoteJid)
     }
   })
 

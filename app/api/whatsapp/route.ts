@@ -287,20 +287,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
     
-    if (action === 'send' && sessionId && phone && message) {
+    if (action === 'send' && sessionId) {
       // Отправить сообщение
+      const messageText = message || body.text
+      const targetPhone = phone || body.phone
+      
+      if (!messageText) {
+        return NextResponse.json({ error: 'Message text required' }, { status: 400 })
+      }
+      
       const response = await fetch(`${BRIDGE_URL}/sessions/${sessionId}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone,
-          message,
+          phone: targetPhone,
+          message: messageText,
           chatId
         })
       })
       
       if (!response.ok) {
-        throw new Error('Failed to send message')
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to send message')
       }
       
       const data = await response.json()
@@ -308,32 +316,44 @@ export async function POST(request: NextRequest) {
       // Сохраняем сообщение в БД
       const supabase = await getSupabaseServerClient()
       
-      // Находим или создаём чат
-      let chatRecord: { id: string } | null = null
+      // Находим чат
+      let chatRecord: { id: string; remote_jid: string } | null = null
       
       if (chatId) {
-        const { data } = await supabase
+        const { data: existingChat } = await supabase
           .from('whatsapp_chats')
-          .select('id')
+          .select('id, remote_jid')
           .eq('id', chatId)
           .single()
-        chatRecord = data
+        chatRecord = existingChat
       }
       
-      if (!chatRecord) {
-        const { data } = await supabase
+      if (!chatRecord && targetPhone) {
+        const remoteJid = targetPhone.replace(/[^0-9]/g, '') + '@s.whatsapp.net'
+        const { data: existingChat } = await supabase
           .from('whatsapp_chats')
-          .upsert({
-            session_id: sessionId,
-            remote_jid: `${phone}@s.whatsapp.net`,
-            phone_number: phone,
-            tenant_id: tenantId
-          }, {
-            onConflict: 'session_id,remote_jid'
-          })
-          .select('id')
+          .select('id, remote_jid')
+          .eq('session_id', sessionId)
+          .eq('remote_jid', remoteJid)
           .single()
-        chatRecord = data
+        
+        if (existingChat) {
+          chatRecord = existingChat
+        } else {
+          // Создаём новый чат
+          const { data: newChat } = await supabase
+            .from('whatsapp_chats')
+            .insert({
+              session_id: sessionId,
+              tenant_id: tenantId,
+              remote_jid: remoteJid,
+              contact_phone: targetPhone.replace(/[^0-9]/g, ''),
+              status: 'open',
+            })
+            .select('id, remote_jid')
+            .single()
+          chatRecord = newChat
+        }
       }
       
       if (chatRecord) {
@@ -341,20 +361,24 @@ export async function POST(request: NextRequest) {
           .from('whatsapp_messages')
           .insert({
             chat_id: chatRecord.id,
-            wa_message_id: data.messageId,
-            direction: 'outgoing',
-            content: message,
+            tenant_id: tenantId,
+            wa_message_id: data.messageId || null,
+            direction: 'out',
             content_type: 'text',
+            content_text: messageText,
+            sender_jid: null,
+            sent_by: userId,
             status: 'sent',
-            tenant_id: tenantId
           })
         
         // Обновляем last_message в чате
         await supabase
           .from('whatsapp_chats')
           .update({
-            last_message: message,
-            last_message_at: new Date().toISOString()
+            last_message_text: messageText.slice(0, 200),
+            last_message_at: new Date().toISOString(),
+            last_message_direction: 'out',
+            unread_count: 0,
           })
           .eq('id', chatRecord.id)
       }

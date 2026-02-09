@@ -173,6 +173,50 @@ export default function WhatsAppPage() {
     }
   }, [membershipLoading, membership, loadData])
 
+  // Auto-refresh chats every 5 seconds (polling for new messages)
+  useEffect(() => {
+    if (!membership || membershipLoading) return
+
+    const refreshChats = async () => {
+      try {
+        const [chatsRes, statsRes] = await Promise.all([
+          getChats(),
+          getWhatsAppStats(),
+        ])
+        if (!chatsRes.error && chatsRes.data) {
+          setChats(chatsRes.data)
+        }
+        if (statsRes.data) {
+          setStats(statsRes.data)
+        }
+      } catch {
+        // silent refresh failure
+      }
+    }
+
+    const interval = setInterval(refreshChats, 5000)
+    return () => clearInterval(interval)
+  }, [membership, membershipLoading])
+
+  // Auto-refresh messages for selected chat
+  useEffect(() => {
+    if (!selectedChatId) return
+
+    const refreshMessages = async () => {
+      try {
+        const { data } = await getMessages(selectedChatId)
+        if (data) {
+          setMessages(data)
+        }
+      } catch {
+        // silent
+      }
+    }
+
+    const interval = setInterval(refreshMessages, 3000)
+    return () => clearInterval(interval)
+  }, [selectedChatId])
+
   // Load messages when chat selected
   const loadMessages = useCallback(async (chatId: string) => {
     try {
@@ -237,16 +281,34 @@ export default function WhatsAppPage() {
 
   // Handle send message
   const handleSendMessage = useCallback(async (text: string) => {
-    if (!selectedChatId) return
+    if (!selectedChatId || !selectedChat || !activeSession) return
 
-    // TODO: Implement actual message sending via WhatsApp API
-    console.log('Sending message:', text, 'to chat:', selectedChatId)
+    try {
+      // Send via API route (proxy to Bridge)
+      const response = await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send',
+          sessionId: activeSession.id,
+          chatId: selectedChatId,
+          phone: selectedChat.contact_phone,
+          message: text,
+        }),
+      })
 
-    // Optimistic update would go here
-    // For now, just reload messages
-    await loadMessages(selectedChatId)
-    setAiSuggestion(null)
-  }, [selectedChatId, loadMessages])
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Не удалось отправить сообщение')
+      }
+
+      // Reload messages to show sent message
+      await loadMessages(selectedChatId)
+      setAiSuggestion(null)
+    } catch (e: any) {
+      setError(`Ошибка отправки: ${e.message}`)
+    }
+  }, [selectedChatId, selectedChat, activeSession, loadMessages])
 
   // Handle chat updates
   const handleUpdateChat = useCallback(async (updates: Partial<WhatsAppChat>) => {
