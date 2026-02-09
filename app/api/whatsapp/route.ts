@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
 
 const BRIDGE_URL = process.env.NEXT_PUBLIC_WA_BRIDGE_URL || 'http://localhost:3001'
 
 // Helper для проверки авторизации и получения текущего тенанта
 async function getCurrentTenant() {
-  const supabase = await createClient()
+  const supabase = await getSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   
   if (!user) {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     
     if (action === 'sessions') {
       // Получить все сессии тенанта
-      const supabase = await createClient()
+      const supabase = await getSupabaseServerClient()
       const { data: sessions, error } = await supabase
         .from('whatsapp_sessions')
         .select('*')
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     
     if (action === 'connect') {
       // Создать новую сессию и получить QR код
-      const supabase = await createClient()
+      const supabase = await getSupabaseServerClient()
       
       // Создаём запись сессии в БД
       const { data: session, error: dbError } = await supabase
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     
     if (action === 'disconnect' && sessionId) {
       // Проверяем права на сессию
-      const supabase = await createClient()
+      const supabase = await getSupabaseServerClient()
       const { data: session } = await supabase
         .from('whatsapp_sessions')
         .select('user_id')
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       const data = await response.json()
       
       // Сохраняем сообщение в БД
-      const supabase = await createClient()
+      const supabase = await getSupabaseServerClient()
       
       // Находим или создаём чат
       let chatRecord: { id: string } | null = null

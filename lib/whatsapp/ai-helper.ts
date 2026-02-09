@@ -259,7 +259,7 @@ export async function findQuickReplyByShortcut(
 /**
  * Автоматическое определение языка сообщения
  */
-export function detectLanguage(text: string): 'ru' | 'kk' | 'en' {
+export async function detectLanguage(text: string): Promise<'ru' | 'kk' | 'en'> {
   const t = (text || '').toLowerCase()
 
   // Kazakh specific letters
