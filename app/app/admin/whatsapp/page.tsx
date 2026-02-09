@@ -146,28 +146,31 @@ export default function WhatsAppAdminPage() {
     }
   }
 
-  // Handle connect session - calls Bridge server to get QR code
+  // Handle connect session - calls /api/whatsapp proxy (server-to-server to Bridge)
   const handleConnectSession = async (sessionId: string) => {
     try {
       setError(null)
-      const bridgeUrl = process.env.NEXT_PUBLIC_WA_BRIDGE_URL || 'http://localhost:3001'
       
-      // Call bridge server to start WhatsApp connection
-      const response = await fetch(`${bridgeUrl}/sessions/${sessionId}/connect`, {
+      // Call через серверный прокси (обходит mixed-content блокировку браузера)
+      const response = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reconnect',
+          sessionId
+        })
       })
       
+      const data = await response.json()
+      
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || 'Не удалось подключиться к WhatsApp Bridge')
       }
       
       // Refresh data to show QR code
-      setTimeout(() => loadData(), 2000)
-      setTimeout(() => loadData(), 5000)
-      setTimeout(() => loadData(), 10000)
       loadData()
+      setTimeout(() => loadData(), 3000)
+      setTimeout(() => loadData(), 8000)
     } catch (e: any) {
       console.error('Connect error:', e)
       setError(`Ошибка подключения: ${e.message}. Убедитесь что WhatsApp Bridge запущен на сервере.`)

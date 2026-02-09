@@ -8,7 +8,9 @@ import {
   WhatsAppMessage 
 } from '@/lib/whatsapp/types'
 
-const BRIDGE_URL = process.env.NEXT_PUBLIC_WA_BRIDGE_URL || 'http://localhost:3001'
+// Bridge URL используется только для WebSocket (когда SSL настроен)
+// Все REST вызовы идут через /api/whatsapp серверный прокси
+const BRIDGE_URL = process.env.NEXT_PUBLIC_WA_BRIDGE_URL || ''
 
 interface UseWhatsAppBridgeOptions {
   autoConnect?: boolean
@@ -25,7 +27,7 @@ export function useWhatsAppBridge(options: UseWhatsAppBridgeOptions = {}) {
   const [error, setError] = useState<string | null>(null)
   const socketRef = useRef<Socket | null>(null)
   
-  // Проверка здоровья bridge сервера
+  // Проверка здоровья bridge сервера (через серверный прокси)
   const checkHealth = useCallback(async () => {
     try {
       const response = await fetch('/api/whatsapp?action=health')
@@ -43,8 +45,10 @@ export function useWhatsAppBridge(options: UseWhatsAppBridgeOptions = {}) {
   }, [])
   
   // Подключение WebSocket для real-time обновлений
+  // Примечание: WebSocket напрямую к Bridge требует HTTPS/WSS для продакшна
+  // На данном этапе используем polling через API route
   const connectSocket = useCallback(() => {
-    if (socketRef.current?.connected) return
+    if (!BRIDGE_URL || socketRef.current?.connected) return
     
     const socket = io(BRIDGE_URL, {
       transports: ['websocket'],

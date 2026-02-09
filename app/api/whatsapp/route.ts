@@ -153,6 +153,59 @@ export async function POST(request: NextRequest) {
       })
     }
     
+    if (action === 'reconnect' && sessionId) {
+      // Подключить существующую сессию (получить QR код)
+      const supabase = await getSupabaseServerClient()
+      const { data: session } = await supabase
+        .from('whatsapp_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .eq('tenant_id', tenantId)
+        .single()
+      
+      if (!session) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      }
+      
+      // Запрашиваем подключение у bridge
+      try {
+        const response = await fetch(`${BRIDGE_URL}/sessions/${sessionId}/connect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenantId })
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || `Bridge returned ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        // Обновляем статус сессии в БД
+        await supabase
+          .from('whatsapp_sessions')
+          .update({ 
+            status: 'qr_pending',
+            qr_code: data.qr || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', sessionId)
+        
+        return NextResponse.json({
+          success: true,
+          sessionId,
+          qr: data.qr,
+          status: 'qr_pending'
+        })
+      } catch (bridgeErr) {
+        console.error('Bridge connect error:', bridgeErr)
+        return NextResponse.json({ 
+          error: bridgeErr instanceof Error ? bridgeErr.message : 'Bridge connection failed' 
+        }, { status: 502 })
+      }
+    }
+    
     if (action === 'disconnect' && sessionId) {
       // Проверяем права на сессию
       const supabase = await getSupabaseServerClient()
