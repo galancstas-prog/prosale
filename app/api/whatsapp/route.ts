@@ -88,6 +88,54 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data)
     }
     
+    if (action === 'qr' && sessionId) {
+      // Получить QR код из памяти Bridge сервера (polling)
+      try {
+        const response = await fetch(`${BRIDGE_URL}/sessions/${sessionId}/qr`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        
+        if (!response.ok) {
+          return NextResponse.json({ status: 'unknown' })
+        }
+        
+        const data = await response.json()
+        
+        // Если Bridge вернул QR — обновляем БД тоже
+        if (data.qr && data.status === 'qr_pending') {
+          const supabase = await getSupabaseServerClient()
+          await supabase
+            .from('whatsapp_sessions')
+            .update({
+              status: 'qr_pending',
+              qr_code: data.qr,
+              qr_expires_at: data.expiresAt || new Date(Date.now() + 60000).toISOString(),
+            })
+            .eq('id', sessionId)
+        }
+        
+        // Если Bridge говорит connected — обновляем БД
+        if (data.status === 'connected') {
+          const supabase = await getSupabaseServerClient()
+          await supabase
+            .from('whatsapp_sessions')
+            .update({
+              status: 'connected',
+              phone_number: data.phoneNumber || null,
+              qr_code: null,
+              qr_expires_at: null,
+              last_connected_at: new Date().toISOString(),
+            })
+            .eq('id', sessionId)
+        }
+        
+        return NextResponse.json(data)
+      } catch (err) {
+        return NextResponse.json({ status: 'bridge_offline' })
+      }
+    }
+    
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     
   } catch (error) {

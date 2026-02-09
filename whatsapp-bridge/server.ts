@@ -6,7 +6,6 @@ import makeWASocket, {
   DisconnectReason,
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
-  makeInMemoryStore,
   Browsers,
 } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
@@ -25,26 +24,25 @@ import fs from 'fs'
 // ============================================
 
 const PORT = process.env.WA_BRIDGE_PORT || 3001
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SESSIONS_DIR = process.env.WA_SESSIONS_DIR || './wa-sessions'
 
-// Ensure sessions directory exists
 if (!fs.existsSync(SESSIONS_DIR)) {
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
 }
 
-// Initialize Supabase client
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+// Initialize Supabase client (optional)
+const supabase = SUPABASE_URL && SUPABASE_SERVICE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  : null
 
-// Logger
 const logger = pino({ level: 'info' })
 
-// In-memory store for message caching
-const store = makeInMemoryStore({ logger })
-
-// Active connections map
-const connections = new Map<string, ReturnType<typeof makeWASocket>>()
+// Active connections and QR codes in memory
+const connections = new Map<string, any>()
+const qrCodes = new Map<string, { qr: string; expiresAt: number }>()
+const sessionStatuses = new Map<string, string>()
 
 // ============================================
 // EXPRESS + SOCKET.IO SETUP
@@ -66,33 +64,27 @@ const io = new Server(httpServer, {
 async function connectToWhatsApp(sessionId: string) {
   const sessionPath = path.join(SESSIONS_DIR, sessionId)
 
-  // Load auth state
   const { state, saveCreds } = await useMultiFileAuthState(sessionPath)
-  const { version, isLatest } = await fetchLatestBaileysVersion()
+  const { version } = await fetchLatestBaileysVersion()
 
-  logger.info(`Using WA v${version.join('.')}, isLatest: ${isLatest}`)
+  logger.info(`Connecting session ${sessionId}, WA v${version.join('.')}`)
 
-  // Update session status in DB
-  await updateSessionStatus(sessionId, 'connecting')
+  sessionStatuses.set(sessionId, 'connecting')
+  await updateSessionStatusDB(sessionId, 'connecting')
 
-  // Create socket
   const sock = makeWASocket({
     version,
     logger,
     printQRInTerminal: false,
     auth: state,
     browser: Browsers.ubuntu('Chrome'),
-    getMessage: async (key) => {
-      const msg = await store.loadMessage(key.remoteJid!, key.id!)
-      return msg?.message || undefined
-    },
+    getMessage: async () => undefined,
   })
 
-  store.bind(sock.ev)
   connections.set(sessionId, sock)
 
   // Connection update handler
-  sock.ev.on('connection.update', async (update) => {
+  sock.ev.on('connection.update', async (update: any) => {
     const { connection, lastDisconnect, qr } = update
 
     if (qr) {
@@ -100,18 +92,18 @@ async function connectToWhatsApp(sessionId: string) {
       const qrBase64 = await QRCode.toDataURL(qr)
       const qrData = qrBase64.replace('data:image/png;base64,', '')
 
-      // Update DB with QR code
-      await supabase
-        .from('whatsapp_sessions')
-        .update({
-          status: 'qr_pending',
-          qr_code: qrData,
-          qr_expires_at: new Date(Date.now() + 60000).toISOString(), // 60 sec
-        })
-        .eq('id', sessionId)
+      // Store QR in memory (available via HTTP GET)
+      qrCodes.set(sessionId, {
+        qr: qrData,
+        expiresAt: Date.now() + 60000,
+      })
+      sessionStatuses.set(sessionId, 'qr_pending')
 
-      // Emit to connected clients
-      io.to(sessionId).emit('qr', { qr: qrData })
+      // Also try to update DB if Supabase is configured
+      await updateSessionStatusDB(sessionId, 'qr_pending', qrData)
+
+      // Emit to WebSocket clients
+      io.to(sessionId).emit('qr', { sessionId, qr: qrData })
 
       logger.info(`QR code generated for session ${sessionId}`)
     }
@@ -122,11 +114,12 @@ async function connectToWhatsApp(sessionId: string) {
 
       logger.info(`Connection closed for ${sessionId}, reconnect: ${shouldReconnect}`)
 
-      await updateSessionStatus(sessionId, 'disconnected')
+      sessionStatuses.set(sessionId, 'disconnected')
+      qrCodes.delete(sessionId)
       connections.delete(sessionId)
+      await updateSessionStatusDB(sessionId, 'disconnected')
 
       if (shouldReconnect) {
-        // Retry connection
         setTimeout(() => connectToWhatsApp(sessionId), 5000)
       }
     }
@@ -135,98 +128,73 @@ async function connectToWhatsApp(sessionId: string) {
       logger.info(`Connected to WhatsApp for session ${sessionId}`)
 
       const phoneNumber = sock.user?.id?.split(':')[0] || null
+      sessionStatuses.set(sessionId, 'connected')
+      qrCodes.delete(sessionId)
 
-      await supabase
-        .from('whatsapp_sessions')
-        .update({
-          status: 'connected',
-          phone_number: phoneNumber,
-          qr_code: null,
-          qr_expires_at: null,
-          last_connected_at: new Date().toISOString(),
-        })
-        .eq('id', sessionId)
+      if (supabase) {
+        await supabase
+          .from('whatsapp_sessions')
+          .update({
+            status: 'connected',
+            phone_number: phoneNumber,
+            qr_code: null,
+            qr_expires_at: null,
+            last_connected_at: new Date().toISOString(),
+          })
+          .eq('id', sessionId)
+      }
 
-      io.to(sessionId).emit('connected', { phoneNumber })
+      io.to(sessionId).emit('connected', { sessionId, phoneNumber })
     }
   })
 
-  // Credentials update handler
   sock.ev.on('creds.update', saveCreds)
 
   // Messages handler
-  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+  sock.ev.on('messages.upsert', async ({ messages, type }: any) => {
     if (type !== 'notify') return
 
     for (const msg of messages) {
       if (!msg.message) continue
-
       const remoteJid = msg.key.remoteJid!
-      const isFromMe = msg.key.fromMe
-
-      // Skip status broadcasts
       if (remoteJid === 'status@broadcast') continue
 
-      // Get or create chat
+      const isFromMe = msg.key.fromMe
       const chat = await getOrCreateChat(sessionId, remoteJid, msg)
+      if (!chat) continue
 
-      // Extract message content
       const content = extractMessageContent(msg)
 
-      // Save message to DB
-      const { data: savedMessage } = await supabase
-        .from('whatsapp_messages')
-        .insert({
-          chat_id: chat.id,
-          tenant_id: chat.tenant_id,
-          wa_message_id: msg.key.id,
-          direction: isFromMe ? 'out' : 'in',
-          content_type: content.type,
-          content_text: content.text,
-          content_media_url: content.mediaUrl,
-          content_caption: content.caption,
-          sender_jid: msg.key.participant || remoteJid,
-          status: 'delivered',
-        })
-        .select()
-        .single()
-
-      // Update chat last message
-      await supabase
-        .from('whatsapp_chats')
-        .update({
-          last_message_text: content.text || `[${content.type}]`,
-          last_message_at: new Date().toISOString(),
-          last_message_direction: isFromMe ? 'out' : 'in',
-          unread_count: isFromMe ? 0 : chat.unread_count + 1,
-        })
-        .eq('id', chat.id)
-
-      // Emit new message event
-      io.to(sessionId).emit('message', {
-        message: savedMessage,
-        chat,
-      })
-
-      logger.info(`New message in ${remoteJid}: ${content.text?.substring(0, 50)}...`)
-    }
-  })
-
-  // Message status updates
-  sock.ev.on('messages.update', async (updates) => {
-    for (const update of updates) {
-      if (update.update.status) {
-        const statusMap: Record<number, string> = {
-          2: 'sent',
-          3: 'delivered',
-          4: 'read',
-        }
+      if (supabase) {
+        const { data: savedMessage } = await supabase
+          .from('whatsapp_messages')
+          .insert({
+            chat_id: chat.id,
+            tenant_id: chat.tenant_id,
+            wa_message_id: msg.key.id,
+            direction: isFromMe ? 'out' : 'in',
+            content_type: content.type,
+            content_text: content.text,
+            sender_jid: msg.key.participant || remoteJid,
+            status: 'delivered',
+          })
+          .select()
+          .single()
 
         await supabase
-          .from('whatsapp_messages')
-          .update({ status: statusMap[update.update.status] || 'sent' })
-          .eq('wa_message_id', update.key.id)
+          .from('whatsapp_chats')
+          .update({
+            last_message_text: content.text || '[' + content.type + ']',
+            last_message_at: new Date().toISOString(),
+            last_message_direction: isFromMe ? 'out' : 'in',
+            unread_count: isFromMe ? 0 : (chat.unread_count || 0) + 1,
+          })
+          .eq('id', chat.id)
+
+        io.to(sessionId).emit('message', { message: savedMessage, chat })
       }
+
+      logger.info('New message in ' + remoteJid)
     }
   })
 
@@ -237,24 +205,31 @@ async function connectToWhatsApp(sessionId: string) {
 // HELPER FUNCTIONS
 // ============================================
 
-async function updateSessionStatus(sessionId: string, status: string) {
-  await supabase
-    .from('whatsapp_sessions')
-    .update({ status })
-    .eq('id', sessionId)
+async function updateSessionStatusDB(sessionId: string, status: string, qrData?: string) {
+  if (!supabase) return
+  try {
+    const updateData: any = { status }
+    if (qrData) {
+      updateData.qr_code = qrData
+      updateData.qr_expires_at = new Date(Date.now() + 60000).toISOString()
+    }
+    await supabase.from('whatsapp_sessions').update(updateData).eq('id', sessionId)
+  } catch (e) {
+    logger.warn('Failed to update session status in DB: ' + e)
+  }
 }
 
 async function getOrCreateChat(sessionId: string, remoteJid: string, msg: any) {
-  // Get session to find tenant_id
+  if (!supabase) return null
+
   const { data: session } = await supabase
     .from('whatsapp_sessions')
     .select('tenant_id')
     .eq('id', sessionId)
     .single()
 
-  if (!session) throw new Error('Session not found')
+  if (!session) return null
 
-  // Try to find existing chat
   const { data: existingChat } = await supabase
     .from('whatsapp_chats')
     .select('*')
@@ -264,19 +239,14 @@ async function getOrCreateChat(sessionId: string, remoteJid: string, msg: any) {
 
   if (existingChat) return existingChat
 
-  // Extract contact info
-  const phoneNumber = remoteJid.split('@')[0]
-  const contactName = msg.pushName || null
-
-  // Create new chat
   const { data: newChat } = await supabase
     .from('whatsapp_chats')
     .insert({
       session_id: sessionId,
       tenant_id: session.tenant_id,
       remote_jid: remoteJid,
-      contact_phone: phoneNumber,
-      contact_name: contactName,
+      contact_phone: remoteJid.split('@')[0],
+      contact_name: msg.pushName || null,
       status: 'open',
     })
     .select()
@@ -285,58 +255,15 @@ async function getOrCreateChat(sessionId: string, remoteJid: string, msg: any) {
   return newChat
 }
 
-function extractMessageContent(msg: any): {
-  type: string
-  text: string | null
-  mediaUrl: string | null
-  caption: string | null
-} {
-  const message = msg.message
-
-  if (message?.conversation) {
-    return { type: 'text', text: message.conversation, mediaUrl: null, caption: null }
-  }
-
-  if (message?.extendedTextMessage) {
-    return { type: 'text', text: message.extendedTextMessage.text, mediaUrl: null, caption: null }
-  }
-
-  if (message?.imageMessage) {
-    return {
-      type: 'image',
-      text: null,
-      mediaUrl: null, // Would need to download and upload to storage
-      caption: message.imageMessage.caption || null,
-    }
-  }
-
-  if (message?.videoMessage) {
-    return {
-      type: 'video',
-      text: null,
-      mediaUrl: null,
-      caption: message.videoMessage.caption || null,
-    }
-  }
-
-  if (message?.audioMessage) {
-    return { type: 'audio', text: null, mediaUrl: null, caption: null }
-  }
-
-  if (message?.documentMessage) {
-    return {
-      type: 'document',
-      text: message.documentMessage.fileName || null,
-      mediaUrl: null,
-      caption: message.documentMessage.caption || null,
-    }
-  }
-
-  if (message?.stickerMessage) {
-    return { type: 'sticker', text: null, mediaUrl: null, caption: null }
-  }
-
-  return { type: 'unknown', text: null, mediaUrl: null, caption: null }
+function extractMessageContent(msg: any) {
+  const m = msg.message
+  if (m?.conversation) return { type: 'text', text: m.conversation }
+  if (m?.extendedTextMessage) return { type: 'text', text: m.extendedTextMessage.text }
+  if (m?.imageMessage) return { type: 'image', text: null }
+  if (m?.videoMessage) return { type: 'video', text: null }
+  if (m?.audioMessage) return { type: 'audio', text: null }
+  if (m?.documentMessage) return { type: 'document', text: m.documentMessage.fileName }
+  return { type: 'unknown', text: null }
 }
 
 // ============================================
@@ -344,7 +271,7 @@ function extractMessageContent(msg: any): {
 // ============================================
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     connections: connections.size,
@@ -352,7 +279,7 @@ app.get('/health', (req, res) => {
   })
 })
 
-// Connect session
+// Connect session (start WhatsApp connection, returns immediately)
 app.post('/sessions/:sessionId/connect', async (req, res) => {
   const { sessionId } = req.params
 
@@ -361,10 +288,62 @@ app.post('/sessions/:sessionId/connect', async (req, res) => {
       return res.json({ status: 'already_connected' })
     }
 
-    await connectToWhatsApp(sessionId)
+    // Start connection (async - QR will come later)
+    connectToWhatsApp(sessionId).catch((e) => {
+      logger.error('Background connect error for ' + sessionId + ': ' + e.message)
+    })
+
     res.json({ status: 'connecting' })
   } catch (error: any) {
-    logger.error(`Failed to connect session ${sessionId}:`, error)
+    logger.error('Failed to connect session ' + sessionId, error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// GET QR code for a session (polling endpoint)
+app.get('/sessions/:sessionId/qr', (req, res) => {
+  const { sessionId } = req.params
+  const qrData = qrCodes.get(sessionId)
+  const status = sessionStatuses.get(sessionId) || 'unknown'
+
+  if (qrData && qrData.expiresAt > Date.now()) {
+    return res.json({
+      status: 'qr_pending',
+      qr: qrData.qr,
+      expiresAt: new Date(qrData.expiresAt).toISOString(),
+    })
+  }
+
+  if (status === 'connected') {
+    const sock = connections.get(sessionId)
+    return res.json({
+      status: 'connected',
+      phoneNumber: sock?.user?.id?.split(':')[0] || null,
+    })
+  }
+
+  res.json({ status })
+})
+
+// Create and connect session (POST /sessions)
+app.post('/sessions', async (req, res) => {
+  const { sessionId } = req.body
+
+  try {
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' })
+    }
+
+    if (connections.has(sessionId)) {
+      return res.json({ status: 'already_connected' })
+    }
+
+    connectToWhatsApp(sessionId).catch((e) => {
+      logger.error('Background connect error: ' + e.message)
+    })
+
+    res.json({ status: 'connecting', sessionId })
+  } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
 })
@@ -376,14 +355,39 @@ app.post('/sessions/:sessionId/disconnect', async (req, res) => {
   try {
     const sock = connections.get(sessionId)
     if (sock) {
-      await sock.logout()
+      try { await sock.logout() } catch (_e) { /* ignore */ }
       connections.delete(sessionId)
     }
-
-    await updateSessionStatus(sessionId, 'disconnected')
+    qrCodes.delete(sessionId)
+    sessionStatuses.set(sessionId, 'disconnected')
+    await updateSessionStatusDB(sessionId, 'disconnected')
     res.json({ status: 'disconnected' })
   } catch (error: any) {
-    logger.error(`Failed to disconnect session ${sessionId}:`, error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Delete session
+app.delete('/sessions/:sessionId', async (req, res) => {
+  const { sessionId } = req.params
+
+  try {
+    const sock = connections.get(sessionId)
+    if (sock) {
+      try { await sock.logout() } catch (_e) { /* ignore */ }
+      connections.delete(sessionId)
+    }
+    qrCodes.delete(sessionId)
+    sessionStatuses.delete(sessionId)
+
+    const sessionPath = path.join(SESSIONS_DIR, sessionId)
+    if (fs.existsSync(sessionPath)) {
+      fs.rmSync(sessionPath, { recursive: true, force: true })
+    }
+
+    await updateSessionStatusDB(sessionId, 'disconnected')
+    res.json({ status: 'deleted' })
+  } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
 })
@@ -391,7 +395,7 @@ app.post('/sessions/:sessionId/disconnect', async (req, res) => {
 // Send message
 app.post('/sessions/:sessionId/send', async (req, res) => {
   const { sessionId } = req.params
-  const { chatId, text, mediaUrl, mediaType } = req.body
+  const { chatId, text, phone, message } = req.body
 
   try {
     const sock = connections.get(sessionId)
@@ -399,44 +403,59 @@ app.post('/sessions/:sessionId/send', async (req, res) => {
       return res.status(400).json({ error: 'Session not connected' })
     }
 
-    // Get chat remote_jid
-    const { data: chat } = await supabase
-      .from('whatsapp_chats')
-      .select('remote_jid')
-      .eq('id', chatId)
-      .single()
+    let remoteJid: string | null = null
 
-    if (!chat) {
-      return res.status(404).json({ error: 'Chat not found' })
+    if (chatId && supabase) {
+      const { data: chat } = await supabase
+        .from('whatsapp_chats')
+        .select('remote_jid')
+        .eq('id', chatId)
+        .single()
+      remoteJid = chat?.remote_jid || null
     }
 
-    let sentMsg
+    if (!remoteJid && phone) {
+      remoteJid = phone.replace(/[^0-9]/g, '') + '@s.whatsapp.net'
+    }
 
-    if (text) {
-      sentMsg = await sock.sendMessage(chat.remote_jid, { text })
-    } else if (mediaUrl) {
-      // Handle media messages
-      sentMsg = await sock.sendMessage(chat.remote_jid, {
-        [mediaType]: { url: mediaUrl },
-      })
+    if (!remoteJid) {
+      return res.status(400).json({ error: 'No recipient specified' })
+    }
+
+    const messageText = text || message
+    let sentMsg: any
+
+    if (messageText) {
+      sentMsg = await sock.sendMessage(remoteJid, { text: messageText })
     }
 
     res.json({ messageId: sentMsg?.key?.id })
   } catch (error: any) {
-    logger.error(`Failed to send message:`, error)
     res.status(500).json({ error: error.message })
   }
 })
 
 // Get session status
-app.get('/sessions/:sessionId/status', async (req, res) => {
+app.get('/sessions/:sessionId', (req, res) => {
   const { sessionId } = req.params
-
-  const isConnected = connections.has(sessionId)
+  const status = sessionStatuses.get(sessionId) || 'disconnected'
   const sock = connections.get(sessionId)
 
   res.json({
-    connected: isConnected,
+    status,
+    connected: connections.has(sessionId),
+    phoneNumber: sock?.user?.id?.split(':')[0] || null,
+  })
+})
+
+app.get('/sessions/:sessionId/status', (req, res) => {
+  const { sessionId } = req.params
+  const status = sessionStatuses.get(sessionId) || 'disconnected'
+  const sock = connections.get(sessionId)
+
+  res.json({
+    status,
+    connected: connections.has(sessionId),
     phoneNumber: sock?.user?.id?.split(':')[0] || null,
   })
 })
@@ -446,11 +465,11 @@ app.get('/sessions/:sessionId/status', async (req, res) => {
 // ============================================
 
 io.on('connection', (socket) => {
-  logger.info(`Client connected: ${socket.id}`)
+  logger.info('Client connected: ' + socket.id)
 
   socket.on('subscribe', (sessionId: string) => {
     socket.join(sessionId)
-    logger.info(`Client ${socket.id} subscribed to session ${sessionId}`)
+    logger.info('Client ' + socket.id + ' subscribed to ' + sessionId)
   })
 
   socket.on('unsubscribe', (sessionId: string) => {
@@ -458,7 +477,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('disconnect', () => {
-    logger.info(`Client disconnected: ${socket.id}`)
+    logger.info('Client disconnected: ' + socket.id)
   })
 })
 
@@ -467,25 +486,26 @@ io.on('connection', (socket) => {
 // ============================================
 
 async function startup() {
-  // Load all active sessions from DB and reconnect
-  const { data: sessions } = await supabase
-    .from('whatsapp_sessions')
-    .select('id')
-    .eq('status', 'connected')
+  if (supabase) {
+    const { data: sessions } = await supabase
+      .from('whatsapp_sessions')
+      .select('id')
+      .eq('status', 'connected')
 
-  if (sessions) {
-    for (const session of sessions) {
-      logger.info(`Reconnecting session: ${session.id}`)
-      try {
-        await connectToWhatsApp(session.id)
-      } catch (error) {
-        logger.error(`Failed to reconnect session ${session.id}:`, error)
+    if (sessions) {
+      for (const session of sessions) {
+        logger.info('Reconnecting session: ' + session.id)
+        try {
+          await connectToWhatsApp(session.id)
+        } catch (error) {
+          logger.error('Failed to reconnect ' + session.id)
+        }
       }
     }
   }
 
   httpServer.listen(PORT, () => {
-    logger.info(`WhatsApp Bridge Server running on port ${PORT}`)
+    logger.info('WhatsApp Bridge Server running on port ' + PORT)
   })
 }
 

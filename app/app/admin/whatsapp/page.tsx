@@ -167,10 +167,37 @@ export default function WhatsAppAdminPage() {
         throw new Error(data.error || 'Не удалось подключиться к WhatsApp Bridge')
       }
       
-      // Refresh data to show QR code
-      loadData()
-      setTimeout(() => loadData(), 3000)
-      setTimeout(() => loadData(), 8000)
+      // QR приходит асинхронно от Baileys — poll Bridge каждые 2 сек
+      let attempts = 0
+      const pollQR = async () => {
+        attempts++
+        if (attempts > 30) return // макс 60 сек
+        
+        try {
+          const qrResponse = await fetch(`/api/whatsapp?action=qr&sessionId=${sessionId}`)
+          const qrData = await qrResponse.json()
+          
+          if (qrData.status === 'qr_pending' && qrData.qr) {
+            // QR получен — обновляем данные
+            await loadData()
+            return
+          }
+          
+          if (qrData.status === 'connected') {
+            await loadData()
+            return
+          }
+          
+          // Ещё нет QR — ждём и пробуем снова
+          setTimeout(pollQR, 2000)
+        } catch {
+          setTimeout(pollQR, 2000)
+        }
+      }
+      
+      // Начинаем polling через 1 сек (дадим время Baileys подключиться)
+      setTimeout(pollQR, 1000)
+      
     } catch (e: any) {
       console.error('Connect error:', e)
       setError(`Ошибка подключения: ${e.message}. Убедитесь что WhatsApp Bridge запущен на сервере.`)
